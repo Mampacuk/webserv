@@ -26,7 +26,7 @@ class base_dir
 		unsigned int get_client_max_body_size() const;
 		void add_error_page(unsigned int error_code, const std::string &error_page);
 		void add_index(const std::string &index_file);
-		const std::string &get_error_page(unsigned int error_code) const;
+		const std::string get_error_page(unsigned int error_code) const;
 		const std::vector<std::string> &get_indexes() const;
 };
 

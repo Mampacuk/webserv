@@ -20,10 +20,10 @@ class location : public base_dir_ext
 		location(const location &other);
 		location(const base_dir &other);
 		location &operator=(const location &other);
-		const std::string &get_cgi(const std::string extension) const;
+		const std::string get_cgi(const std::string extension) const;
 		const std::string &get_rout() const;
 		bool method_allowed(const std::string &method) const;
-		bool modifier() const;
+		bool has_modifier() const;
 };
 
 #endif

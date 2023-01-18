@@ -17,6 +17,8 @@ class server : public base_dir_ext
 		server &operator=(const server &other);
 		const std::set<std::string> &get_names() const;
 		const std::set<std::pair<std::string, unsigned int>> &get_listens();
+		void add_name(const std::string &name);
+		void add_listen(const std::string &host, unsigned int port);
 };
 
 #endif
