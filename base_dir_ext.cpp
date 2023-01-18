@@ -6,6 +6,8 @@ base_dir_ext::~base_dir_ext() {}
 
 base_dir_ext::base_dir_ext(const base_dir_ext &other): base_dir(other), locations(other.locations), redirects(other.redirects) {}
 
+base_dir_ext::base_dir_ext(const base_dir &other): base_dir(other), locations(), redirects() {}
+
 base_dir_ext &base_dir_ext::operator=(const base_dir_ext &other)
 {
     base_dir::operator=(other);
