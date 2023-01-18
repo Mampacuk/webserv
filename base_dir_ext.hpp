@@ -11,7 +11,7 @@ class base_dir_ext : public base_dir
 		std::multimap<std::string, std::string> redirects;
 	public:
 		base_dir_ext();
-		~base_dir_ext();
+		virtual ~base_dir_ext();
 		base_dir_ext(const base_dir_ext &other);
 		base_dir_ext &operator=(const base_dir_ext &other);
 		const std::multimap<std::string, std::string> &get_redirects();

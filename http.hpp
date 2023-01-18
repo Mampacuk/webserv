@@ -6,7 +6,7 @@
 
 # include <vector>
 
-class http : base_dir
+class http : public base_dir
 {
 	private:
 		std::vector<server>	servers;
