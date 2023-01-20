@@ -14,6 +14,12 @@ parser &parser::operator=(const parser &other)
 
 }
 
+// void parser::get_chunks()
+// {
+// 	std::string line;
+// 	if ()
+// }
+
 base_dir *parser::parse(base_dir *parent)
 {
 	for (context_map::iterator it = this->contexts.begin(); it != this->contexts.end(); it++)
@@ -36,16 +42,16 @@ base_dir *parser::parse(base_dir *parent)
 
 bool parser::is_context(std::string context)
 {
-	if (context.compare(0, context.length(), this->chunks.front()))
+	if (context.compare(0, context.length(), this->chunks.front()) == 0)
 	{
 		this->chunks.front() = this->chunks.front().substr(context.length(), this->chunks.front().length() - context.length());
-		if (context != "location" && this->chunks.front()[0] == '{')
+		if (context != "location")
 		{
 			if (this->chunks.front().empty())
 				this->chunks.pop_front();
-			return (true);
+			return (this->chunks.front()[0] == '{');
 		}	
-		else if (context == "location")
+		else
 		{
 			if (!this->chunks.front().empty())
 				return (false);
@@ -63,7 +69,7 @@ bool parser::is_context(std::string context)
 
 bool parser::is_directive(std::string directive)
 {
-	if (!directive.compare(0, directive.length(), this->chunks.front()))
+	if (directive.compare(0, directive.length(), this->chunks.front()))
 		return (false);
 	this->chunks.front() = this->chunks.front().substr(directive.length(), this->chunks.front().length() - directive.length());
 	if (this->chunks.front().empty())

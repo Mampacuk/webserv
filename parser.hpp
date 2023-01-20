@@ -24,7 +24,7 @@ class parser
 		parser &operator=(const parser &other);
 		base_dir *parse(base_dir *parent);
 	private:
-		bool get_chunks();
+		void get_chunks();
 		bool is_context(std::string context);
 		bool is_directive(std::string context);
 };
