@@ -38,38 +38,35 @@ bool parser::is_context(std::string context)
 
 	if (context.compare(0, context.length(), this->chunks.front()) == 0)
 	{
-		if (erase_chunk_front(context))
+		if (erase_chunk_front(context) && context == "location")
 		{
-			if (context == "location")
+			if (this->chunks.front() == "=")
 			{
-				if (this->chunks.front() == "=")
-				{
-					location_args.push_back("=");
-					this->chunks.pop_front();
-				}
-				const size_t brace_index = this->chunks.front().find("{");
-				if (brace_index != std::string::npos)
-				{
-					location_args.push_back(this->chunks.front().substr(0, brace_index));
-					this->chunks.front() = this->chunks.front().substr(brace_index, this->chunks.front().length() - brace_index);
-				}
-				else
-				{
-					location_args.push_back(this->chunks.front());
-					this->chunks.pop_front();
-				}
+				location_args.push_back("=");
+				this->chunks.pop_front();
 			}
-			if (this->chunks.front()[0] == '{')
-				erase_chunk_front("{");
+			const size_t brace_index = this->chunks.front().find("{");
+			if (brace_index != std::string::npos)
+			{
+				location_args.push_back(this->chunks.front().substr(0, brace_index));
+				this->chunks.front() = this->chunks.front().substr(brace_index, this->chunks.front().length() - brace_index);
+			}
 			else
-				throw std::invalid_argument("Opening brace not found after the context.");
-			for (size_t i = 0; i < location_args.size(); i++)
-				this->chunks.push_front(location_args[i]);
-			push_brace('{');
-			return (true);
+			{
+				location_args.push_back(this->chunks.front());
+				this->chunks.pop_front();
+			}
 		}
-		else
+		else if (context == "location")
 			throw std::invalid_argument("Location parsing error occured.");
+		if (this->chunks.front()[0] == '{')
+			erase_chunk_front("{");
+		else
+			throw std::invalid_argument("Opening brace not found after the context.");
+		for (size_t i = 0; i < location_args.size(); i++)
+			this->chunks.push_front(location_args[i]);
+		push_brace('{');
+		return (true);
 	}
 	return (false);
 }
@@ -100,6 +97,7 @@ void parser::get_chunks()
 	}
 }
 
+//returns true if the erased str was a separate chunk, otherwise false
 bool parser::erase_chunk_front(std::string str)
 {
 	if (!str.compare(0, str.length(), this->chunks.front()))
@@ -107,10 +105,9 @@ bool parser::erase_chunk_front(std::string str)
 	if (this->chunks.front().empty())
 	{
 		this->chunks.pop_front();
-		if (str == "location")
-			return (false);		// only indicates failure of "location" context error!
+		return (true);
 	}
-	return (true);
+	return (false);
 }
 
 base_dir *parser::process_http(base_dir*)
