@@ -78,9 +78,7 @@ bool parser::is_directive(std::string directive)
 {
 	if (directive.compare(0, directive.length(), this->chunks.front()))
 		return (false);
-	this->chunks.front() = this->chunks.front().substr(directive.length(), this->chunks.front().length() - directive.length());
-	if (this->chunks.front().empty())
-		this->chunks.pop_front();
+	erase_chunk_front(directive);
 	return (true);
 }
 
