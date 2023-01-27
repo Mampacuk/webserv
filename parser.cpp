@@ -236,18 +236,20 @@ void parser::read_redirect(base_dir *parent)
 	bool semicolon;
 
 	if (erase_chunk_middle(";"))
-		throw std::invalid_argument("Parsing error");
+		throw std::invalid_argument("Parsing error.");
 	else
 	{
 		expr = this->chunks.front();
-		erase_chunk_front(expr);
+		this->chunks.pop_front();
 	}
 	semicolon = erase_chunk_middle(";");
+	if (this->chunks.front().empty())
+		throw std::invalid_argument("Parsing error.");
 	static_cast<base_dir_ext *>(parent)->add_redirect(expr, this->chunks.front());
 	if (!semicolon && this->chunks.front()[0] == ';')
 		erase_chunk_front(";");
 	else
-		throw std::invalid_argument("Parsing error");
+		throw std::invalid_argument("Parsing error.");
 }
 
 void parser::read_root(base_dir *parent)
@@ -277,10 +279,12 @@ bool parser::erase_chunk_middle(std::string str)
 
 void parser::read_limit_except(base_dir *loc)
 {
+	if (this->chunks.front()[0] == ';')
+		throw std::invalid_argument("Parsing error. Few arguments for the limit_except directive.");
 	while (!erase_chunk_middle(";"))
 	{
 		static_cast<location *>(loc)->add_method(this->chunks.front());
-		erase_chunk_front(this->chunks.front());
+		this->chunks.pop_front();
 	}
 	if (!this->chunks.front().empty())
 	{
@@ -302,7 +306,7 @@ void parser::read_cgi(base_dir *loc)
 		if (!erase_chunk_middle(";"))
 		{
 			path = this->chunks.front();
-			erase_chunk_front(path);
+			this->chunks.pop_front();
 			if (this->chunks.front()[0] == ';')
 				erase_chunk_front(";");
 			else
@@ -311,7 +315,7 @@ void parser::read_cgi(base_dir *loc)
 		else
 		{
 			path = this->chunks.front();
-			erase_chunk_front(path);
+			this->chunks.pop_front();
 		}
 	}
 	else
