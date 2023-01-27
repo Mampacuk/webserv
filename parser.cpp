@@ -196,3 +196,64 @@ void parser::push_brace(char brace)
 	}
 	this->braces.push(brace);
 }
+
+void parser::read_client_max_body_size(base_dir *parent)										
+{
+	std::string str;
+
+	if (!parser::erase_chunk_front("client_max_body_size"))
+		throw std::invalid_argument("Parsing error occured. Max body size has syntax error!");
+	size_t index = this->chunks.front().find(";");
+	if (index == std::string::npos)
+		str = this->chunks.front(); //am I allowed to use the function?
+	else
+		str = this->chunks.front().substr(0, index);
+	erase_chunk_front(str);
+	if (this->chunks.front()[0] == ';')		//if there is no chunks after the directive, throws exception 
+		erase_chunk_front(";");
+	else
+		throw std::invalid_argument("Parsing error occured. No ; after the directive.");
+	//set maxbody size
+}
+
+void parser::read_index(base_dir *parent)
+{
+	if (!parser::erase_chunk_front("index"))
+		throw std::invalid_argument("Parsing error occured. Index has syntax error!");
+	size_t index = this->chunks.front().find(";"); 
+	while (index == std::string::npos)
+	{
+		parent->add_index(this->chunks.front()));
+		erase_chunk_front(this->chunks.front());
+		index = this->chunks.front().find(";"); 
+	}
+	parent->add_index(this->chunks.front().substr(0, index));
+	erase_chunk_front(this->chunks.front().substr(0, index));
+	if (this->chunks.front()[0] == ';')		//is the if necessary? 
+		erase_chunk_front(";");
+	else
+		throw std::invalid_argument("Parsing error occured. No ; after the directive.");
+}
+
+void parser::read_redirect(base_dir *parent)
+{
+	std::string str;
+
+	if (!parser::erase_chunk_front("redirect"))
+		throw std::invalid_argument("Parsing error occured. Redirect has syntax error!");
+	size_t index = this->chunks.front().find(";");
+	if (index == std::string::npos)
+		str = this->chunks.front();
+	else
+		str = this->chunks.front().substr(0, index);
+	erase_chunk_front(str);
+	if (this->chunks.front()[0] == ';')		//if there is no chunks after the directive, throws exception 
+		erase_chunk_front(";");
+	else
+		throw std::invalid_argument("Parsing error occured. No ; after the directive.");
+	static_cast<base_dir_ext*>(parent)->add_redirect(str);
+}
+
+
+
+
