@@ -75,7 +75,8 @@ bool parser::is_directive(std::string directive)
 {
 	if (directive.compare(0, directive.length(), this->chunks.front()))
 		return (false);
-	erase_chunk_front(directive);
+	if (!erase_chunk_front(directive))
+		throw std::invalid_argument("Invalid directive name.");
 	return (true);
 }
 
@@ -259,26 +260,118 @@ void parser::read_redirect(base_dir *parent)
 
 void parser::read_root(base_dir *parent)
 {
-	bool semicolon;
-	semicolon = erase_chunk_middle(";");
+	bool semicolon = erase_chunk_middle(";");
+	// if (this->chunks.front().empty()) ???
 	parent->set_root(this->chunks.front());
 	this->chunks.pop_front();
-	// blabla ;  => blabla, ...      semicolon = false
-	// blabla;   => blabla, ...      semicolon = true
-	// ;         => ???              semicolon = true
-	
+	if (!semicolon && this->chunks.front()[0] != ';')
+		throw std::invalid_argument("Parsing error occured. No ; after the directive.");
+	erase_chunk_front(";"); // in case erase_chunk_middle() didn't remove the ;
+	// blabla ; root ...  => "blabla", ";", "root"       semicolon = false > SUCCESS
+	// blabla ;root ... => "blabla", ";root"       semicolon = false   >> SUCCESS
+	// blabla; root  => "blabla", "root" ...      semicolon = true    >> SUCCESS
+	// blabla;root   => "blabla", "root", ... semicolon = true       >> SUCCESS
+	// ; root        => "", "root"              semicolon = true     >>
+	// ;root         => "", "root"              semicolon = true     >>
+	// blabla root   => "blabla", "root"       semicolon = false   >> FALSE
+}
+
+void parser::read_autoindex(base_dir *parent)
+{
+	bool semicolon = erase_chunk_middle(";");
+	if (this->chunks.front() == "on")
+		parent->set_autoindex(true);
+	else if (this->chunks.front() == "off")
+		parent->set_autoindex(false);
+	else
+		throw std::invalid_argument("Parsing error occured. Invalid autoindex argument.");
+	this->chunks.pop_front();
+	if (!semicolon && this->chunks.front()[0] != ';')
+		throw std::invalid_argument("Parsing error occured. No ; after the directive.");
+	erase_chunk_front(";");
+}
+
+void parser::read_error_page(base_dir *parent)
+{
+	// 404 421 132 433 111 ... path;
+	// 404 421 132 433 111 ... path ; root
+	// 404 421 132 433 111 ... path ;root
+	// 404 421 132 433 111 ... path;root
+	// path; => "path"  semicolon = true
+	// 404 421 132 433 111 ... path;
+	// 
+	std::vector<unsigned int> response_codes;
+	while (!erase_chunk_middle(";"))
+	{
+		const unsigned int response_code = strtol(this->chunks.front().c_str(), nullptr, 10);
+		if (!is_response_code(response_code))
+			break ;
+		response_codes.push_back(response_code);
+		this->chunks.pop_front();
+	}
+	if (response_codes.empty() || this->chunks.front().empty());
+		throw std::invalid_argument("Parsing error occured. Error page syntax error.");
+	for (int i = 0; i < response_codes.size(); i++)
+		parent->add_error_page(response_codes[i], this->chunks.front());
+	this->chunks.pop_front();
+	erase_chunk_front(";");
+}
+
+// address:port;      => "address", "port;"
+// address:port;root  => "address", "port;root"
+// address:port ;     => "address", "port", ";"
+// ;
+// address;			  => "address;"
+// address ;		  => "address", ";"
+// address ;root      => "address", ";root"
+// address;root       => "address;root"
+void parser::read_listen(base_dir *parent)
+{
+	bool port_specified = erase_chunk_middle(":");
+	if (this->chunks.front().empty())
+		throw std::invalid_argument("Parsing error occured. Listen syntax error.");
+	std::string address;
+	unsigned int port = 80;
+	if (!port_specified)
+		erase_chunk_middle(";");
+	address = this->chunks.front();
+	this->chunks.pop_front();
+	if (port_specified)
+	{
+		erase_chunk_middle(";");
+		port = 
+	}
+	erase_chunk_front(";");
+}
+
+bool parser::is_response_code(unsigned int response_code)
+{
+	return (response_code >= 100 && response_code < 600);
 }
 
 // returns true if str was removed, false if str wasn't found
-// splits the front chunk if it's in the middle
+// splits the front chunk if str is in the middle
 bool parser::erase_chunk_middle(std::string str)
 {
 	const std::string front = this->chunks.front(); 
 	const size_t str_index = front.find(str);
 	if (str_index == std::string::npos)
 		return (false);
+	const std::string low = front.substr(str_index + 1);
+	const std::string high = front.substr(0, str_index);
 	this->chunks.pop_front();
-	this->chunks.push_front(front.substr(str_index + 1));
-	this->chunks.push_front(front.substr(0, str_index));
+	if (!low.empty())
+		this->chunks.push_front(low);
+	this->chunks.push_front(high);
 	return (true);
+}
+
+unsigned int parser::strtoui(const std::string &number)
+{
+	const char *str_begin = number.c_str();
+	char *str_end = nullptr;
+	if (!isdigit(number[0]))
+		throw std::invalid_argument("Number parsing error occured.");
+	unsigned int ui = strtoul(str_begin, &str_end, 10);
+	if (str_end != str_begin + number.length())
 }

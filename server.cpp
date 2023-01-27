@@ -30,7 +30,7 @@ void server::add_name(const std::string &name)
 	this->names.insert(name);
 }
 
-void server::add_listen(const std::string &host, unsigned int port)
+void server::add_listen(const std::string &host, unsigned int port = 80)
 {
 	this->listens.insert(std::pair<std::string, unsigned int>(host, port));
 }
