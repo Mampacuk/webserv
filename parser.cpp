@@ -196,3 +196,29 @@ void parser::push_brace(char brace)
 	}
 	this->braces.push(brace);
 }
+
+void parser::read_root(base_dir *parent)
+{
+	bool semicolon;
+	semicolon = erase_chunk_middle(";");
+	parent->set_root(this->chunks.front());
+	this->chunks.pop_front();
+	// blabla ;  => blabla, ...      semicolon = false
+	// blabla;   => blabla, ...      semicolon = true
+	// ;         => ???              semicolon = true
+	
+}
+
+// returns true if str was removed, false if str wasn't found
+// splits the front chunk if it's in the middle
+bool parser::erase_chunk_middle(std::string str)
+{
+	const std::string front = this->chunks.front(); 
+	const size_t str_index = front.find(str);
+	if (str_index == std::string::npos)
+		return (false);
+	this->chunks.pop_front();
+	this->chunks.push_front(front.substr(str_index + 1));
+	this->chunks.push_front(front.substr(0, str_index));
+	return (true);
+}
