@@ -339,7 +339,7 @@ void parser::read_listen(base_dir *parent)
 	if (port_specified)
 	{
 		erase_chunk_middle(";");
-		port = 
+		// port = 
 	}
 	erase_chunk_front(";");
 }
@@ -373,5 +373,7 @@ unsigned int parser::strtoui(const std::string &number)
 	if (!isdigit(number[0]))
 		throw std::invalid_argument("Number parsing error occured.");
 	unsigned int ui = strtoul(str_begin, &str_end, 10);
-	if (str_end != str_begin + number.length())
+	if (str_end != str_begin + number.length() || errno == ERANGE)
+		throw std::invalid_argument("Number parsing error occured.");
+	return (ui);
 }
