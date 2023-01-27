@@ -29,6 +29,7 @@ class parser
 		base_dir *parse(base_dir *parent);
 	private:
 		void get_chunks();
+		bool erase_chunk_middle(std::string str);
 		bool erase_chunk_front(std::string str);
 		bool is_context(std::string context);
 		bool is_directive(std::string context);

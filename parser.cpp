@@ -223,7 +223,7 @@ void parser::read_index(base_dir *parent)
 	size_t index = this->chunks.front().find(";"); 
 	while (index == std::string::npos)
 	{
-		parent->add_index(this->chunks.front()));
+		parent->add_index(this->chunks.front());
 		erase_chunk_front(this->chunks.front());
 		index = this->chunks.front().find(";"); 
 	}
@@ -251,9 +251,34 @@ void parser::read_redirect(base_dir *parent)
 		erase_chunk_front(";");
 	else
 		throw std::invalid_argument("Parsing error occured. No ; after the directive.");
-	static_cast<base_dir_ext*>(parent)->add_redirect(str);
+	// static_cast<base_dir_ext*>(parent)->add_redirect(str);
 }
 
 
 
 
+void parser::read_root(base_dir *parent)
+{
+	bool semicolon;
+	semicolon = erase_chunk_middle(";");
+	parent->set_root(this->chunks.front());
+	this->chunks.pop_front();
+	// blabla ;  => blabla, ...      semicolon = false
+	// blabla;   => blabla, ...      semicolon = true
+	// ;         => ???              semicolon = true
+	
+}
+
+// returns true if str was removed, false if str wasn't found
+// splits the front chunk if it's in the middle
+bool parser::erase_chunk_middle(std::string str)
+{
+	const std::string front = this->chunks.front(); 
+	const size_t str_index = front.find(str);
+	if (str_index == std::string::npos)
+		return (false);
+	this->chunks.pop_front();
+	this->chunks.push_front(front.substr(str_index + 1));
+	this->chunks.push_front(front.substr(0, str_index));
+	return (true);
+}
