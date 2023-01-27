@@ -1,9 +1,9 @@
 #include "parser.hpp"
 #include "http.hpp"
+#include "location.hpp"
 
 parser::parser()
 {
-
 }
 
 parser::~parser() {}
@@ -12,7 +12,6 @@ parser::parser(const parser &other) {}
 
 parser &parser::operator=(const parser &other)
 {
-
 }
 
 base_dir *parser::parse(base_dir *parent)
@@ -83,7 +82,7 @@ bool parser::is_directive(std::string directive)
 void parser::get_chunks()
 {
 	std::string line;
-	
+
 	while (std::getline(this->config, line))
 	{
 		std::string chunk;
@@ -98,7 +97,7 @@ void parser::get_chunks()
 	}
 }
 
-//returns true if the erased str was a separate chunk, otherwise false
+// returns true if the erased str was a separate chunk, otherwise false
 bool parser::erase_chunk_front(std::string str)
 {
 	if (!str.compare(0, str.length(), this->chunks.front()))
@@ -111,7 +110,7 @@ bool parser::erase_chunk_front(std::string str)
 	return (false);
 }
 
-base_dir *parser::process_http(base_dir*)
+base_dir *parser::process_http(base_dir *)
 {
 	http *protocol = new http();
 	this->contexts.erase("http");
@@ -130,7 +129,7 @@ base_dir *parser::process_http(base_dir*)
 
 base_dir *parser::process_server(base_dir *protocol)
 {
-	server	serv(*protocol);
+	server serv(*protocol);
 	this->contexts.erase("server");
 	this->contexts.insert(context("location", &parser::process_location));
 	this->directives.insert(directive("listen", &parser::read_listen));
@@ -141,7 +140,7 @@ base_dir *parser::process_server(base_dir *protocol)
 	erase_chunk_front("}");
 	push_brace('}');
 
-	static_cast<http*>(protocol)->add_server(serv);
+	static_cast<http *>(protocol)->add_server(serv);
 
 	this->directives.erase("server_name");
 	this->directives.erase("listen");
@@ -161,7 +160,7 @@ base_dir *parser::process_location(base_dir *parent)
 	erase_chunk_front("}");
 	push_brace('}');
 
-	static_cast<base_dir_ext*>(parent)->add_location(loc);
+	static_cast<base_dir_ext *>(parent)->add_location(loc);
 
 	this->directives.erase("limit_except");
 	this->directives.erase("cgi");
@@ -189,7 +188,7 @@ void parser::unload_base_dir()
 void parser::push_brace(char brace)
 {
 	if (brace != '{' && brace != '}')
-		return ;
+		return;
 	if (brace == '}')
 	{
 		if (this->braces.top() == '{')
@@ -198,39 +197,35 @@ void parser::push_brace(char brace)
 	this->braces.push(brace);
 }
 
-void parser::read_client_max_body_size(base_dir *parent)										
+void parser::read_client_max_body_size(base_dir *parent)
 {
 	std::string str;
 
-	if (!parser::erase_chunk_front("client_max_body_size"))
-		throw std::invalid_argument("Parsing error occured. Max body size has syntax error!");
 	size_t index = this->chunks.front().find(";");
 	if (index == std::string::npos)
-		str = this->chunks.front(); //am I allowed to use the function?
+		str = this->chunks.front(); // am I allowed to use the function?
 	else
 		str = this->chunks.front().substr(0, index);
 	erase_chunk_front(str);
-	if (this->chunks.front()[0] == ';')		//if there is no chunks after the directive, throws exception 
+	if (this->chunks.front()[0] == ';') // if there is no chunks after the directive, throws exception
 		erase_chunk_front(";");
 	else
 		throw std::invalid_argument("Parsing error occured. No ; after the directive.");
-	//set maxbody size
+	parent->set_client_max_body_size(std::strtol(str.c_str(), NULL, 10));
 }
 
 void parser::read_index(base_dir *parent)
 {
-	if (!parser::erase_chunk_front("index"))
-		throw std::invalid_argument("Parsing error occured. Index has syntax error!");
-	size_t index = this->chunks.front().find(";"); 
+	size_t index = this->chunks.front().find(";");
 	while (index == std::string::npos)
 	{
 		parent->add_index(this->chunks.front());
 		erase_chunk_front(this->chunks.front());
-		index = this->chunks.front().find(";"); 
+		index = this->chunks.front().find(";");
 	}
 	parent->add_index(this->chunks.front().substr(0, index));
 	erase_chunk_front(this->chunks.front().substr(0, index));
-	if (this->chunks.front()[0] == ';')		//is the if necessary? 
+	if (this->chunks.front()[0] == ';') // is the if necessary?
 		erase_chunk_front(";");
 	else
 		throw std::invalid_argument("Parsing error occured. No ; after the directive.");
@@ -238,25 +233,25 @@ void parser::read_index(base_dir *parent)
 
 void parser::read_redirect(base_dir *parent)
 {
-	std::string str;
+	std::string expr;
+	bool semicolon;
 
-	if (!parser::erase_chunk_front("redirect"))
-		throw std::invalid_argument("Parsing error occured. Redirect has syntax error!");
-	size_t index = this->chunks.front().find(";");
-	if (index == std::string::npos)
-		str = this->chunks.front();
+	if (erase_chunk_middle(";"))
+		throw std::invalid_argument("Parsing error.");
 	else
-		str = this->chunks.front().substr(0, index);
-	erase_chunk_front(str);
-	if (this->chunks.front()[0] == ';')		//if there is no chunks after the directive, throws exception 
+	{
+		expr = this->chunks.front();
+		this->chunks.pop_front();
+	}
+	semicolon = erase_chunk_middle(";");
+	if (this->chunks.front().empty())
+		throw std::invalid_argument("Parsing error.");
+	static_cast<base_dir_ext *>(parent)->add_redirect(expr, this->chunks.front());
+	if (!semicolon && this->chunks.front()[0] == ';')
 		erase_chunk_front(";");
 	else
-		throw std::invalid_argument("Parsing error occured. No ; after the directive.");
-	// static_cast<base_dir_ext*>(parent)->add_redirect(str);
+		throw std::invalid_argument("Parsing error.");
 }
-
-
-
 
 void parser::read_root(base_dir *parent)
 {
@@ -353,7 +348,7 @@ bool parser::is_response_code(unsigned int response_code)
 // splits the front chunk if str is in the middle
 bool parser::erase_chunk_middle(std::string str)
 {
-	const std::string front = this->chunks.front(); 
+	const std::string front = this->chunks.front();
 	const size_t str_index = front.find(str);
 	if (str_index == std::string::npos)
 		return (false);
@@ -376,4 +371,50 @@ unsigned int parser::strtoui(const std::string &number)
 	if (str_end != str_begin + number.length() || errno == ERANGE)
 		throw std::invalid_argument("Number parsing error occured.");
 	return (ui);
+}
+
+void parser::read_limit_except(base_dir *loc)
+{
+	if (this->chunks.front()[0] == ';')
+		throw std::invalid_argument("Parsing error. Few arguments for the limit_except directive.");
+	while (!erase_chunk_middle(";"))
+	{
+		static_cast<location *>(loc)->add_method(this->chunks.front());
+		this->chunks.pop_front();
+	}
+	if (!this->chunks.front().empty())
+	{
+		erase_chunk_middle(";");
+		static_cast<location *>(loc)->add_method(this->chunks.front());
+	}
+	this->chunks.pop_front();
+}
+
+void parser::read_cgi(base_dir *loc)
+{
+	std::string ext;
+	std::string path;
+
+	if (!erase_chunk_middle(";"))
+	{
+		ext = this->chunks.front();
+		this->chunks.pop_front();
+		if (!erase_chunk_middle(";"))
+		{
+			path = this->chunks.front();
+			this->chunks.pop_front();
+			if (this->chunks.front()[0] == ';')
+				erase_chunk_front(";");
+			else
+				throw std::invalid_argument("Parsing error! No ; in the end of directive.");
+		}
+		else
+		{
+			path = this->chunks.front();
+			this->chunks.pop_front();
+		}
+	}
+	else
+		throw std::invalid_argument("Parsing error! Few arguments for cgi directive.");
+	static_cast<location *>(loc)->add_cgi(ext, path);
 }
