@@ -42,10 +42,10 @@ class parser
 		void 	read_client_max_body_size(base_dir *parent);	//Anahit
 		void 	read_index(base_dir *parent);					//Anyutik
 		void 	read_redirect(base_dir *parent);				//Anyut
-		void	read_listen(base_dir *server);					//Nyut
+		void	read_listen(base_dir *server);					//Alex
 		void 	read_server_name(base_dir *server);				//Alexander the Greatest
 		void 	read_cgi(base_dir *location);					//An
-		void 	read_limit_except(base_dir *location);			//Alex
+		void 	read_limit_except(base_dir *location);			//Nyut
 		void	push_brace(char brace);
 		void	load_base_dir();
 		void	unload_base_dir();
