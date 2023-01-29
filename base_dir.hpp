@@ -11,7 +11,7 @@ class base_dir
 		std::string root;
 		bool autoindex;
 		std::map<unsigned int, std::string> error_pages;
-		unsigned int client_max_body_size;
+		unsigned long int client_max_body_size; // in bytes
 		std::vector<std::string> indexes;
 	public:
 		base_dir();
@@ -20,7 +20,7 @@ class base_dir
 		base_dir &operator=(const base_dir &other);
 		void set_root(const std::string &root);
 		void set_autoindex(bool autoindex);
-		void set_client_max_body_size(unsigned int size);
+		void set_client_max_body_size(unsigned long int size);
 		const std::string &get_root() const;
 		bool get_autoindex() const;
 		unsigned int get_client_max_body_size() const;

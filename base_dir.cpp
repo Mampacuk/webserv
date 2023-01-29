@@ -25,7 +25,7 @@ void base_dir::set_autoindex(bool autoindex)
 	this->autoindex = autoindex;
 }
 
-void base_dir::set_client_max_body_size(unsigned int size)
+void base_dir::set_client_max_body_size(unsigned long int size)
 {
 	this->client_max_body_size = size;
 }
