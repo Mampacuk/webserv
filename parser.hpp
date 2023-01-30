@@ -30,6 +30,7 @@ class parser
 		void get_chunks();
 		std::string &front();
 		std::string pop_front();
+		std::vector<std::string> get_argument_list();
 		bool erase_chunk_middle(std::string str, bool);
 		bool erase_chunk_front(std::string str);
 		void erase_token_front(std::string token, bool);

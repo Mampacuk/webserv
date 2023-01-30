@@ -214,6 +214,8 @@ bool parser::read_client_max_body_size(base_dir *parent)
 	bool semicolon_erased = erase_chunk_middle(";");
 	int multiplier = 1; // default: bytes
 
+	if (front().front() == '-')
+		throw std::invalid_argument("Parsing error occured. Negative `client_max_body_size` is disallowed.");
 	front().back() = std::tolower(front().back());
 	if (front().back() == 'k')
 		multiplier = 1000;
@@ -229,13 +231,9 @@ bool parser::read_client_max_body_size(base_dir *parent)
 
 bool parser::read_index(base_dir *parent)
 {
-	if (front().at(0) == ';')
-		throw std::invalid_argument("Parsing error occured. Few arguments for the `index` directive.");
-	while (!erase_chunk_middle(";", true))
-		parent->add_index(pop_front());
-	if (!this->chunks.front().empty())
-		parent->add_index(front());
-	pop_front();
+	std::vector<std::string> arguments = get_argument_list();
+	for (size_t i = 0; i < arguments.size(); i++)
+		parent->add_index(arguments[i]);
 	return (true);
 }
 
@@ -270,6 +268,14 @@ bool parser::read_listen(base_dir *parent)
 	return (semicolon_erased);
 }
 
+bool parser::read_server_name(base_dir *parent)
+{
+	std::vector<std::string> arguments = get_argument_list();
+	for (size_t i = 0; i < arguments.size(); i++)
+		static_cast<server*>(parent)->add_name(arguments[i]);
+	return (true);
+}
+
 bool parser::read_cgi(base_dir *loc)
 {
 	std::string extension;
@@ -290,14 +296,24 @@ bool parser::read_cgi(base_dir *loc)
 
 bool parser::read_limit_except(base_dir *loc)
 {
-	if (front().at(0) == ';')
-		throw std::invalid_argument("Parsing error occured. Few arguments for the `limit_except` directive.");
-	while (!erase_chunk_middle(";", true))
-		static_cast<location*>(loc)->add_method(pop_front());
-	if (!front().empty())
-		static_cast<location*>(loc)->add_method(front());
-	pop_front();
+	std::vector<std::string> arguments = get_argument_list();
+	for (size_t i = 0; i < arguments.size(); i++)
+		static_cast<location*>(loc)->add_method(arguments[i]);
 	return (true);
+}
+
+// returns a vector of strings that are arguments delimited by a `;`
+std::vector<std::string> parser::get_argument_list()
+{
+	std::vector<std::string> arguments;
+	if (front().at(0) == ';')
+		throw std::invalid_argument("Parsing error occured. Empty argument list.");
+	while (!erase_chunk_middle(";", true))
+		arguments.push_back(pop_front());
+	if (!front().empty())
+		arguments.push_back(front());
+	pop_front();
+	return (arguments);
 }
 
 unsigned int parser::strtoul(const std::string &number)
