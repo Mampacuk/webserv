@@ -1,63 +1,75 @@
 #include "location.hpp"
 
-location::location() : base_dir_ext(), cgi(), methods(), rout(), modifier(false) {}
-
-location::~location() {}
-
-location::location(const location &other) : base_dir_ext(other), cgi(other.cgi), methods(other.methods), rout(other.rout), modifier(other.modifier) {}
-
-location::location(const base_dir &other) : base_dir_ext(other), cgi(), methods(), rout(), modifier(false) {}
-
-location &location::operator=(const location &other)
+namespace ft
 {
-	base_dir_ext::operator=(other);
-	this->cgi = other.cgi;
-	this->methods = other.methods;
-	this->rout = other.rout;
-	this->modifier = other.modifier;
-}
+	location::location() : base_dir_ext(), cgi(), methods(), route(), modifier(false) {}
 
-const std::string location::get_cgi(const std::string extension) const
-{
-	std::map<std::string, std::string>::const_iterator it;
+	location::~location() {}
 
-	it = cgi.find(extension);
-	if (it != cgi.end())
-		return (it->second);
-	return ("");
-}
+	location::location(const location &other) : base_dir_ext(other), cgi(other.cgi), methods(other.methods), route(other.route), modifier(other.modifier) {}
 
-const std::string &location::get_rout() const
-{
-	return (this->rout);
-}
+	location::location(const base_dir &other) : base_dir_ext(other), cgi(), methods(), route(), modifier(false) {}
 
-bool location::method_allowed(const std::string &method) const
-{
-	if (methods.find(method) != methods.end())
-		return (true);
-	return (false);
-}
+	location &location::operator=(const location &other)
+	{
+		base_dir_ext::operator=(other);
+		this->cgi = other.cgi;
+		this->methods = other.methods;
+		this->route = other.route;
+		this->modifier = other.modifier;
+		return (*this);
+	}
 
-bool location::has_modifier() const
-{
-	return (this->modifier);
-}
+	const std::string location::get_cgi(const std::string extension) const
+	{
+		std::map<std::string, std::string>::const_iterator it;
 
-void location::add_method(const std::string &method) // what if there are 2 GET methods
-{
-	if (method == "GET" || method == "POST" || method == "DELETE")
+		it = cgi.find(extension);
+		if (it != cgi.end())
+			return (it->second);
+		return ("");
+	}
+
+	const std::string &location::get_route() const
+	{
+		return (this->route);
+	}
+
+	bool location::method_allowed(const std::string &method) const
 	{
 		if (methods.find(method) != methods.end())
-		{
-			methods.insert(method);
-			return ;
-		}
+			return (true);
+		return (false);
 	}
-	throw std::invalid_argument("Parsing error!");
-}
 
-void location::add_cgi(const std::string &extension, const std::string &path)
-{
-	this->cgi.insert(extension, path);
+	bool location::has_modifier() const
+	{
+		return (this->modifier);
+	}
+
+	void location::add_method(const std::string &method) // what if there are 2 GET methods
+	{
+		if (method == "GET" || method == "POST" || method == "DELETE")
+		{
+			if (methods.find(method) != methods.end())
+			{
+				methods.insert(method);
+				return ;
+			}
+		}
+		throw std::invalid_argument("Parsing error!");
+	}
+
+	void location::add_cgi(const std::string &extension, const std::string &path)
+	{
+		this->cgi.insert(std::pair<std::string, std::string>(extension, path));
+	}
+
+
+	bool location::operator<(const location &rhs) const
+	{
+		if (rhs.has_modifier() == has_modifier())
+			return (rhs.get_route() != get_route());
+		return (true);
+	}
 }
