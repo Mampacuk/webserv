@@ -24,18 +24,39 @@ namespace ft
 
 	base_dir *parser::parse(base_dir *parent)
 	{
-		for (context_map::iterator it = this->contexts.begin(); it != this->contexts.end(); it++)
+		// std::cout << parent << std::endl;
+		context_map::iterator it = this->contexts.begin();
+		while (it != this->contexts.end())
 		{
+			std::cout << it->first << std::endl;
 			if (is_context(it->first))
+			{
 				parent = (this->*(it->second))(parent);
+				it = this->contexts.begin();
+			}
+			else
+				it++;
+			std::cout << "parent = " << parent << std::endl;
+			
 		}
+		// for (context_map::iterator it = this->contexts.begin(); it != this->contexts.end(); it++)
+		// {
+		// 	std::cout << it->first << std::endl;
+		// 	if (is_context(it->first))
+		// 		parent = (this->*(it->second))(parent);
+		// 	std::cout << "parent = " << parent << std::endl;
+		// }
+		std::cout << "before if\n";
 		for (directive_map::iterator it = this->directives.begin(); it != this->directives.end(); it++)
 		{
+			std::cout << "Inside if\n";
 			if (is_directive(it->first))
 				erase_token_front(";", (this->*(it->second))(parent));
 		}
+		std::cout << "parent = " << parent << std::endl;
 		if (!parent && !this->braces.empty())
 			throw std::logic_error("Ill-formed context. Braces not closed!");
+		std::cout << parent << std::endl;
 		return (parent);
 	}
 
