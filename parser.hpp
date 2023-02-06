@@ -12,7 +12,7 @@ namespace ft
 	class parser
 	{
 		public:
-			typedef std::pair<std::string, bool> switch_function;
+			typedef std::pair<std::string, bool> switch_function; //
 			typedef std::map<switch_string, bool (parser::*)(base_dir*)> directive_map;
 			typedef std::map<switch_string, base_dir *(parser::*)(base_dir*)> context_map;
 			typedef std::pair<switch_string, bool (parser::*)(base_dir*)> directive;
