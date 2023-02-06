@@ -2,7 +2,7 @@
 
 namespace ft
 {
-	base_dir::base_dir(): root("html"), autoindex(false), error_pages(), client_max_body_size(1), indexes() {}
+	base_dir::base_dir(): root("html"), autoindex(false), error_pages(), client_max_body_size(1000000), indexes() {}
 
 	base_dir::~base_dir() {}
 

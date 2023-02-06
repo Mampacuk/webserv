@@ -1,5 +1,4 @@
 #include "webserv.hpp"
-#include <iostream>
 
 namespace ft
 {
@@ -23,9 +22,9 @@ namespace ft
 		return (*this->protocol);
 	}
 
-	void webserv::set_http(http *protocol)
+	void webserv::set_http(base_dir *protocol)
 	{
-		this->protocol = protocol;
+		this->protocol = static_cast<http*>(protocol);
 	}
 
 	void webserv::verify_http()
@@ -63,5 +62,11 @@ namespace ft
 		std::cout << "client_max_body_size: " << ptr->get_client_max_body_size() << std::endl;
 		for (size_t i = 0; i < ptr->get_indexes().size(); i++)
 			std::cout << "index: " << ptr->get_indexes()[i] << std::endl;
+	}
+
+	int webserv::error(const std::string &message) const
+	{
+		std::cerr << "[webserv]: Error: " << message << std::endl;
+		return (EXIT_FAILURE);
 	}
 }

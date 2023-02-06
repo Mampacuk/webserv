@@ -7,12 +7,24 @@ namespace ft
 {
 	parser::parser(): directives(), contexts(), braces(), config(), chunks() {}
 
-	parser::parser(const std::string &filename): directives(), contexts(), braces(), config(), chunks() 
+	parser::parser(const std::string &filename): directives(), contexts(), braces(), config(), chunks()
 	{
 		this->config.open(filename);
 		if (!this->config.is_open())
-				throw std::runtime_error("File does not exist.");
-		this->contexts.insert(context("http", &parser::process_http));
+			throw std::runtime_error("File does not exist.");
+		this->contexts.insert(context(string_switch("http", true), &parser::process_http));
+		this->contexts.insert(context(string_switch("server", false), &parser::process_server));
+		this->contexts.insert(context(string_switch("location", false), &parser::process_location));
+		this->directives.insert(directive(string_switch("root", false), &parser::read_root));
+		this->directives.insert(directive(string_switch("autoindex", false), &parser::read_autoindex));
+		this->directives.insert(directive(string_switch("error_page", false), &parser::read_error_page));
+		this->directives.insert(directive(string_switch("client_max_body_size", false), &parser::read_client_max_body_size));
+		this->directives.insert(directive(string_switch("index", false), &parser::read_index));
+		this->directives.insert(directive(string_switch("listen", false), &parser::read_listen));
+		this->directives.insert(directive(string_switch("server_name", false), &parser::read_server_name));
+		this->directives.insert(directive(string_switch("rewrite", false), &parser::read_redirect));
+		this->directives.insert(directive(string_switch("cgi", false), &parser::read_cgi));
+		this->directives.insert(directive(string_switch("limit_except", false), &parser::read_limit_except));
 		get_chunks();
 	}
 
@@ -24,47 +36,29 @@ namespace ft
 
 	base_dir *parser::parse(base_dir *parent)
 	{
-		// std::cout << parent << std::endl;
-		context_map::iterator it = this->contexts.begin();
-		while (it != this->contexts.end())
-		{
-			std::cout << it->first << std::endl;
+		context_map::iterator context_it = this->contexts.begin();
+		for (; context_it != this->contexts.end(); context_it++)
 			if (is_context(it->first))
 			{
 				parent = (this->*(it->second))(parent);
-				it = this->contexts.begin();
+
+				break ;
 			}
-			else
-				it++;
-			std::cout << "parent = " << parent << std::endl;
-			
-		}
-		// for (context_map::iterator it = this->contexts.begin(); it != this->contexts.end(); it++)
-		// {
-		// 	std::cout << it->first << std::endl;
-		// 	if (is_context(it->first))
-		// 		parent = (this->*(it->second))(parent);
-		// 	std::cout << "parent = " << parent << std::endl;
-		// }
-		std::cout << "before if\n";
 		for (directive_map::iterator it = this->directives.begin(); it != this->directives.end(); it++)
 		{
-			std::cout << "Inside if\n";
 			if (is_directive(it->first))
 				erase_token_front(";", (this->*(it->second))(parent));
 		}
-		std::cout << "parent = " << parent << std::endl;
 		if (!parent && !this->braces.empty())
 			throw std::logic_error("Ill-formed context. Braces not closed!");
-		std::cout << parent << std::endl;
 		return (parent);
 	}
 
 	bool parser::is_context(std::string context)
 	{
-		std::vector<std::string> location_args;
+		string_vector location_args;
 
-		if (!context.compare(0, context.length(), front()))
+		if (front().substr(0, context.length()) == context)
 		{
 			bool brace_erased = false;
 			if (erase_chunk_front(context) && context == "location")
@@ -87,7 +81,7 @@ namespace ft
 
 	bool parser::is_directive(std::string directive)
 	{
-		if (directive.compare(0, directive.length(), front()))
+		if (front().substr(0, directive.length()) != directive)
 			return (false);
 		if (!erase_chunk_front(directive))
 			throw std::invalid_argument("Parsing error occured. Unknown directive provided.");
@@ -112,25 +106,44 @@ namespace ft
 		}
 		
 		//remove later
-		std::cout << "Printing chunks\n";
+		std::cout << ">>>>>>>>>>>>>>>>>>> Printing chunks <<<<<<<<<<<<<<<<<<<" << std::endl;
 		for (std::list<std::string>::iterator it = this->chunks.begin(); it != this->chunks.end(); it++)
 			std::cout << *it << std::endl;
+		std::cout << ">>>>>>>>>>>>>>>>>>> Finished chunks <<<<<<<<<<<<<<<<<<<" << std::endl;
 	}
 
 	base_dir *parser::process_http(base_dir*)
 	{
+		std::cout << "process_http" << std::endl;
+
 		http *protocol = new http();
-		this->contexts.erase("http");
+		this->contexts["http"].;
 		this->contexts.insert(context("server", &parser::process_server));
 		load_base_dir();
 
-		while (front().at(0) != '}')
-			parse(protocol);
+		try
+		{
+			while (front().at(0) != '}')
+			{
+				// std::cout << "front: " << front() << std::endl;
+				parse(protocol);
+			}
+		} // check if anything else throws
+		catch (const std::exception &e)
+		{
+			delete protocol;
+			throw ;
+		}
 		erase_chunk_front("}");
 		push_brace('}');
 
 		unload_base_dir();
 		this->contexts.erase("server");
+		if (!this->chunks.empty())
+		{
+			delete protocol;
+			throw std::invalid_argument("Tokens after the end of parsing are not allowed");
+		}
 		return (protocol);
 	}
 
@@ -371,7 +384,7 @@ namespace ft
 	std::string &parser::front()
 	{
 		if (this->chunks.empty())
-			throw std::length_error("Ran out of chunks.");
+			throw std::length_error("Context or directive not completed.");
 		return (this->chunks.front());
 	}
 
@@ -385,7 +398,7 @@ namespace ft
 	// returns true if the erased str was a separate chunk, otherwise false
 	bool parser::erase_chunk_front(std::string str)
 	{
-		if (!str.compare(0, str.length(), front()))
+		if (front().substr(0, str.length()) == str)
 			front() = front().substr(str.length(), front().length() - str.length());
 		if (front().empty())
 		{
@@ -417,7 +430,7 @@ namespace ft
 	{
 		if (!erased_before)
 		{
-			if (front().compare(0, token.length(), token))
+			if (front().substr(0, token.length()) != token)
 				throw std::invalid_argument("Parsing error occured. " + token + " not met when expected.");
 			erase_chunk_front(token);
 		}
