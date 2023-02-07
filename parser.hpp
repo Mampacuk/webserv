@@ -11,12 +11,14 @@ namespace ft
 {
 	class parser
 	{
-		public:
-			typedef std::pair<std::string, bool> switch_function; //
-			typedef std::map<switch_string, bool (parser::*)(base_dir*)> directive_map;
-			typedef std::map<switch_string, base_dir *(parser::*)(base_dir*)> context_map;
-			typedef std::pair<switch_string, bool (parser::*)(base_dir*)> directive;
-			typedef std::pair<switch_string, base_dir *(parser::*)(base_dir*)> context;
+		private:
+			typedef std::pair<bool (parser::*)(base_dir*), bool> dir_functor;
+			typedef std::pair<base_dir *(parser::*)(base_dir*), bool> cont_functor;
+
+			typedef std::pair<std::string, dir_functor> directive;
+			typedef std::map<std::string, dir_functor> directive_map;
+			typedef std::pair<std::string, cont_functor> context;
+			typedef std::map<std::string, cont_functor> context_map;
 
 			directive_map directives;
 			context_map contexts;

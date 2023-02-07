@@ -34,7 +34,7 @@ namespace ft
 			const std::string get_error_page(unsigned int error_code) const;
 			const string_vector &get_indexes() const;
 
-			error_map &get_error_map()
+			error_map &get_error_map() // remove later
 			{
 				return (this->error_pages);
 			}
