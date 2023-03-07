@@ -10,6 +10,8 @@
 
 namespace ft
 {
+	class server;
+
 	typedef std::map<std::string, std::string> string_map;
 	typedef std::set<std::string> string_set;
 	typedef std::pair<std::string, std::string> string_pair;
@@ -17,7 +19,7 @@ namespace ft
 	class location : public base_dir_ext
 	{
 		private:
-			string_map cgi;
+			string_pair cgi;
 			string_set methods;		//if empty, everything is allowed
 			std::string route;
 			bool modifier;
@@ -27,7 +29,7 @@ namespace ft
 			location(const location &other);
 			location(const base_dir &other);
 			location &operator=(const location &other);
-			const std::string get_cgi(const std::string extension) const;
+			const string_pair &get_cgi() const;
 			const std::string &get_route() const;
 			bool method_allowed(const std::string &method) const;
 			bool has_modifier() const;
@@ -40,10 +42,6 @@ namespace ft
 			void flush_methods();
 
 			//delete later
-			const string_map &get_cgi_map() const
-			{
-				return (this->cgi);
-			}
 			const string_set &get_methods() const
 			{
 				return (this->methods);
@@ -51,4 +49,5 @@ namespace ft
 	};
 }
 
+#include "server.hpp"
 #endif

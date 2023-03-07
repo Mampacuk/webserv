@@ -9,10 +9,26 @@ namespace ft
 
 	location::location(const location &other) : base_dir_ext(other), cgi(other.cgi), methods(other.methods), route(other.route), modifier(other.modifier)
 	{
-		std::cout << "COPY-CTOR ENTERED" << std::endl;
+		// std::cout << "COPY-CTOR FOR LOCATION ENTERED" << std::endl;
 	}
 
-	location::location(const base_dir &other) : base_dir_ext(other), cgi(), methods(), route(), modifier(false) {}
+	// location::location(const server &other) : base_dir_ext(other), cgi(), methods(), route(), modifier(false)
+	// {
+	// 	std::cout << "COPY-CTOR FOR SERVER ENTERED" << std::endl;
+	// }
+
+	location::location(const base_dir &other) : base_dir_ext(other), cgi(), methods(), route(), modifier(false)
+	{
+			// std::cout << "received " << &other << " to copy from for " << this << std::endl;
+		if (dynamic_cast<const location*>(&other))
+		{
+			// std::cout << "COPY-CTORED LOCATION MEMBERS" << std::endl;
+			this->cgi = dynamic_cast<const location*>(&other)->cgi;
+			this->methods = dynamic_cast<const location*>(&other)->methods;
+		}
+		
+		// std::cout << "COPY-CTOR FOR BASE_DIR_EXT ENTERED" << std::endl;
+	}
 
 	location &location::operator=(const location &other)
 	{
@@ -24,14 +40,9 @@ namespace ft
 		return (*this);
 	}
 
-	const std::string location::get_cgi(const std::string extension) const
+	const string_pair &location::get_cgi() const
 	{
-		string_map::const_iterator it;
-
-		it = cgi.find(extension);
-		if (it != cgi.end())
-			return (it->second);
-		return ("");
+		return (this->cgi);
 	}
 
 	const std::string &location::get_route() const
@@ -53,7 +64,8 @@ namespace ft
 
 	void location::add_cgi(const std::string &extension, const std::string &path)
 	{
-		this->cgi.insert(string_pair(extension, path));
+		this->cgi.first = extension;
+		this->cgi.second = path;
 	}
 
 	void location::set_route(const std::string &route)
@@ -88,7 +100,8 @@ namespace ft
 
 	void location::flush_cgi()
 	{
-		this->cgi.clear();
+		this->cgi.first.clear();
+		this->cgi.second.clear();
 	}
 
 	void location::flush_methods()

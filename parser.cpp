@@ -168,8 +168,22 @@ namespace ft
 	{
 		std::cout << "vvv process_location vvv" << std::endl;
 
-		std::cout << "dynamic cast succeeded? " << (dynamic_cast<location*>(parent) ? "yes" : "no") << std::endl;
+		// std::cout << "dynamic cast succeeded? " << (dynamic_cast<location*>(parent) ? "yes" : "no") << std::endl;
+		// std::cout << "parent address: " << parent << std::endl;
+		// if (dynamic_cast<location*>(parent))
+		// 	std::cout << "Typeid: " << typeid(dynamic_cast<location*>(parent)).name() << std::endl;
+		// try
+		// {
+		// 	location &descendant = dynamic_cast<location&>(*parent);
+		// }
+		// catch (const std::exception &e)
+		// {
+
+		// }
 		location loc(*(dynamic_cast<location*>(parent) ? dynamic_cast<location*>(parent) : parent));
+		// location loc(*parent);
+		// std::cout << "passig loc address:" << &loc << std::endl;
+		// location loc(*parent);
 		this->directives["cgi"].second = true;
 		this->directives["limit_except"].second = true;
 
@@ -179,6 +193,7 @@ namespace ft
 			parse(&loc);
 		erase_chunk_front("}");
 
+		std::cout << "Adding to locations\n";
 		static_cast<base_dir_ext*>(parent)->add_location(loc);
 
 		this->directives["limit_except"].second = false;
@@ -322,7 +337,7 @@ namespace ft
 		std::string extension;
 		std::string path;
 		bool semicolon_erased = false;
-		// static_cast<location*>(loc)->flush_cgi(); // should we flush?
+		static_cast<location*>(loc)->flush_cgi();
 		if (!erase_chunk_middle(";"))
 		{
 			extension = pop_front();

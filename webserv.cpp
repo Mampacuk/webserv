@@ -63,8 +63,7 @@ namespace ft
 			it++)
 		{
 			std::cout << " |L| inspecting location \"" << it->get_route() << "\":" << std::endl;
-			for (string_map::const_iterator mit = it->get_cgi_map().begin(); mit != it->get_cgi_map().end(); mit++)
-				std::cout << "cgi: { " << mit->first << " : " << mit->second << " }" << std::endl;
+			std::cout << "cgi: { " << it->get_cgi().first << " : " << it->get_cgi().second << " }" << std::endl;
 			for (string_set::iterator mit = it->get_methods().begin(); mit != it->get_methods().end(); mit++)
 				std::cout << "method disallowed: " << *mit << std::endl;
 			print_base_dir_ext(const_cast<location*>(&(*it)));
@@ -74,7 +73,7 @@ namespace ft
 			it != ptr->get_redirects().end();
 			it++)
 		{
-			std::cout << "redirects " << it->first << " to " << it->second << std::endl;
+		std::cout << "redirects " << it->first << " to " << it->second << std::endl;
 		}
 	}
 

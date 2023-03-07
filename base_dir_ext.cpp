@@ -34,6 +34,8 @@ namespace ft
 
 	void base_dir_ext::add_location(location location)
 	{
+		if (this->locations.find(location) != this->locations.end())
+			throw std::logic_error("Duplicate location.");
 		this->locations.insert(location);
 	}
 }
