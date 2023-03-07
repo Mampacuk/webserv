@@ -24,7 +24,7 @@ namespace ft
 			const string_set &get_names() const;
 			const address_set &get_listens() const;
 			void add_name(const std::string &name);
-			void add_listen(const std::string &host, unsigned int port);
+			void add_listen(const std::string &host, unsigned int port = 80);
 	};
 }
 

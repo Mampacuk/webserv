@@ -5,11 +5,11 @@
 
 namespace ft
 {
-	parser::parser(): directives(), contexts(), braces(), config(), chunks() {}
+	parser::parser(): directives(), contexts(), config(), chunks() {}
 
-	parser::parser(const std::string &filename): directives(), contexts(), braces(), config(), chunks()
+	parser::parser(const std::string &filename): directives(), contexts(), config(), chunks()
 	{
-		this->config.open(filename);
+		this->config.open(filename.c_str());
 		if (!this->config.is_open())
 			throw std::runtime_error("File does not exist.");
 		this->contexts.insert(context("http", cont_functor(&parser::process_http, true)));
@@ -30,7 +30,7 @@ namespace ft
 
 	parser::~parser() {}
 
-	parser::parser(const parser &other): directives(other.directives), contexts(other.contexts), braces(other.braces), config(), chunks(other.chunks) {}
+	parser::parser(const parser &other): directives(other.directives), contexts(other.contexts), config(), chunks(other.chunks) {}
 
 	parser &parser::operator=(const parser&) { return (*this); }
 
@@ -74,7 +74,6 @@ namespace ft
 			erase_token_front("{", brace_erased);
 			for (size_t i = 0; i < location_args.size(); i++)
 				this->chunks.push_front(location_args[i]);
-			push_brace('{');
 			return (true);
 		}
 		return (false);
@@ -105,18 +104,16 @@ namespace ft
 					this->chunks.push_back(chunk);
 			}
 		}
-		
+
 		//remove later
-		std::cout << ">>>>>>>>>>>>>>>>>>> Printing chunks <<<<<<<<<<<<<<<<<<<" << std::endl;
-		for (std::list<std::string>::iterator it = this->chunks.begin(); it != this->chunks.end(); it++)
-			std::cout << *it << std::endl;
-		std::cout << ">>>>>>>>>>>>>>>>>>> Finished chunks <<<<<<<<<<<<<<<<<<<" << std::endl;
+		// std::cout << ">>>>>>>>>>>>>>>>>>> Printing chunks <<<<<<<<<<<<<<<<<<<" << std::endl;
+		// for (std::list<std::string>::iterator it = this->chunks.begin(); it != this->chunks.end(); it++)
+		// 	std::cout << *it << std::endl;
+		// std::cout << ">>>>>>>>>>>>>>>>>>> Finished chunks <<<<<<<<<<<<<<<<<<<" << std::endl;
 	}
 
 	base_dir *parser::process_http(base_dir*)
-	{
-		std::cout << "^ process_http ^" << std::endl;
-		
+	{	
 		http *protocol = new http();
 
 		try
@@ -127,7 +124,6 @@ namespace ft
 			while (front().at(0) != '}')
 				parse(protocol);
 			erase_chunk_front("}");
-			push_brace('}');
 			unload_base_dir();
 			this->contexts["server"].second = false;
 			parse(protocol);
@@ -142,6 +138,8 @@ namespace ft
 
 	base_dir *parser::process_server(base_dir *protocol)
 	{
+		std::cout << "vv process_server vv" << std::endl;
+
 		server serv(*protocol);
 		this->contexts["server"].second = false;
 		this->contexts["location"].second = true;
@@ -152,33 +150,40 @@ namespace ft
 		while (front().at(0) != '}')
 			parse(&serv);
 		erase_chunk_front("}");
-		push_brace('}');
 
-		static_cast<http *>(protocol)->add_server(serv);
+		if (serv.get_listens().empty())
+			serv.add_listen("0.0.0.0");
+		static_cast<http*>(protocol)->add_server(serv);
 
 		this->directives["rewrite"].second = false;
 		this->directives["server_name"].second = false;
 		this->directives["listen"].second = false;
 		this->contexts["location"].second = false;
 		this->contexts["server"].second = true;
+		std::cout << "^^ process_server ^^" << std::endl;
 		return (protocol);
 	}
 
 	base_dir *parser::process_location(base_dir *parent)
 	{
-		location loc(*parent);
+		std::cout << "vvv process_location vvv" << std::endl;
+
+		std::cout << "dynamic cast succeeded? " << (dynamic_cast<location*>(parent) ? "yes" : "no") << std::endl;
+		location loc(*(dynamic_cast<location*>(parent) ? dynamic_cast<location*>(parent) : parent));
 		this->directives["cgi"].second = true;
 		this->directives["limit_except"].second = true;
 
+		loc.set_route(pop_front());
+		loc.set_modifier((front() == "=" ? pop_front() == "=" : false));
 		while (front().at(0) != '}')
 			parse(&loc);
 		erase_chunk_front("}");
-		push_brace('}');
 
-		static_cast<base_dir_ext *>(parent)->add_location(loc);
+		static_cast<base_dir_ext*>(parent)->add_location(loc);
 
 		this->directives["limit_except"].second = false;
 		this->directives["cgi"].second = false;
+		std::cout << "^^^ process_location ^^^" << std::endl;
 		return (parent);
 	}
 
@@ -200,21 +205,8 @@ namespace ft
 		this->directives["root"].second = false;
 	}
 
-	void parser::push_brace(char brace)
-	{
-		if (brace != '{' && brace != '}')
-			return ;
-		if (brace == '}')
-		{
-			if (this->braces.top() == '{')
-				this->braces.pop();
-		}
-		this->braces.push(brace);
-	}
-
 	bool parser::read_root(base_dir *parent)
 	{
-		std::cout << "^^ read_root ^^" << std::endl;
 		bool semicolon_erased = erase_chunk_middle(";");
 		parent->set_root(pop_front());
 		return (semicolon_erased);
@@ -237,6 +229,7 @@ namespace ft
 	{
 		std::vector<unsigned int> response_codes;
 		bool semicolon_erased = true;
+		parent->flush_error_pages();
 		while (!erase_chunk_middle(";"))
 		{
 			const unsigned int code = strtoul(front());
@@ -258,20 +251,20 @@ namespace ft
 
 	bool parser::read_client_max_body_size(base_dir *parent)
 	{
+		const char front_back = front()[front().length() - 1];
 		bool semicolon_erased = erase_chunk_middle(";");
 		int multiplier = 1; // default: bytes
-
-		if (std::isalpha(front().back()))
+		if (std::isalpha(front_back))
 		{
-			if (front().back() == 'k' || front().back() == 'K')
+			if (front_back == 'k' || front_back == 'K')
 				multiplier = 1000;
-			else if (front().back() == 'm' || front().back() == 'M')
+			else if (front_back == 'm' || front_back == 'M')
 				multiplier = 1000000;
-			else if (front().back() == 'g' || front().back() == 'G')
+			else if (front_back == 'g' || front_back == 'G')
 				multiplier = 1000000000;
 			else
 				throw std::invalid_argument("Parsing error occured. Bad storage unit extension.");
-			front().pop_back();
+			front().erase(front().end() - 1); // front().pop_back(); in C++11
 		}
 		parent->set_client_max_body_size(multiplier * strtoul(pop_front()));
 		return (semicolon_erased);
@@ -280,6 +273,7 @@ namespace ft
 	bool parser::read_index(base_dir *parent)
 	{
 		std::vector<std::string> arguments = get_argument_list();
+		parent->flush_indexes();
 		for (size_t i = 0; i < arguments.size(); i++)
 			parent->add_index(arguments[i]);
 		return (true);
@@ -287,9 +281,8 @@ namespace ft
 
 	bool parser::read_redirect(base_dir *parent)
 	{
-		std::string expr;
 		bool semicolon_erased;
-
+		std::string expr;
 		if (erase_chunk_middle(";"))
 			throw std::invalid_argument("Parsing error occured. Invalid number of arguments for `rewrite`.");
 		expr = pop_front();
@@ -302,8 +295,8 @@ namespace ft
 	{
 		bool port_specified = erase_chunk_middle(":");
 		bool semicolon_erased = false;
-		std::string host;
 		unsigned int port = 80;
+		std::string host;
 		if (!port_specified)
 			semicolon_erased = erase_chunk_middle(";");
 		host = pop_front();
@@ -329,7 +322,7 @@ namespace ft
 		std::string extension;
 		std::string path;
 		bool semicolon_erased = false;
-
+		// static_cast<location*>(loc)->flush_cgi(); // should we flush?
 		if (!erase_chunk_middle(";"))
 		{
 			extension = pop_front();
@@ -345,6 +338,7 @@ namespace ft
 	bool parser::read_limit_except(base_dir *loc)
 	{
 		std::vector<std::string> arguments = get_argument_list();
+		static_cast<location*>(loc)->flush_methods();
 		for (size_t i = 0; i < arguments.size(); i++)
 			static_cast<location*>(loc)->add_method(arguments[i]);
 		return (true);
@@ -366,8 +360,7 @@ namespace ft
 
 	unsigned int parser::strtoul(const std::string &number)
 	{
-		// std::cout << ">>> strtoul received |" << number << "|" << std::endl;
-		if (number.empty() || number.front() == '-')
+		if (number.empty() || number[0] == '-')
 			throw std::invalid_argument("Number parsing error occured.");
 		const char *str_begin = number.c_str();
 		char *str_end = NULL;

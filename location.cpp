@@ -1,4 +1,5 @@
 #include "location.hpp"
+#include <iostream> //remove later
 
 namespace ft
 {
@@ -6,7 +7,10 @@ namespace ft
 
 	location::~location() {}
 
-	location::location(const location &other) : base_dir_ext(other), cgi(other.cgi), methods(other.methods), route(other.route), modifier(other.modifier) {}
+	location::location(const location &other) : base_dir_ext(other), cgi(other.cgi), methods(other.methods), route(other.route), modifier(other.modifier)
+	{
+		std::cout << "COPY-CTOR ENTERED" << std::endl;
+	}
 
 	location::location(const base_dir &other) : base_dir_ext(other), cgi(), methods(), route(), modifier(false) {}
 
@@ -22,7 +26,7 @@ namespace ft
 
 	const std::string location::get_cgi(const std::string extension) const
 	{
-		std::map<std::string, std::string>::const_iterator it;
+		string_map::const_iterator it;
 
 		it = cgi.find(extension);
 		if (it != cgi.end())
@@ -37,7 +41,7 @@ namespace ft
 
 	bool location::method_allowed(const std::string &method) const
 	{
-		if (methods.find(method) != methods.end())
+		if (this->methods.find(method) != this->methods.end())
 			return (true);
 		return (false);
 	}
@@ -47,29 +51,48 @@ namespace ft
 		return (this->modifier);
 	}
 
+	void location::add_cgi(const std::string &extension, const std::string &path)
+	{
+		this->cgi.insert(string_pair(extension, path));
+	}
+
+	void location::set_route(const std::string &route)
+	{
+		this->route = route;
+	}
+
 	void location::add_method(const std::string &method) // what if there are 2 GET methods
 	{
 		if (method == "GET" || method == "POST" || method == "DELETE")
 		{
-			if (methods.find(method) != methods.end())
+			if (this->methods.find(method) == this->methods.end())
 			{
-				methods.insert(method);
+				this->methods.insert(method);
 				return ;
 			}
 		}
-		throw std::invalid_argument("Parsing error!");
+		throw std::invalid_argument("Method unknown or duplicated.");
 	}
 
-	void location::add_cgi(const std::string &extension, const std::string &path)
+	void location::set_modifier(bool modifier)
 	{
-		this->cgi.insert(std::pair<std::string, std::string>(extension, path));
+		this->modifier = modifier;
 	}
-
 
 	bool location::operator<(const location &rhs) const
 	{
 		if (rhs.has_modifier() == has_modifier())
 			return (rhs.get_route() != get_route());
 		return (true);
+	}
+
+	void location::flush_cgi()
+	{
+		this->cgi.clear();
+	}
+
+	void location::flush_methods()
+	{
+		this->methods.clear();
 	}
 }

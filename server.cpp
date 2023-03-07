@@ -33,7 +33,7 @@ namespace ft
 		this->names.insert(name);
 	}
 
-	void server::add_listen(const std::string &host, unsigned int port = 80)
+	void server::add_listen(const std::string &host, unsigned int port)
 	{
 		this->listens.insert(std::pair<std::string, unsigned int>(host, port));
 	}

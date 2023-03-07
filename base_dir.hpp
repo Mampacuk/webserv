@@ -9,6 +9,7 @@ namespace ft
 {
 	typedef std::vector<std::string> string_vector;
 	typedef std::map<unsigned int, std::string> error_map;
+	typedef std::pair<unsigned int, std::string> error_page;
 
 	class base_dir
 	{
@@ -29,12 +30,15 @@ namespace ft
 			const std::string &get_root() const;
 			bool get_autoindex() const;
 			unsigned int get_client_max_body_size() const;
-			void add_error_page(unsigned int error_code, const std::string &error_page);
+			void add_error_page(unsigned int error_code, const std::string &page);
 			void add_index(const std::string &index_file);
 			const std::string get_error_page(unsigned int error_code) const;
 			const string_vector &get_indexes() const;
+			void flush_error_pages();
+			void flush_indexes();
 
-			error_map &get_error_map() // remove later
+			 // remove later
+			error_map &get_error_map()
 			{
 				return (this->error_pages);
 			}

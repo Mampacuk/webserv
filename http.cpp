@@ -15,7 +15,7 @@ namespace ft
 		return (*this);
 	}
 
-	const std::vector<server> &http::get_servers() const
+	const server_vector &http::get_servers() const
 	{
 		return (this->servers);
 	}

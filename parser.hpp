@@ -1,11 +1,13 @@
 #ifndef PARSER_HPP
 # define PARSER_HPP
 
-# include "base_dir.hpp"
-# include <stack>
 # include <fstream>
 # include <sstream>
 # include <list>
+# include <cstdlib>
+# include <limits>
+
+# include "base_dir.hpp"
 
 namespace ft
 {
@@ -22,13 +24,12 @@ namespace ft
 
 			directive_map directives;
 			context_map contexts;
-			std::stack<char> braces;
 			std::ifstream config;
 			std::list<std::string> chunks;
 		public:
 			parser(const std::string &filename);
 			~parser();
-			base_dir *parse(base_dir *parent = nullptr);
+			base_dir *parse(base_dir *parent = NULL);
 		private:
 			parser();
 			parser(const parser &other);
@@ -57,7 +58,6 @@ namespace ft
 			bool	read_server_name(base_dir *server);
 			bool	read_cgi(base_dir *location);
 			bool	read_limit_except(base_dir *location);
-			void	push_brace(char brace);
 			void	load_base_dir();
 			void	unload_base_dir();	
 	};

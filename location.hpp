@@ -1,19 +1,24 @@
 #ifndef LOCATION_HPP
 # define LOCATION_HPP
 
-# include "base_dir_ext.hpp"
-
 # include <string>
 # include <set>
 # include <map>
+# include <stdexcept>
+
+# include "base_dir_ext.hpp"
 
 namespace ft
 {
+	typedef std::map<std::string, std::string> string_map;
+	typedef std::set<std::string> string_set;
+	typedef std::pair<std::string, std::string> string_pair;
+
 	class location : public base_dir_ext
 	{
 		private:
-			std::map<std::string, std::string> cgi;
-			std::set<std::string> methods;				//if empty everything is allowed
+			string_map cgi;
+			string_set methods;		//if empty, everything is allowed
 			std::string route;
 			bool modifier;
 		public:
@@ -23,13 +28,26 @@ namespace ft
 			location(const base_dir &other);
 			location &operator=(const location &other);
 			const std::string get_cgi(const std::string extension) const;
-			void add_cgi(const std::string &extension, const std::string &path);
 			const std::string &get_route() const;
 			bool method_allowed(const std::string &method) const;
-			void add_method(const std::string &method);
 			bool has_modifier() const;
+			void add_cgi(const std::string &extension, const std::string &path);
+			void set_route(const std::string &route);
+			void add_method(const std::string &method);
+			void set_modifier(bool modifier);
 			bool operator<(const location &rhs) const;
+			void flush_cgi();
+			void flush_methods();
 
+			//delete later
+			const string_map &get_cgi_map() const
+			{
+				return (this->cgi);
+			}
+			const string_set &get_methods() const
+			{
+				return (this->methods);
+			}
 	};
 }
 

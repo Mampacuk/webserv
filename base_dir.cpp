@@ -48,9 +48,9 @@ namespace ft
 		return (this->client_max_body_size);
 	}
 
-	void base_dir::add_error_page(unsigned int error_code, const std::string &error_page)
+	void base_dir::add_error_page(unsigned int error_code, const std::string &page)
 	{
-		this->error_pages.insert(std::pair<unsigned int, std::string>(error_code, error_page));
+		this->error_pages[error_code] = page;
 	}
 
 	void base_dir::add_index(const std::string &index_file)
@@ -68,8 +68,18 @@ namespace ft
 		return ("");
 	}
 
-	const std::vector<std::string> &base_dir::get_indexes() const
+	const string_vector &base_dir::get_indexes() const
 	{
 		return (this->indexes);
+	}
+
+	void base_dir::flush_error_pages()
+	{
+		this->error_pages.clear();
+	}
+
+	void base_dir::flush_indexes()
+	{
+		this->indexes.clear();
 	}
 }
