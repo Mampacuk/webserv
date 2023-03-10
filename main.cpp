@@ -13,7 +13,7 @@ int main(int argc, char **argv)
 		return (webserv.error("Too many arguments!"));
 	try
 	{
-		ft::parser config(filename); // check exception in ctor scenario for memory leaks
+		ft::parser config(filename);
 		webserv.set_http(config.parse());
 	}
 	catch (const std::exception &e)

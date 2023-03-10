@@ -35,6 +35,6 @@ namespace ft
 
 	void server::add_listen(const std::string &host, unsigned int port)
 	{
-		this->listens.insert(std::pair<std::string, unsigned int>(host, port));
+		this->listens.insert(address((host.empty() ? "0.0.0.0" : host), port));
 	}
 }

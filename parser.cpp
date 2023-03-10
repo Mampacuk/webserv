@@ -11,7 +11,7 @@ namespace ft
 	{
 		this->config.open(filename.c_str());
 		if (!this->config.is_open())
-			throw std::runtime_error("File does not exist.");
+			throw std::runtime_error("File \"" + filename + "\" does not exist.");
 		this->contexts.insert(context("http", cont_functor(&parser::process_http, true)));
 		this->contexts.insert(context("server", cont_functor(&parser::process_server, false)));
 		this->contexts.insert(context("location", cont_functor(&parser::process_location, false)));
@@ -98,18 +98,18 @@ namespace ft
 			std::stringstream buffer(line);
 			while (buffer >> chunk)
 			{
-				if (chunk.at(0) == '#') // ? quotes and escaping? # in the middle?
+				if (chunk.find('#') != std::string::npos)
+				{
+					this->chunks.push_front(chunk);
+					erase_chunk_middle("#", true);
+					front().empty() ? (void)pop_front() : this->chunks.push_back(pop_front());
+					pop_front();
 					buffer.str(""); // clear buffer
+				}
 				else
 					this->chunks.push_back(chunk);
 			}
 		}
-
-		//remove later
-		// std::cout << ">>>>>>>>>>>>>>>>>>> Printing chunks <<<<<<<<<<<<<<<<<<<" << std::endl;
-		// for (std::list<std::string>::iterator it = this->chunks.begin(); it != this->chunks.end(); it++)
-		// 	std::cout << *it << std::endl;
-		// std::cout << ">>>>>>>>>>>>>>>>>>> Finished chunks <<<<<<<<<<<<<<<<<<<" << std::endl;
 	}
 
 	base_dir *parser::process_http(base_dir*)
@@ -128,7 +128,7 @@ namespace ft
 			this->contexts["server"].second = false;
 			parse(protocol);
 		}
-		catch (const std::exception &e)
+		catch (...)
 		{
 			delete protocol;
 			throw ;
@@ -168,32 +168,16 @@ namespace ft
 	{
 		std::cout << "vvv process_location vvv" << std::endl;
 
-		// std::cout << "dynamic cast succeeded? " << (dynamic_cast<location*>(parent) ? "yes" : "no") << std::endl;
-		// std::cout << "parent address: " << parent << std::endl;
-		// if (dynamic_cast<location*>(parent))
-		// 	std::cout << "Typeid: " << typeid(dynamic_cast<location*>(parent)).name() << std::endl;
-		// try
-		// {
-		// 	location &descendant = dynamic_cast<location&>(*parent);
-		// }
-		// catch (const std::exception &e)
-		// {
-
-		// }
-		location loc(*(dynamic_cast<location*>(parent) ? dynamic_cast<location*>(parent) : parent));
-		// location loc(*parent);
-		// std::cout << "passig loc address:" << &loc << std::endl;
-		// location loc(*parent);
+		location loc(*parent);
 		this->directives["cgi"].second = true;
 		this->directives["limit_except"].second = true;
 
-		loc.set_route(pop_front());
+		loc.set_route(pop_front(), dynamic_cast<location*>(parent));
 		loc.set_modifier((front() == "=" ? pop_front() == "=" : false));
 		while (front().at(0) != '}')
 			parse(&loc);
 		erase_chunk_front("}");
 
-		std::cout << "Adding to locations\n";
 		static_cast<base_dir_ext*>(parent)->add_location(loc);
 
 		this->directives["limit_except"].second = false;
@@ -314,7 +298,10 @@ namespace ft
 		std::string host;
 		if (!port_specified)
 			semicolon_erased = erase_chunk_middle(";");
-		host = pop_front();
+		if (!port_specified && is_port_number(front()))
+			port = strtoul(pop_front());
+		else
+			host = pop_front();
 		if (port_specified)
 		{
 			semicolon_erased = erase_chunk_middle(";");
@@ -443,5 +430,18 @@ namespace ft
 	bool parser::is_response_code(unsigned int response_code)
 	{
 		return (response_code >= 300 && response_code < 600);
+	}
+
+	bool parser::is_port_number(const std::string &port_string)
+	{
+		try
+		{
+			const unsigned int port = strtoul(port_string);
+			return (port >= 1 && port <= 65535);
+		}
+		catch (const std::exception &e)
+		{
+			return (false);
+		}
 	}
 }

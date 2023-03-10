@@ -34,7 +34,7 @@ namespace ft
 			bool method_allowed(const std::string &method) const;
 			bool has_modifier() const;
 			void add_cgi(const std::string &extension, const std::string &path);
-			void set_route(const std::string &route);
+			void set_route(const std::string &route, location *parent = NULL);
 			void add_method(const std::string &method);
 			void set_modifier(bool modifier);
 			bool operator<(const location &rhs) const;
@@ -50,4 +50,5 @@ namespace ft
 }
 
 #include "server.hpp"
+
 #endif

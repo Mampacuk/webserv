@@ -44,6 +44,7 @@ namespace ft
 			bool is_context(std::string context);
 			bool is_directive(std::string directive);
 			bool is_response_code(unsigned int response_code);
+			bool is_port_number(const std::string &port_string);
 			base_dir *process_http(base_dir*);
 			base_dir *process_server(base_dir *http);
 			base_dir *process_location(base_dir *server);

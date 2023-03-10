@@ -1,5 +1,4 @@
 #include "location.hpp"
-#include <iostream> //remove later
 
 namespace ft
 {
@@ -7,27 +6,17 @@ namespace ft
 
 	location::~location() {}
 
-	location::location(const location &other) : base_dir_ext(other), cgi(other.cgi), methods(other.methods), route(other.route), modifier(other.modifier)
-	{
-		// std::cout << "COPY-CTOR FOR LOCATION ENTERED" << std::endl;
-	}
-
-	// location::location(const server &other) : base_dir_ext(other), cgi(), methods(), route(), modifier(false)
-	// {
-	// 	std::cout << "COPY-CTOR FOR SERVER ENTERED" << std::endl;
-	// }
+	location::location(const location &other) : base_dir_ext(other), cgi(other.cgi), methods(other.methods), route(other.route), modifier(other.modifier) {}
 
 	location::location(const base_dir &other) : base_dir_ext(other), cgi(), methods(), route(), modifier(false)
 	{
-			// std::cout << "received " << &other << " to copy from for " << this << std::endl;
 		if (dynamic_cast<const location*>(&other))
 		{
-			// std::cout << "COPY-CTORED LOCATION MEMBERS" << std::endl;
-			this->cgi = dynamic_cast<const location*>(&other)->cgi;
-			this->methods = dynamic_cast<const location*>(&other)->methods;
+			this->cgi = static_cast<const location&>(other).cgi;
+			this->methods = static_cast<const location&>(other).methods;
+			this->route = static_cast<const location&>(other).route;
+			this->modifier = static_cast<const location&>(other).modifier;
 		}
-		
-		// std::cout << "COPY-CTOR FOR BASE_DIR_EXT ENTERED" << std::endl;
 	}
 
 	location &location::operator=(const location &other)
@@ -68,8 +57,11 @@ namespace ft
 		this->cgi.second = path;
 	}
 
-	void location::set_route(const std::string &route)
+	void location::set_route(const std::string &route, location *parent)
 	{
+		if (parent)
+			if (route.compare(0, parent->get_route().length(), parent->get_route()))
+				throw std::invalid_argument("location \"" + route + "\" is outside location \"" + parent->get_route() + "\"");
 		this->route = route;
 	}
 
