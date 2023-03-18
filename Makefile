@@ -6,6 +6,10 @@ CXX			= c++
 CXXFLAGS	= -Wall -Wextra -Werror -std=c++98
 RM			= rm -rf
 
+ifeq ($(OS), Windows_NT)
+	CXXFLAGS += -lWs2_32
+endif
+
 all: $(NAME)
 
 .cpp.o:

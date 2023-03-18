@@ -1,7 +1,7 @@
 #include "parser.hpp"
 #include "webserv.hpp"
 
-ft::webserv webserv;
+ft::webserv webserver;
 
 int main(int argc, char **argv)
 {
@@ -10,15 +10,15 @@ int main(int argc, char **argv)
 	if (argc == 2)
 		filename = argv[1];
 	else if (argc != 1)
-		return (webserv.error("Too many arguments!"));
+		return (webserver.error("Too many arguments!"));
 	try
 	{
 		ft::parser config(filename);
-		webserv.set_http(config.parse());
+		webserver.set_http(config.parse());
 	}
 	catch (const std::exception &e)
 	{
-		return (webserv.error(e.what()));
+		return (webserver.error(e.what()));
 	}
-	webserv.verify_http();
+	webserver.verify_http();
 }

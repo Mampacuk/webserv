@@ -1,16 +1,10 @@
 #ifndef BASE_DIR_HPP
 # define BASE_DIR_HPP
 
-# include <string>
-# include <map> 
-# include <vector>
+# include "stdafx.hpp"
 
 namespace ft
 {
-	typedef std::vector<std::string> string_vector;
-	typedef std::map<unsigned int, std::string> error_map;
-	typedef std::pair<unsigned int, std::string> error_page;
-
 	class base_dir
 	{
 		protected:

@@ -1,12 +1,7 @@
 #ifndef PARSER_HPP
 # define PARSER_HPP
 
-# include <fstream>
-# include <sstream>
-# include <list>
-# include <cstdlib>
-# include <limits>
-
+# include "stdafx.hpp"
 # include "base_dir.hpp"
 
 namespace ft
@@ -25,7 +20,8 @@ namespace ft
 			directive_map directives;
 			context_map contexts;
 			std::ifstream config;
-			std::list<std::string> chunks;
+			string_list chunks;
+			string_pair_set listens;
 		public:
 			parser(const std::string &filename);
 			~parser();
@@ -34,10 +30,12 @@ namespace ft
 			parser();
 			parser(const parser &other);
 			parser &operator=(const parser &other);
-			void get_chunks();
+			void parse_chunks();
 			std::string &front();
 			std::string pop_front();
-			std::vector<std::string> get_argument_list();
+			string_vector get_argument_list();
+			void memorize_listen(const std::string &host, const std::string &port);
+			void open_sockets(server &server);
 			bool erase_chunk_middle(std::string str, bool b = false);
 			bool erase_chunk_front(std::string str);
 			void erase_token_front(std::string token, bool);
@@ -60,7 +58,7 @@ namespace ft
 			bool	read_cgi(base_dir *location);
 			bool	read_limit_except(base_dir *location);
 			void	load_base_dir();
-			void	unload_base_dir();	
+			void	unload_base_dir();
 	};
 }
 

@@ -1,16 +1,11 @@
 #ifndef BASE_DIR_EXT_HPP
 # define BASE_DIR_EXT_HPP
 
+# include "stdafx.hpp"
 # include "base_dir.hpp"
-# include <set>
 
 namespace ft
 {
-	class location;
-
-	typedef std::set<location> location_set;
-	typedef std::multimap<std::string, std::string> string_mmap;
-
 	class base_dir_ext : public base_dir
 	{
 		protected:
@@ -29,6 +24,6 @@ namespace ft
 	};
 }
 
-#include "location.hpp"
+# include "location.hpp"
 
 #endif

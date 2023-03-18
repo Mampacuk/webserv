@@ -42,14 +42,14 @@ namespace ft
 		for (size_t i = 0; i < servers.size(); i++)
 		{
 			std::cout << " |S| inspecting server " << i << ":" << std::endl;
-			for (string_set::iterator it = servers[i].get_names().begin();
+			for (string_vector::const_iterator it = servers[i].get_names().begin();
 				it != servers[i].get_names().end();
 				it++)
 				std::cout << "name: " << *it << std::endl;
-			for (address_set::iterator it = servers[i].get_listens().begin();
-				it != servers[i].get_listens().end();
+			for (int_vector::const_iterator it = servers[i].get_sockets().begin();
+				it != servers[i].get_sockets().end();
 				it++)
-				std::cout << "listens on { " << it->first << " : " << it->second << " }" << std::endl;
+				std::cout << "listens on socket { " << *it << " }" << std::endl;
 			print_base_dir_ext(&servers[i]);
 		}
 	}

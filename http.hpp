@@ -1,15 +1,11 @@
 #ifndef HTTP_HPP
 # define HTTP_HPP
 
+# include "stdafx.hpp"
 # include "base_dir.hpp"
-# include "server.hpp"
-
-# include <vector>
 
 namespace ft
 {
-	typedef std::vector<server> server_vector;
-
 	class http : public base_dir
 	{
 		private:
@@ -23,5 +19,7 @@ namespace ft
 			void add_server(server server);
 	};
 }
+
+# include "server.hpp"
 
 #endif

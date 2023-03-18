@@ -1,21 +1,11 @@
 #ifndef LOCATION_HPP
 # define LOCATION_HPP
 
-# include <string>
-# include <set>
-# include <map>
-# include <stdexcept>
-
+# include "stdafx.hpp"
 # include "base_dir_ext.hpp"
 
 namespace ft
 {
-	class server;
-
-	typedef std::map<std::string, std::string> string_map;
-	typedef std::set<std::string> string_set;
-	typedef std::pair<std::string, std::string> string_pair;
-
 	class location : public base_dir_ext
 	{
 		private:
@@ -48,7 +38,5 @@ namespace ft
 			}
 	};
 }
-
-#include "server.hpp"
 
 #endif

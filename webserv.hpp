@@ -1,9 +1,7 @@
 #ifndef WEBSERV_HPP
 # define WEBSERV_HPP
 
-# include <cstdlib>
-# include <iostream>
-
+# include "stdafx.hpp"
 # include "http.hpp"
 
 namespace ft
@@ -27,6 +25,6 @@ namespace ft
 	};
 }
 
-extern ft::webserv webserv;
+extern ft::webserv webserver;
 
 #endif

@@ -1,7 +1,7 @@
 #include "parser.hpp"
 #include "http.hpp"
 #include "location.hpp"
-#include <iostream> //remove later
+#include "server.hpp"
 
 namespace ft
 {
@@ -25,7 +25,7 @@ namespace ft
 		this->directives.insert(directive("rewrite", dir_functor(&parser::read_redirect, false)));
 		this->directives.insert(directive("cgi", dir_functor(&parser::read_cgi, false)));
 		this->directives.insert(directive("limit_except", dir_functor(&parser::read_limit_except, false)));
-		get_chunks();
+		parse_chunks();
 	}
 
 	parser::~parser() {}
@@ -88,7 +88,7 @@ namespace ft
 		return (true);
 	}
 
-	void parser::get_chunks()
+	void parser::parse_chunks()
 	{
 		std::string line;
 
@@ -151,8 +151,12 @@ namespace ft
 			parse(&serv);
 		erase_chunk_front("}");
 
-		if (serv.get_listens().empty())
-			serv.add_listen("0.0.0.0");
+		if (serv.get_sockets().empty())
+			serv.add_socket("0.0.0.0", "80");
+		if (serv.get_names().empty())
+			serv.add_name("");
+		open_sockets(serv);
+		
 		static_cast<http*>(protocol)->add_server(serv);
 
 		this->directives["rewrite"].second = false;
@@ -290,24 +294,24 @@ namespace ft
 		return (semicolon_erased);
 	}
 
-	bool parser::read_listen(base_dir *parent)
+	bool parser::read_listen(base_dir*)
 	{
 		bool port_specified = erase_chunk_middle(":");
 		bool semicolon_erased = false;
-		unsigned int port = 80;
-		std::string host;
+		std::string port = "80";
+		std::string host = "0.0.0.0";
 		if (!port_specified)
 			semicolon_erased = erase_chunk_middle(";");
 		if (!port_specified && is_port_number(front()))
-			port = strtoul(pop_front());
+			port = pop_front();
 		else
 			host = pop_front();
 		if (port_specified)
 		{
 			semicolon_erased = erase_chunk_middle(";");
-			port = strtoul(pop_front());
+			port = pop_front();
 		}
-		static_cast<server*>(parent)->add_listen(host, port);
+		memorize_listen(host, port);
 		return (semicolon_erased);
 	}
 
@@ -346,19 +350,6 @@ namespace ft
 		return (true);
 	}
 
-	// returns a vector of strings that are arguments delimited by a `;`
-	std::vector<std::string> parser::get_argument_list()
-	{
-		std::vector<std::string> arguments;
-		if (front().at(0) == ';')
-			throw std::invalid_argument("Parsing error occured. Empty argument list.");
-		while (!erase_chunk_middle(";", true))
-			arguments.push_back(pop_front());
-		if (!front().empty())
-			arguments.push_back(front());
-		pop_front();
-		return (arguments);
-	}
 
 	unsigned int parser::strtoul(const std::string &number)
 	{
@@ -384,6 +375,38 @@ namespace ft
 		std::string popped(front());
 		this->chunks.pop_front();
 		return (popped);
+	}
+
+	// returns a vector of strings that are arguments delimited by a `;`
+	string_vector parser::get_argument_list()
+	{
+		string_vector arguments;
+		if (front().at(0) == ';')
+			throw std::invalid_argument("Parsing error occured. Empty argument list.");
+		while (!erase_chunk_middle(";", true))
+			arguments.push_back(pop_front());
+		if (!front().empty())
+			arguments.push_back(front());
+		pop_front();
+		return (arguments);
+	}
+
+	void parser::memorize_listen(const std::string &host, const std::string &port)
+	{
+		if (this->listens.find(string_pair(host, port)) != this->listens.end())
+			throw std::invalid_argument("A duplicate listen " + host + ":" + port + " encountered.");
+		this->listens.insert(string_pair(host, port));
+	}
+
+	void parser::open_sockets(server &server)
+	{
+		for (string_pair_set::iterator it = this->listens.begin();
+			it != this->listens.end();
+			it++)
+		{
+			server.add_socket(it->first, it->second);
+		}
+		this->listens.clear();
 	}
 
 	// returns true if the erased str was a separate chunk, otherwise false
