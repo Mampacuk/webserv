@@ -1,19 +1,25 @@
 #ifndef STDAFX_HPP
 # define STDAFX_HPP
 
-# if defined(_WIN32) || defined(__CYGWIN__) // defined on windows
-#  undef UNICODE
-#  define NOMINMAX
-#  define WINVER 0x0A00
-#  define _WIN32_WINNT 0x0A00
-#  include <WinSock2.h>
-#  include <WS2tcpip.h>
-#  include <wspiapi.h>
-#  include <io.h>
-# elif defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
+// # if defined(_WIN32) || defined(__CYGWIN__) // defined on windows
+// #  undef UNICODE
+// #  define NOMINMAX
+// #  define WINVER 0x0A00
+// #  define _WIN32_WINNT 0x0A00
+// #  include <WinSock2.h>
+// #  include <WS2tcpip.h>
+// #  include <wspiapi.h>
+// #  include <io.h>
+// # elif defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
+#  include <sys/types.h>
 #  include <sys/socket.h>
+#  include <netinet/tcp.h>
+#  include <netinet/in.h>
+#  include <netdb.h>
 #  include <unistd.h>
-# endif
+#  include <fcntl.h>
+#  define BACKLOG 128
+// # endif
 
 # include <string>
 # include <cstring>

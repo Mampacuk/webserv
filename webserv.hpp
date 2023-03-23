@@ -19,6 +19,7 @@ namespace ft
 			void set_http(base_dir *protocol);
 			void verify_http();
 			int error(const std::string &message) const;
+			void start_listening();
 		private:
 			void print_base_dir_ext(base_dir_ext *ptr);
 			void print_base_dir(base_dir *ptr);

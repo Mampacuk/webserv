@@ -52,6 +52,19 @@ namespace ft
 		{
 			if ((socket_fd = socket(rit->ai_family, rit->ai_socktype, rit->ai_protocol)) == -1)
 				continue ;
+			int on = 1;
+			if (setsockopt(socket_fd, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on)) < 0
+				|| setsockopt(socket_fd, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on) < 0
+				|| setsockopt(socket_fd, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(on) < 0)))
+			{
+				close(socket_fd);
+				throw std::runtime_error("Couldn't set socket options.");
+			}
+			if (fcntl(socket_fd, F_SETFL, O_NONBLOCK) == -1)
+			{
+				close(socket_fd);
+				throw std::runtime_error("Couldn't set the flags of a socket.");
+			}
 			if (bind(socket_fd, rit->ai_addr, rit->ai_addrlen) == -1)
 			{
 				close(socket_fd);

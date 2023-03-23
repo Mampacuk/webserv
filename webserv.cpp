@@ -99,4 +99,19 @@ namespace ft
 		std::cerr << "[webserv]: Error: " << message << std::endl;
 		return (EXIT_FAILURE);
 	}
+
+	void webserv::start_listening()
+	{
+
+		for (server_vector::const_iterator it = this->get_http().get_servers().begin(); it != this->get_http().get_servers().end(); it++)
+		{
+			for (int_vector::const_iterator sock = it->get_sockets().begin(); sock != it->get_sockets().end(); sock++)
+			{
+				if (listen(*sock, BACKLOG) < 0)
+					throw std::runtime_error("Failed listen on a socket.");
+				
+
+			}
+		}
+	}
 }
