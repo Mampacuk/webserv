@@ -50,6 +50,7 @@ namespace ft
 	typedef std::map<unsigned int, std::string> error_map;
 	typedef std::pair<unsigned int, std::string> error_page;
 	typedef std::vector<int> int_vector;
+	typedef std::set<int> int_set;
 	typedef std::vector<server> server_vector;
 	typedef std::set<location> location_set;
 }

@@ -20,6 +20,7 @@ namespace ft
 			const string_vector &get_names() const;
 			const int_vector &get_sockets() const;
 			void add_name(const std::string &name);
+			void close_sockets();
 			void add_socket(const std::string &host, const std::string &port);
 	};
 }

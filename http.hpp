@@ -17,6 +17,8 @@ namespace ft
 			http &operator=(const http &other);
 			const server_vector &get_servers() const;
 			void add_server(server server);
+			void close_server_sockets();
+			int_set initialize_master(fd_set &master_set) const;
 	};
 }
 

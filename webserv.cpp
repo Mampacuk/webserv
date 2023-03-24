@@ -100,17 +100,59 @@ namespace ft
 		return (EXIT_FAILURE);
 	}
 
-	void webserv::start_listening()
+	void webserv::start_service()
 	{
+		fd_set	master_set;
+		fd_set	working_set;
+		bool	end_server = false;
+		int		desc_ready;
+		int		new_sd = 0;
+		int_set	sockets = this->protocol->initialize_master(master_set);
+		int		max_sd = *(--sockets.end());
 
-		for (server_vector::const_iterator it = this->get_http().get_servers().begin(); it != this->get_http().get_servers().end(); it++)
+		while (end_server == false)
 		{
-			for (int_vector::const_iterator sock = it->get_sockets().begin(); sock != it->get_sockets().end(); sock++)
+			// copy the master set into the working set so that select() doesn't modify it
+			std::memcpy(&working_set, &master_set, sizeof(master_set));
+			desc_ready = select(max_sd + 1, &working_set, NULL, NULL, NULL);
+			if (desc_ready == -1)
 			{
-				if (listen(*sock, BACKLOG) < 0)
-					throw std::runtime_error("Failed listen on a socket.");
-				
+				if (errno != EINTR && errno != EAGAIN) // allowed errors
+				{
+					this->protocol->close_server_sockets();
+					throw std::runtime_error("select() function failed.");
+				}
+				continue ;
+			}
+			for (int i = 0; i <= max_sd && desc_ready > 0; i++)
+			{
+				if (FD_ISSET(i, &working_set))
+				{
+					desc_ready--;
+					if (sockets.find(i) != sockets.end())
+					{
+						//One of the listening sockets is readable
+						while (new_sd != -1)
+						{
+							new_sd = accept(i, NULL, NULL); // can get info about client
+							if (new_sd == -1)
+							{
+								if (errno != EWOULDBLOCK)
+								{
+									
+								}
+								break ;
+							}
+							//New incoming connection is new_sd
+							FD_SET(new_sd, &master_set);
+							max_sd = new_sd > max_sd ? new_sd : max_sd;
+						}
+					}
+					else
+					{
 
+					}
+				}
 			}
 		}
 	}

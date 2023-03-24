@@ -138,8 +138,6 @@ namespace ft
 
 	base_dir *parser::process_server(base_dir *protocol)
 	{
-		std::cout << "vv process_server vv" << std::endl;
-
 		server serv(*protocol);
 		this->contexts["server"].second = false;
 		this->contexts["location"].second = true;
@@ -164,14 +162,11 @@ namespace ft
 		this->directives["listen"].second = false;
 		this->contexts["location"].second = false;
 		this->contexts["server"].second = true;
-		std::cout << "^^ process_server ^^" << std::endl;
 		return (protocol);
 	}
 
 	base_dir *parser::process_location(base_dir *parent)
 	{
-		std::cout << "vvv process_location vvv" << std::endl;
-
 		location loc(*parent);
 		this->directives["cgi"].second = true;
 		this->directives["limit_except"].second = true;
@@ -186,7 +181,6 @@ namespace ft
 
 		this->directives["limit_except"].second = false;
 		this->directives["cgi"].second = false;
-		std::cout << "^^^ process_location ^^^" << std::endl;
 		return (parent);
 	}
 

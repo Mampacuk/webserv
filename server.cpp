@@ -5,7 +5,10 @@ namespace ft
 {
 	server::server() : base_dir_ext(), names(), sockets() {}
 
-	server::~server() {}
+	server::~server()
+	{
+		close_sockets();
+	}
 
 	server::server(const server &other) : base_dir_ext(other), names(other.names), sockets(other.sockets) {}
 
@@ -35,6 +38,13 @@ namespace ft
 			this->names.push_back(name);
 	}
 
+	void server::close_sockets()
+	{
+		for (size_t i = 0; i < this->sockets.size(); i++)
+			close(this->sockets[i]);
+		this->sockets.clear();
+	}
+
 	void server::add_socket(const std::string &host, const std::string &port)
 	{
 		int	status;
@@ -51,11 +61,11 @@ namespace ft
 		for (rit = result; rit != NULL; rit = rit->ai_next)
 		{
 			if ((socket_fd = socket(rit->ai_family, rit->ai_socktype, rit->ai_protocol)) == -1)
-				continue ;
+				continue ;	// not a critical error; exception is thrown when eventually `sockets` is empty
 			int on = 1;
-			if (setsockopt(socket_fd, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on)) < 0
-				|| setsockopt(socket_fd, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on) < 0
-				|| setsockopt(socket_fd, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(on) < 0)))
+			if (setsockopt(socket_fd, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on)) == -1
+				|| setsockopt(socket_fd, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on) == -1)
+				|| setsockopt(socket_fd, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(on) == -1))
 			{
 				close(socket_fd);
 				throw std::runtime_error("Couldn't set socket options.");
@@ -69,7 +79,12 @@ namespace ft
 			{
 				close(socket_fd);
 				webserver.error("bind() to " + host + ":" + port + " failed (" + strerror(errno) + ")");
-				continue ;
+				continue ;	// not a critical error; exception is thrown when eventually `sockets` is empty
+			}
+			if (listen(socket_fd, BACKLOG) == -1)
+			{
+				close(socket_fd);
+				throw std::runtime_error("Failed listening on " + host + ":" + port + ".");
 			}
 			this->sockets.push_back(socket_fd);
 		}

@@ -24,4 +24,25 @@ namespace ft
 	{
 		this->servers.push_back(server);
 	}
+
+	void http::close_server_sockets()
+	{
+		for (size_t i = 0; this->servers.size(); i++)
+			this->servers[i].close_sockets();
+	}
+
+	// adds all sockets from all servers to `master_set`; returns the max_fd among them.
+	int_set	http::initialize_master(fd_set &master_set) const
+	{
+		int_set sockets;
+
+		FD_ZERO(&master_set);
+		for (server_vector::const_iterator it = get_servers().begin(); it != get_servers().end(); it++)
+			for (int_vector::const_iterator sock = it->get_sockets().begin(); sock != it->get_sockets().end(); sock++)
+			{
+				sockets.insert(*sock);
+				FD_SET(*sock, &master_set);
+			}
+		return (sockets);
+	}
 }
