@@ -22,7 +22,8 @@ namespace ft
 			void start_service();
 		private:
 			void print_base_dir_ext(base_dir_ext *ptr);
-			void print_base_dir(base_dir *ptr);
+			void print_base_dir(base_dir *ptr);	
+			void receive_header(int i);
 	};
 }
 

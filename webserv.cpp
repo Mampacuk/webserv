@@ -100,6 +100,21 @@ namespace ft
 		return (EXIT_FAILURE);
 	}
 
+	void webserv::receive_header(int i)
+	{
+		std::string header;
+
+		while (true)
+		{
+			char buffer[BUFSIZ];
+			int  bytes_read = recv(i, buffer, sizeof(BUFSIZ), 0);
+			if (bytes_read < 0)
+			{
+				// if ()
+			}
+		}
+	}
+
 	void webserv::start_service()
 	{
 		fd_set	master_set;
@@ -109,6 +124,7 @@ namespace ft
 		int		new_sd = 0;
 		int_set	sockets = this->protocol->initialize_master(master_set);
 		int		max_sd = *(--sockets.end());
+		bool	close_conn;
 
 		while (end_server == false)
 		{
@@ -139,7 +155,8 @@ namespace ft
 							{
 								if (errno != EWOULDBLOCK)
 								{
-									
+									error("accept() call failed on socket");
+									FD_CLR(i, &master_set);
 								}
 								break ;
 							}
@@ -150,7 +167,9 @@ namespace ft
 					}
 					else
 					{
-
+						close_conn = false;
+						receive_header(i);
+						//..
 					}
 				}
 			}
