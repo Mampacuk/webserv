@@ -107,7 +107,7 @@ namespace ft
 		while (true)
 		{
 			char buffer[BUFSIZ];
-			int  bytes_read = recv(i, buffer, sizeof(BUFSIZ), 0);
+			int  bytes_read = recv(i, buffer, sizeof(buffer), 0);
 			if (bytes_read < 0)
 			{
 				// if ()
