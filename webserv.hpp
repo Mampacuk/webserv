@@ -23,7 +23,7 @@ namespace ft
 		private:
 			void print_base_dir_ext(base_dir_ext *ptr);
 			void print_base_dir(base_dir *ptr);	
-			void receive_header(int i);
+			void receive_request(int i, int_string_map &socket_messages);
 	};
 }
 

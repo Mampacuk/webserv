@@ -100,31 +100,36 @@ namespace ft
 		return (EXIT_FAILURE);
 	}
 
-	void webserv::receive_header(int i)
+	void webserv::receive_request(int i, int_string_map &socket_messages)
 	{
 		std::string header;
-
-		while (true)
+		char buffer[BUFSIZ];
+		int  bytes_read = recv(i, buffer, sizeof(buffer), 0);
+		if (bytes_read <= 0)
 		{
-			char buffer[BUFSIZ];
-			int  bytes_read = recv(i, buffer, sizeof(buffer), 0);
 			if (bytes_read < 0)
 			{
-				// if ()
+				this->protocol->close_server_sockets();
+				throw std::runtime_error("recv() function failed.");
 			}
+		}
+		else // attach to the previous chunks
+		{
+			socket_messages[i] += buffer;
+			// if the ending was found then create request and response
 		}
 	}
 
 	void webserv::start_service()
 	{
-		fd_set	master_set;
-		fd_set	working_set;
-		bool	end_server = false;
-		int		desc_ready;
-		int		new_sd = 0;
-		int_set	sockets = this->protocol->initialize_master(master_set);
-		int		max_sd = *(--sockets.end());
-		bool	close_conn;
+		fd_set			master_set;
+		fd_set			working_set;
+		bool			end_server = false;
+		int				desc_ready;
+		int				new_sd = 0;
+		bool			close_conn;
+		int_string_map	socket_messages = this->protocol->initialize_master(master_set);
+		int				max_sd = (--socket_messages.end())->first;
 
 		while (end_server == false)
 		{
@@ -145,7 +150,7 @@ namespace ft
 				if (FD_ISSET(i, &working_set))
 				{
 					desc_ready--;
-					if (sockets.find(i) != sockets.end())
+					if (socket_messages.find(i) != socket_messages.end())
 					{
 						//One of the listening sockets is readable
 						while (new_sd != -1)
@@ -168,7 +173,7 @@ namespace ft
 					else
 					{
 						close_conn = false;
-						receive_header(i);
+						receive_request(i, socket_messages);
 						//..
 					}
 				}

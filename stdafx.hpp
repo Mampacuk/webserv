@@ -53,6 +53,8 @@ namespace ft
 	typedef std::set<int> int_set;
 	typedef std::vector<server> server_vector;
 	typedef std::set<location> location_set;
+	typedef std::map<int, std::string> int_string_map;
+	typedef std::pair<int, std::string> int_string;
 }
 
 #endif

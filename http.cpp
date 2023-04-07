@@ -32,17 +32,17 @@ namespace ft
 	}
 
 	// adds all sockets from all servers to `master_set`; returns the max_fd among them.
-	int_set	http::initialize_master(fd_set &master_set) const
+	int_string_map	http::initialize_master(fd_set &master_set) const
 	{
-		int_set sockets;
+		int_string_map socket_messages;
 
 		FD_ZERO(&master_set);
 		for (server_vector::const_iterator it = get_servers().begin(); it != get_servers().end(); it++)
 			for (int_vector::const_iterator sock = it->get_sockets().begin(); sock != it->get_sockets().end(); sock++)
 			{
-				sockets.insert(*sock);
+				socket_messages.insert(int_string(*sock, ""));
 				FD_SET(*sock, &master_set);
 			}
-		return (sockets);
+		return (socket_messages);
 	}
 }
