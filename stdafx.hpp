@@ -35,6 +35,25 @@
 # include <iostream>
 # include <algorithm>
 
+//Status codes - maybe won't use all of them or would add some more later
+# define CONTINUE 100
+# define SWITCHING_PROTOCOLS 101
+# define OK 200
+# define CREATED 201
+# define ACCEPTED 202
+# define NO_CONTENT 204
+# define MOVED_PERMANENTLY 301
+# define FOUND 302
+# define NOT_MODIFIED 304
+# define BAD_REQUEST 400
+# define UNAUTHORIZED 401
+# define FORBIDDEN 403
+# define NOT_FOUND 404
+# define METHOD_NOT_ALLOWED 405
+# define INTERNAL_SERVER_ERROR 500
+# define NOT_IMPLEMENTED 501
+# define SERVICE_UNAVAILABLE 503
+
 namespace ft
 {
 	class server;
