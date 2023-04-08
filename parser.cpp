@@ -5,52 +5,52 @@
 
 namespace ft
 {
-	parser::parser(): directives(), contexts(), config(), chunks() {}
+	parser::parser(): _directives(), _contexts(), _config(), _chunks() {}
 
-	parser::parser(const std::string &filename): directives(), contexts(), config(), chunks()
+	parser::parser(const std::string &filename): _directives(), _contexts(), _config(), _chunks()
 	{
-		this->config.open(filename.c_str());
-		if (!this->config.is_open())
+		this->_config.open(filename.c_str());
+		if (!this->_config.is_open())
 			throw std::runtime_error("File \"" + filename + "\" does not exist.");
-		this->contexts.insert(context("http", cont_functor(&parser::process_http, true)));
-		this->contexts.insert(context("server", cont_functor(&parser::process_server, false)));
-		this->contexts.insert(context("location", cont_functor(&parser::process_location, false)));
-		this->directives.insert(directive("root", dir_functor(&parser::read_root, false)));
-		this->directives.insert(directive("autoindex", dir_functor(&parser::read_autoindex, false)));
-		this->directives.insert(directive("error_page", dir_functor(&parser::read_error_page, false)));
-		this->directives.insert(directive("client_max_body_size", dir_functor(&parser::read_client_max_body_size, false)));
-		this->directives.insert(directive("index", dir_functor(&parser::read_index, false)));
-		this->directives.insert(directive("listen", dir_functor(&parser::read_listen, false)));
-		this->directives.insert(directive("server_name", dir_functor(&parser::read_server_name, false)));
-		this->directives.insert(directive("rewrite", dir_functor(&parser::read_redirect, false)));
-		this->directives.insert(directive("cgi", dir_functor(&parser::read_cgi, false)));
-		this->directives.insert(directive("limit_except", dir_functor(&parser::read_limit_except, false)));
+		this->_contexts.insert(context("http", cont_functor(&parser::process_http, true)));
+		this->_contexts.insert(context("server", cont_functor(&parser::process_server, false)));
+		this->_contexts.insert(context("location", cont_functor(&parser::process_location, false)));
+		this->_directives.insert(directive("root", dir_functor(&parser::read_root, false)));
+		this->_directives.insert(directive("autoindex", dir_functor(&parser::read_autoindex, false)));
+		this->_directives.insert(directive("error_page", dir_functor(&parser::read_error_page, false)));
+		this->_directives.insert(directive("client_max_body_size", dir_functor(&parser::read_client_max_body_size, false)));
+		this->_directives.insert(directive("index", dir_functor(&parser::read_index, false)));
+		this->_directives.insert(directive("listen", dir_functor(&parser::read_listen, false)));
+		this->_directives.insert(directive("server_name", dir_functor(&parser::read_server_name, false)));
+		this->_directives.insert(directive("rewrite", dir_functor(&parser::read_redirect, false)));
+		this->_directives.insert(directive("cgi", dir_functor(&parser::read_cgi, false)));
+		this->_directives.insert(directive("limit_except", dir_functor(&parser::read_limit_except, false)));
 		parse_chunks();
 	}
 
 	parser::~parser() {}
 
-	parser::parser(const parser &other): directives(other.directives), contexts(other.contexts), config(), chunks(other.chunks) {}
+	parser::parser(const parser &other): _directives(other._directives), _contexts(other._contexts), _config(), _chunks(other._chunks) {}
 
 	parser &parser::operator=(const parser&) { return (*this); }
 
 	base_dir *parser::parse(base_dir *parent)
 	{
-		context_map::iterator cont_it = this->contexts.begin();
-		for (; cont_it != this->contexts.end(); cont_it++)
+		context_map::iterator cont_it = this->_contexts.begin();
+		for (; cont_it != this->_contexts.end(); cont_it++)
 			if (cont_it->second.second && is_context(cont_it->first))
 			{
 				parent = (this->*(cont_it->second.first))(parent);
 				break ;
 			}
-		directive_map::iterator dir_it = this->directives.begin();
-		for (; dir_it != this->directives.end(); dir_it++)
+		directive_map::iterator dir_it = this->_directives.begin();
+		for (; dir_it != this->_directives.end(); dir_it++)
 			if (dir_it->second.second && is_directive(dir_it->first))
 			{
 				erase_token_front(";", (this->*(dir_it->second.first))(parent));
 				break ;
 			}
-		if (cont_it == this->contexts.end() && dir_it == this->directives.end() && !this->chunks.empty())
+		if (cont_it == this->_contexts.end() && dir_it == this->_directives.end() && !this->_chunks.empty())
 			throw std::logic_error("Unknown directive or ill-formed context encountered.");
 		return (parent);
 	}
@@ -73,7 +73,7 @@ namespace ft
 				throw std::invalid_argument("Parsing error occured. Invalid `location` syntax.");
 			erase_token_front("{", brace_erased);
 			for (size_t i = 0; i < location_args.size(); i++)
-				this->chunks.push_front(location_args[i]);
+				this->_chunks.push_front(location_args[i]);
 			return (true);
 		}
 		return (false);
@@ -92,7 +92,7 @@ namespace ft
 	{
 		std::string line;
 
-		while (std::getline(this->config, line))
+		while (std::getline(this->_config, line))
 		{
 			std::string chunk;
 			std::stringstream buffer(line);
@@ -100,14 +100,14 @@ namespace ft
 			{
 				if (chunk.find('#') != std::string::npos)
 				{
-					this->chunks.push_front(chunk);
+					this->_chunks.push_front(chunk);
 					erase_chunk_middle("#", true);
-					front().empty() ? (void)pop_front() : this->chunks.push_back(pop_front());
+					front().empty() ? (void)pop_front() : this->_chunks.push_back(pop_front());
 					pop_front();
 					buffer.str(""); // clear buffer
 				}
 				else
-					this->chunks.push_back(chunk);
+					this->_chunks.push_back(chunk);
 			}
 		}
 	}
@@ -118,14 +118,14 @@ namespace ft
 
 		try
 		{
-			this->contexts["http"].second = false;
-			this->contexts["server"].second = true;
+			this->_contexts["http"].second = false;
+			this->_contexts["server"].second = true;
 			load_base_dir();
 			while (front().at(0) != '}')
 				parse(protocol);
 			erase_chunk_front("}");
 			unload_base_dir();
-			this->contexts["server"].second = false;
+			this->_contexts["server"].second = false;
 			parse(protocol);
 		}
 		catch (...)
@@ -139,11 +139,11 @@ namespace ft
 	base_dir *parser::process_server(base_dir *protocol)
 	{
 		server serv(*protocol);
-		this->contexts["server"].second = false;
-		this->contexts["location"].second = true;
-		this->directives["listen"].second = true;
-		this->directives["server_name"].second = true;
-		this->directives["rewrite"].second = true;
+		this->_contexts["server"].second = false;
+		this->_contexts["location"].second = true;
+		this->_directives["listen"].second = true;
+		this->_directives["server_name"].second = true;
+		this->_directives["rewrite"].second = true;
 
 		while (front().at(0) != '}')
 			parse(&serv);
@@ -157,19 +157,19 @@ namespace ft
 		
 		static_cast<http*>(protocol)->add_server(serv);
 
-		this->directives["rewrite"].second = false;
-		this->directives["server_name"].second = false;
-		this->directives["listen"].second = false;
-		this->contexts["location"].second = false;
-		this->contexts["server"].second = true;
+		this->_directives["rewrite"].second = false;
+		this->_directives["server_name"].second = false;
+		this->_directives["listen"].second = false;
+		this->_contexts["location"].second = false;
+		this->_contexts["server"].second = true;
 		return (protocol);
 	}
 
 	base_dir *parser::process_location(base_dir *parent)
 	{
 		location loc(*parent);
-		this->directives["cgi"].second = true;
-		this->directives["limit_except"].second = true;
+		this->_directives["cgi"].second = true;
+		this->_directives["limit_except"].second = true;
 
 		loc.set_route(pop_front(), dynamic_cast<location*>(parent));
 		loc.set_modifier((front() == "=" ? pop_front() == "=" : false));
@@ -179,27 +179,27 @@ namespace ft
 
 		static_cast<base_dir_ext*>(parent)->add_location(loc);
 
-		this->directives["limit_except"].second = false;
-		this->directives["cgi"].second = false;
+		this->_directives["limit_except"].second = false;
+		this->_directives["cgi"].second = false;
 		return (parent);
 	}
 
 	void parser::load_base_dir()
 	{
-		this->directives["root"].second = true;
-		this->directives["autoindex"].second = true;
-		this->directives["error_page"].second = true;
-		this->directives["client_max_body_size"].second = true;
-		this->directives["index"].second = true;
+		this->_directives["root"].second = true;
+		this->_directives["autoindex"].second = true;
+		this->_directives["error_page"].second = true;
+		this->_directives["client_max_body_size"].second = true;
+		this->_directives["index"].second = true;
 	}
 
 	void parser::unload_base_dir()
 	{
-		this->directives["index"].second = false;
-		this->directives["client_max_body_size"].second = false;
-		this->directives["error_page"].second = false;
-		this->directives["autoindex"].second = false;
-		this->directives["root"].second = false;
+		this->_directives["index"].second = false;
+		this->_directives["client_max_body_size"].second = false;
+		this->_directives["error_page"].second = false;
+		this->_directives["autoindex"].second = false;
+		this->_directives["root"].second = false;
 	}
 
 	bool parser::read_root(base_dir *parent)
@@ -359,15 +359,15 @@ namespace ft
 
 	std::string &parser::front()
 	{
-		if (this->chunks.empty())
+		if (this->_chunks.empty())
 			throw std::length_error("Context or directive not completed.");
-		return (this->chunks.front());
+		return (this->_chunks.front());
 	}
 
 	std::string parser::pop_front()
 	{
 		std::string popped(front());
-		this->chunks.pop_front();
+		this->_chunks.pop_front();
 		return (popped);
 	}
 
@@ -387,20 +387,20 @@ namespace ft
 
 	void parser::memorize_listen(const std::string &host, const std::string &port)
 	{
-		if (this->listens.find(string_pair(host, port)) != this->listens.end())
+		if (this->_listens.find(string_pair(host, port)) != this->_listens.end())
 			throw std::invalid_argument("A duplicate listen " + host + ":" + port + " encountered.");
-		this->listens.insert(string_pair(host, port));
+		this->_listens.insert(string_pair(host, port));
 	}
 
 	void parser::open_sockets(server &server)
 	{
-		for (string_pair_set::iterator it = this->listens.begin();
-			it != this->listens.end();
+		for (string_pair_set::iterator it = this->_listens.begin();
+			it != this->_listens.end();
 			it++)
 		{
 			server.add_socket(it->first, it->second);
 		}
-		this->listens.clear();
+		this->_listens.clear();
 	}
 
 	// returns true if the erased str was a separate chunk, otherwise false
@@ -429,8 +429,8 @@ namespace ft
 		if (!empty_high_allowed && high.empty())
 			throw std::invalid_argument("Parsing error occured. Emptiness before a " + str + " token.");
 		if (!low.empty())
-			this->chunks.push_front(low);
-		this->chunks.push_front(high);
+			this->_chunks.push_front(low);
+		this->_chunks.push_front(high);
 		return (true);
 	}
 

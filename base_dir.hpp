@@ -8,11 +8,11 @@ namespace ft
 	class base_dir
 	{
 		protected:
-			std::string root;
-			bool autoindex;
-			error_map error_pages;
-			unsigned long int client_max_body_size; // in bytes
-			string_vector indexes;
+			bool				_autoindex;
+			error_map			_error_pages;
+			std::string			_root;
+			string_vector		_indexes;
+			unsigned long int	_client_max_body_size; // in bytes
 		public:
 			base_dir();
 			virtual ~base_dir();
@@ -30,12 +30,6 @@ namespace ft
 			const string_vector &get_indexes() const;
 			void flush_error_pages();
 			void flush_indexes();
-
-			 // remove later
-			error_map &get_error_map()
-			{
-				return (this->error_pages);
-			}
 	};
 }
 

@@ -9,7 +9,7 @@ namespace ft
 	class http : public base_dir
 	{
 		private:
-			server_vector	servers;
+			server_vector	_servers;
 		public:
 			http();
 			~http();

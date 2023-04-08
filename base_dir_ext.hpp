@@ -9,8 +9,8 @@ namespace ft
 	class base_dir_ext : public base_dir
 	{
 		protected:
-			location_set locations;
-			string_mmap redirects;
+			string_mmap		_redirects;
+			location_set	_locations;
 		public:
 			base_dir_ext();
 			virtual ~base_dir_ext();

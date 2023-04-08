@@ -9,10 +9,10 @@ namespace ft
 	class location : public base_dir_ext
 	{
 		private:
-			string_pair cgi;
-			string_set methods;		//if empty, everything is allowed
-			std::string route;
-			bool modifier;
+			string_pair	_cgi;
+			string_set	_methods; // if empty, everything is allowed
+			std::string	_route;
+			bool		_modifier;
 		public:
 			location();
 			~location();
@@ -30,12 +30,6 @@ namespace ft
 			bool operator<(const location &rhs) const;
 			void flush_cgi();
 			void flush_methods();
-
-			//delete later
-			const string_set &get_methods() const
-			{
-				return (this->methods);
-			}
 	};
 }
 

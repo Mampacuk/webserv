@@ -9,8 +9,8 @@ namespace ft
 	class server : public base_dir_ext
 	{
 		private:
-			string_vector names;
-			int_vector sockets;
+			string_vector _names;
+			int_vector _sockets;
 		public:
 			server();
 			~server();

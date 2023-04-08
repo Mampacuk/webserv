@@ -2,134 +2,78 @@
 
 namespace ft
 {
-	webserv::webserv(): protocol() {}
+	webserv::webserv(): _protocol() {}
 
 	webserv::~webserv()
 	{
-		delete this->protocol;
+		delete this->_protocol;
 	}
 
-	webserv::webserv(const webserv &other): protocol(new http(*other.protocol)) {}
+	webserv::webserv(const webserv &other): _protocol(new http(*other._protocol)) {}
 
 	webserv &webserv::operator=(const webserv &other)
 	{
-		*this->protocol = *other.protocol;
+		*this->_protocol = *other._protocol;
 		return (*this);
 	}
 
 	http &webserv::get_http()
 	{
-		return (*this->protocol);
+		return (*this->_protocol);
 	}
 
 	void webserv::set_http(base_dir *protocol)
 	{
-		this->protocol = static_cast<http*>(protocol);
+		this->_protocol = static_cast<http*>(protocol);
 	}
 
-	void webserv::verify_http()
+	int webserv::error(const std::string &error) const
 	{
-		if (!this->protocol)
-		{
-			std::cout << "http = null" << std::endl;
-			return ;
-		}
-		// typing http
-		print_base_dir(this->protocol);
-
-		// typing servers
-		server_vector &servers = const_cast<server_vector &>(this->protocol->get_servers());
-		for (size_t i = 0; i < servers.size(); i++)
-		{
-			std::cout << " |S| inspecting server " << i << ":" << std::endl;
-			for (string_vector::const_iterator it = servers[i].get_names().begin();
-				it != servers[i].get_names().end();
-				it++)
-				std::cout << "name: " << *it << std::endl;
-			for (int_vector::const_iterator it = servers[i].get_sockets().begin();
-				it != servers[i].get_sockets().end();
-				it++)
-				std::cout << "listens on socket { " << *it << " }" << std::endl;
-			print_base_dir_ext(&servers[i]);
-		}
-	}
-
-	void webserv::print_base_dir_ext(base_dir_ext *ptr)
-	{
-		print_base_dir(ptr);
-		std::cout << "printing locations for the given server/location:" << std::endl;
-		for (location_set::iterator it = const_cast<location_set&>(ptr->get_locations()).begin();
-			it != ptr->get_locations().end();
-			it++)
-		{
-			std::cout << " |L| inspecting location \"" << it->get_route() << "\":" << std::endl;
-			std::cout << "cgi: { " << it->get_cgi().first << " : " << it->get_cgi().second << " }" << std::endl;
-			for (string_set::iterator mit = it->get_methods().begin(); mit != it->get_methods().end(); mit++)
-				std::cout << "method disallowed: " << *mit << std::endl;
-			print_base_dir_ext(const_cast<location*>(&(*it)));
-			std::cout << "is = specified? " << (it->has_modifier() ? "yes" : "no") << std::endl;
-		}
-		for (string_mmap::const_iterator it = ptr->get_redirects().begin();
-			it != ptr->get_redirects().end();
-			it++)
-		{
-		std::cout << "redirects " << it->first << " to " << it->second << std::endl;
-		}
-	}
-
-	void webserv::print_base_dir(base_dir *ptr)
-	{
-		std::cout << "root: " << ptr->get_root() << std::endl;
-		std::cout << "autoindex: " << ptr->get_autoindex() << std::endl;
-		for (error_map::iterator it = ptr->get_error_map().begin();
-			it != ptr->get_error_map().end();
-			it++)
-		{
-			std::cout << "error_page: { " << it->first << " : " << it->second << " }" << std::endl;
-		}
-		std::cout << "client_max_body_size: " << ptr->get_client_max_body_size() << std::endl;
-		for (size_t i = 0; i < ptr->get_indexes().size(); i++)
-		{
-			std::cout << "index: " << ptr->get_indexes()[i] << std::endl;
-		}
-	}
-
-	int webserv::error(const std::string &message) const
-	{
-		std::cerr << "[webserv]: Error: " << message << std::endl;
+		std::cerr << "[webserv]: " << RED << "Error" << RESET << ": " << error << std::endl;
 		return (EXIT_FAILURE);
 	}
 
-	void webserv::receive_request(int i, int_string_map &socket_messages)
+	int webserv::log(const std::string &message) const
 	{
-		std::string header;
-		char buffer[BUFSIZ];
-		int  bytes_read = recv(i, buffer, sizeof(buffer), 0);
+		std::cout << "[webserv]: " << message << std::endl;
+		return (EXIT_SUCCESS);
+	}
+
+	// 
+	int webserv::receive_request(int socket, int_string_map &requests)
+	{
+		char buffer[BUFSIZ] = {0};
+		int  bytes_read = recv(socket, buffer, BUFSIZ - 1, 0);
 		if (bytes_read <= 0)
 		{
-			if (bytes_read < 0)
-			{
-				this->protocol->close_server_sockets();
-				throw std::runtime_error("recv() function failed.");
-			}
+			if (!bytes_read)
+				log("Connection closed by the client.");
+			else
+				log("recv() failed: closing connection.");
+			close(socket);
+			requests.erase(socket);
+			return (EXIT_FAILURE);
 		}
-		else // attach to the previous chunks
+		requests[socket] += buffer;
+		size_t i = requests[socket].find(CLRF CLRF);
+		if (i != std::string::npos) // message fully accepted
 		{
-			socket_messages[i] += buffer;
-			// if the ending was found then create request and response
+			request request(requests[socket]);
+
+
 		}
+		return (EXIT_SUCCESS);
 	}
 
 	void webserv::start_service()
 	{
-		fd_set			master_set;
+		fd_set			master_set; // this is reading_set; need writing_set also, passed to select
 		fd_set			working_set;
 		bool			end_server = false;
 		int				desc_ready;
 		int				new_sd = 0;
-		bool			close_conn;
-		int_string_map	socket_messages = this->protocol->initialize_master(master_set);
-		int				max_sd = (--socket_messages.end())->first;
+		int_string_map	requests = this->_protocol->initialize_master(master_set);
+		int				max_sd = (--requests.end())->first;
 
 		while (end_server == false)
 		{
@@ -140,7 +84,7 @@ namespace ft
 			{
 				if (errno != EINTR && errno != EAGAIN) // allowed errors
 				{
-					this->protocol->close_server_sockets();
+					this->_protocol->close_server_sockets();
 					throw std::runtime_error("select() function failed.");
 				}
 				continue ;
@@ -150,7 +94,7 @@ namespace ft
 				if (FD_ISSET(i, &working_set))
 				{
 					desc_ready--;
-					if (socket_messages.find(i) != socket_messages.end())
+					if (requests.find(i) != requests.end())
 					{
 						//One of the listening sockets is readable
 						while (new_sd != -1)
@@ -172,8 +116,11 @@ namespace ft
 					}
 					else
 					{
-						close_conn = false;
-						receive_request(i, socket_messages);
+						if (receive_request(i, requests) == EXIT_FAILURE)
+						{
+							FD_CLR(i, &working_set);
+							FD_CLR(i, &master_set);
+						}
 						//..
 					}
 				}

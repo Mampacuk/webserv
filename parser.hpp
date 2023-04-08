@@ -9,23 +9,24 @@ namespace ft
 	class parser
 	{
 		private:
-			typedef std::pair<bool (parser::*)(base_dir*), bool> dir_functor;
-			typedef std::pair<base_dir *(parser::*)(base_dir*), bool> cont_functor;
+			typedef std::pair<bool (parser::*)(base_dir*), bool>		dir_functor;
+			typedef std::pair<base_dir *(parser::*)(base_dir*), bool>	cont_functor;
 
-			typedef std::pair<std::string, dir_functor> directive;
-			typedef std::map<std::string, dir_functor> directive_map;
-			typedef std::pair<std::string, cont_functor> context;
-			typedef std::map<std::string, cont_functor> context_map;
+			typedef std::pair<std::string, dir_functor>		directive;
+			typedef std::map<std::string, dir_functor>		directive_map;
+			typedef std::pair<std::string, cont_functor>	context;
+			typedef std::map<std::string, cont_functor>		context_map;
 
-			directive_map directives;
-			context_map contexts;
-			std::ifstream config;
-			string_list chunks;
-			string_pair_set listens;
+			directive_map	_directives;
+			context_map		_contexts;
+			std::ifstream	_config;
+			string_list		_chunks;
+			string_pair_set	_listens;
 		public:
 			parser(const std::string &filename);
 			~parser();
 			base_dir *parse(base_dir *parent = NULL);
+			static unsigned int strtoul(const std::string &number);
 		private:
 			parser();
 			parser(const parser &other);
@@ -46,7 +47,6 @@ namespace ft
 			base_dir *process_http(base_dir*);
 			base_dir *process_server(base_dir *http);
 			base_dir *process_location(base_dir *server);
-			unsigned int strtoul(const std::string &number);
 			bool	read_root(base_dir *parent);
 			bool	read_autoindex(base_dir *parent);
 			bool	read_error_page(base_dir *parent);

@@ -20,5 +20,4 @@ int main(int argc, char **argv)
 	{
 		return (webserver.error(e.what()));
 	}
-	
 }

@@ -18,7 +18,6 @@
 #  include <netdb.h>
 #  include <unistd.h>
 #  include <fcntl.h>
-#  define BACKLOG 128
 // # endif
 
 # include <string>
@@ -26,14 +25,22 @@
 # include <cstdlib>
 # include <fstream>
 # include <sstream>
-# include <list>
-# include <set>
-# include <map> 
-# include <vector>
 # include <limits>
 # include <stdexcept>
 # include <iostream>
 # include <algorithm>
+# include <list>
+# include <set>
+# include <map> 
+# include <vector>
+
+# define RED "\033[31m"
+# define GREEN "\033[32m"
+# define YELLOW "\033[33m"
+# define RESET "\033[0m"
+
+# define BACKLOG 128
+# define CLRF "\r\n"
 
 namespace ft
 {
