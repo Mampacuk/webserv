@@ -33,95 +33,129 @@ namespace ft
 		return (EXIT_FAILURE);
 	}
 
-	int webserv::log(const std::string &message) const
+	int webserv::log(const std::string &message, const char *color) const
 	{
-		std::cout << "[webserv]: " << message << std::endl;
+		std::cout << "[webserv]: " << color << message << RESET << std::endl;
 		return (EXIT_SUCCESS);
 	}
 
-	// 
-	int webserv::receive_request(int socket, int_string_map &requests)
+	int webserv::receive_request(int socket, int_string_map &messages)
 	{
-		char buffer[BUFSIZ] = {0};
+		char buffer[BUFSIZ] = {0}; // pass BUFSIZ - 1 so it's null-terminated
 		int  bytes_read = recv(socket, buffer, BUFSIZ - 1, 0);
 		if (bytes_read <= 0)
 		{
 			if (!bytes_read)
-				log("Connection closed by the client.");
+				log("Connection closed by the client.", YELLOW);
 			else
-				log("recv() failed: closing connection.");
+				error("recv() failed: closing connection.");
 			close(socket);
-			requests.erase(socket);
+			messages.erase(socket);
 			return (EXIT_FAILURE);
 		}
-		requests[socket] += buffer;
-		size_t i = requests[socket].find(CLRF CLRF);
-		if (i != std::string::npos) // message fully accepted
+		messages[socket] += buffer;
+		const size_t headers_end = messages[socket].find(CLRF CLRF);
+		if (headers_end != std::string::npos) // headers fully accepted
 		{
-			request request(requests[socket]);
+			request request(messages[socket]);
+			if (request["Content-Length"].empty())
+			{
+				if (request["Transfer-Encoding"] == "chunked")
+				{
+					if (ends_with(messages[socket], "0" CLRF CLRF))
+						return (generate_response(request));
+					return (EXIT_SUCCESS);
+				}
+				else if (request["Transfer-Encoding"].empty())
+					return (generate_response(request));
+				else // else the message is ill-formed
+				{
+					error("Invalid request received: `Transfer-Encoding` error.");
+					return (EXIT_SUCCESS);
+				}
+			}
 
-
+			try
+			{
+				const size_t content_len = parser::strtoul(request["Content-Length"]);
+				if (messages[socket].size() == content_len + headers_end + std::strlen(CLRF CLRF CLRF))
+					return (generate_response(request));
+			}
+			catch (const std::exception &e)
+			{
+				error("Invalid request received: `Content-Length` error.");
+			}
+			// push_back socket to ready? becomes a part of writing fd?
 		}
 		return (EXIT_SUCCESS);
 	}
 
+	int webserv::generate_response(request &request)
+	{
+		// Anahit's code
+	}
+
 	void webserv::start_service()
 	{
-		fd_set			master_set; // this is reading_set; need writing_set also, passed to select
-		fd_set			working_set;
-		bool			end_server = false;
-		int				desc_ready;
-		int				new_sd = 0;
+		fd_set			master_set;
+		fd_set			reading_set;
+		fd_set			writing_set;
+		int				desc_ready = 0;
 		int_string_map	requests = this->_protocol->initialize_master(master_set);
 		int				max_sd = (--requests.end())->first;
+		const struct timeval	timeout = {TIMEOUT_SEC, TIMEOUT_MICROSEC};
+		const char		bars[] = {'\\', '|', '/', '-'};
+		const int		nbars = sizeof(bars) / sizeof(bars[0]);
+		int				bar_id = 0;
 
-		while (end_server == false)
+		while (true)
 		{
-			// copy the master set into the working set so that select() doesn't modify it
-			std::memcpy(&working_set, &master_set, sizeof(master_set));
-			desc_ready = select(max_sd + 1, &working_set, NULL, NULL, NULL);
-			if (desc_ready == -1)
+			while (desc_ready == 0)
 			{
-				if (errno != EINTR && errno != EAGAIN) // allowed errors
+				// copy the master set into the reading set so that select() doesn't modify it
+				std::memcpy(&reading_set, &master_set, sizeof(master_set));
+				FD_ZERO(&writing_set);
+				// something with writing_set
+				std::cout << EL << bars[(bar_id = (bar_id >= nbars) ? 0 : bar_id + 1)] << std::flush;
+				desc_ready = select(max_sd + 1, &reading_set, &writing_set, NULL, &timeout);
+				if (desc_ready == -1)
 				{
-					this->_protocol->close_server_sockets();
-					throw std::runtime_error("select() function failed.");
+					error("select() call failed: " + std::string(strerror(errno)));
+					desc_ready = 0;
 				}
-				continue ;
 			}
+			// writing set block
+			log("Received a connection.", GREEN);
 			for (int i = 0; i <= max_sd && desc_ready > 0; i++)
 			{
-				if (FD_ISSET(i, &working_set))
+				if (FD_ISSET(i, &reading_set))
 				{
 					desc_ready--;
-					if (requests.find(i) != requests.end())
+					if (requests.find(i) != requests.end()) // ACCEPT BLOCK
 					{
-						//One of the listening sockets is readable
-						while (new_sd != -1)
+						int new_sd = accept(i, NULL, NULL);
+						if (new_sd == -1)
+							error("Couldn't create a socket for accepted connection: " + std::string(strerror(errno)));
+						else
 						{
-							new_sd = accept(i, NULL, NULL); // can get info about client
-							if (new_sd == -1)
+							if (fcntl(new_sd, F_SETFL, O_NONBLOCK) != -1)
 							{
-								if (errno != EWOULDBLOCK)
-								{
-									error("accept() call failed on socket");
-									FD_CLR(i, &master_set);
-								}
-								break ;
+								requests.insert(int_string(new_sd, ""));
+								FD_SET(new_sd, &master_set);
+								max_sd = new_sd > max_sd ? new_sd : max_sd;
 							}
-							//New incoming connection is new_sd
-							FD_SET(new_sd, &master_set);
-							max_sd = new_sd > max_sd ? new_sd : max_sd;
+							else
+								error("Couldn't mark accepted connection non-blocking.");
 						}
 					}
-					else
+					else // RECV BLOCK
 					{
 						if (receive_request(i, requests) == EXIT_FAILURE)
 						{
-							FD_CLR(i, &working_set);
+							FD_CLR(i, &reading_set);
 							FD_CLR(i, &master_set);
 						}
-						//..
+						//..// push_back socket to ready? becomes a part of writing fd?
 					}
 				}
 			}

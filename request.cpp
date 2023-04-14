@@ -17,20 +17,25 @@ namespace ft
 	request::request(const std::string &message) : _raw(message)
 	{
 		read_header_value("Content-Length");
+		read_header_value("Transfer-Encoding");
 		// check it's not bigger than serv's client_max_body_size
-		// check it's valid
+		// if it is, send a "413 Request Entity Too Large" error.
 	}
 
 	void request::read_header_value(const std::string &key, int pos)
 	{
 		if (pos == std::string::npos)
-			pos = this->_raw.find(key + ": ");
+			pos = this->_raw.rfind(key + ": "); // last value is saved
+		/*
+		** if we find headers with multi-values, this should run a loop
+		** and combine all repeated values into a comma-separated list
+		*/
 		// verify the headers is present and it's preceded by a CLRF
-		if (pos != std::string::npos && this->_raw.substr(pos - 2, std::strlen(CLRF)) == CLRF)
+		if (pos != std::string::npos && this->_raw.substr(pos - std::strlen(CLRF), std::strlen(CLRF)) == CLRF)
 		{
-			size_t start = this->_raw.find_first_not_of(' ', pos + key.length() + 2);	// line start
-			size_t end = this->_raw.find(CLRF, pos + key.length() + 2) - 1;				// line end
-			std::string value = this->_raw.substr(start, end - start + 1);				// line separated
+			size_t start = this->_raw.find_first_not_of(' ', pos + key.length() + 2);	// line start; 2 is to skip ": "
+			size_t end = this->_raw.find(CLRF, start);									// line end; 2 is to skip ": "
+			std::string value = this->_raw.substr(start, end - start);					// line separated
 			value = value.substr(0, value.find_last_not_of(' ') + 1);					// discard tail spaces
 			this->_headers[key] = value;
 		}
@@ -41,12 +46,11 @@ namespace ft
 		return (this->_body);
 	}
 
-	request::operator bool()
+	std::string request::operator[](const std::string &header) const
 	{
-		return (this->_headers.find("Content-Length") != this->_headers.end());
+		string_map::const_iterator header_pair = this->_headers.find(header);
+		if (header_pair != this->_headers.end())
+			return (header_pair->second);
+		return ("");
 	}
-	// const std::string &request::get_header_value(const std::string &header) const
-	// {
-	// 	return (this->_headers[header]);
-	// }
 }

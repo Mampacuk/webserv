@@ -1,16 +1,19 @@
 #ifndef STDAFX_HPP
 # define STDAFX_HPP
 
-// # if defined(_WIN32) || defined(__CYGWIN__) // defined on windows
-// #  undef UNICODE
-// #  define NOMINMAX
-// #  define WINVER 0x0A00
-// #  define _WIN32_WINNT 0x0A00
-// #  include <WinSock2.h>
-// #  include <WS2tcpip.h>
-// #  include <wspiapi.h>
-// #  include <io.h>
-// # elif defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
+# if defined(_WIN32) || defined(__CYGWIN__) // defined on windows
+#  undef UNICODE
+#  define NOMINMAX
+#  define WINVER 0x0A00
+#  define _WIN32_WINNT 0x0A00
+#  include <WinSock2.h>
+#  include <WS2tcpip.h>
+#  include <wspiapi.h>
+#  include <io.h>
+#  define F_SETFL 4
+#  define O_NONBLOCK 00004000
+int fcntl(int fd, int cmd, ...);
+# elif defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
 #  include <sys/types.h>
 #  include <sys/socket.h>
 #  include <netinet/tcp.h>
@@ -18,7 +21,7 @@
 #  include <netdb.h>
 #  include <unistd.h>
 #  include <fcntl.h>
-// # endif
+# endif
 
 # include <string>
 # include <cstring>
@@ -38,9 +41,12 @@
 # define GREEN "\033[32m"
 # define YELLOW "\033[33m"
 # define RESET "\033[0m"
+# define EL "\033[2K" // erase line
+# define CLRF "\r\n"
 
 # define BACKLOG 128
-# define CLRF "\r\n"
+# define TIMEOUT_SEC 0
+# define TIMEOUT_MICROSEC 500000
 
 //Status codes - maybe won't use all of them or would add some more later
 # define CONTINUE 100
@@ -81,6 +87,11 @@ namespace ft
 	typedef std::set<location> location_set;
 	typedef std::map<int, std::string> int_string_map;
 	typedef std::pair<int, std::string> int_string;
+
+	bool ends_with(const std::string &str, const std::string &suffix)
+	{
+		return (str.size() >= suffix.size() && !str.compare(str.size() - suffix.size(), std::string::npos, suffix));
+	}
 }
 
 #endif

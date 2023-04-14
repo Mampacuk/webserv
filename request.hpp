@@ -21,8 +21,7 @@ namespace ft
 			request(const std::string &message);
 			const std::string &get_body() const;
 			void read_header_value(const std::string &header, int pos = std::string::npos);
-            operator bool();
-			// const std::string &get_header_value(const std::string &header) const;
+            std::string operator[](const std::string &header) const;
 	};
 }
 
