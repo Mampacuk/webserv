@@ -7,21 +7,28 @@ namespace ft
 {
 	class request 
 	{
+		public:
+			class protocol_error : std::logic_error { };
 		private:
-			std::string         _method;
-			std::string         _uri;
-			string_map          _headers;
-			std::string         _body;
-            const std::string   &_raw;
+			std::string	_method;
+			std::string	_uri;
+			string_map	_headers;
+			std::string	_body;
+			std::string	_raw;
+			int			_socket;
+			int			_content_length;
+			size_t		_headers_end;
 			request();
 			request(const request &other);
 		public:
 			~request();
 			request &operator=(const request &other);
-			request(const std::string &message);
+			request(int socket);
 			const std::string &get_body() const;
 			void read_header_value(const std::string &header, int pos = std::string::npos);
-            std::string operator[](const std::string &header) const;
+			bool operator+=(const std::string &chunk);
+			std::string operator[](const std::string &header) const;
+			int operator*() const;
 	};
 }
 

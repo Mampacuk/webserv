@@ -51,7 +51,7 @@ namespace ft
 				break ;
 			}
 		if (cont_it == this->_contexts.end() && dir_it == this->_directives.end() && !this->_chunks.empty())
-			throw std::logic_error("Unknown directive or ill-formed context encountered.");
+			throw parsing_error("Unknown directive or ill-formed context encountered.");
 		return (parent);
 	}
 
@@ -70,7 +70,7 @@ namespace ft
 				location_args.push_back(pop_front());
 			}
 			else if (context == "location")
-				throw std::invalid_argument("Parsing error occured. Invalid `location` syntax.");
+				throw parsing_error("Invalid `location` syntax.");
 			erase_token_front("{", brace_erased);
 			for (size_t i = 0; i < location_args.size(); i++)
 				this->_chunks.push_front(location_args[i]);
@@ -84,7 +84,7 @@ namespace ft
 		if (front().substr(0, directive.length()) != directive)
 			return (false);
 		if (!erase_chunk_front(directive))
-			throw std::invalid_argument("Parsing error occured. Unknown directive provided.");
+			throw std::parsing_error("Unknown directive provided.");
 		return (true);
 	}
 
@@ -217,7 +217,7 @@ namespace ft
 		else if (front() == "off")
 			parent->set_autoindex(false);
 		else
-			throw std::invalid_argument("Parsing error occured. Invalid `autoindex` argument.");
+			throw std::parsing_error("Invalid `autoindex` argument.");
 		pop_front();
 		return (semicolon_erased);
 	}
@@ -239,7 +239,7 @@ namespace ft
 			pop_front();
 		}
 		if (response_codes.empty())
-			throw std::invalid_argument("Parsing error occured. Error page syntax error.");
+			throw std::parsing_error("Error page syntax error.");
 		for (size_t i = 0; i < response_codes.size(); i++)
 			parent->add_error_page(response_codes[i], front());
 		pop_front();
@@ -260,7 +260,7 @@ namespace ft
 			else if (front_back == 'g' || front_back == 'G')
 				multiplier = 1000000000;
 			else
-				throw std::invalid_argument("Parsing error occured. Bad storage unit extension.");
+				throw std::parsing_error("Bad storage unit extension.");
 			front().erase(front().end() - 1); // front().pop_back(); in C++11
 		}
 		parent->set_client_max_body_size(multiplier * strtoul(pop_front()));
@@ -281,7 +281,7 @@ namespace ft
 		bool semicolon_erased;
 		std::string expr;
 		if (erase_chunk_middle(";"))
-			throw std::invalid_argument("Parsing error occured. Invalid number of arguments for `rewrite`.");
+			throw std::parsing_error("Invalid number of arguments for `rewrite`.");
 		expr = pop_front();
 		semicolon_erased = erase_chunk_middle(";");
 		static_cast<base_dir_ext*>(parent)->add_redirect(expr, pop_front());
@@ -330,7 +330,7 @@ namespace ft
 			path = pop_front();
 		}
 		else
-			throw std::invalid_argument("Parsing error occured. Few arguments for `cgi` directive.");
+			throw std::parsing_error("Few arguments for `cgi` directive.");
 		static_cast<location*>(loc)->add_cgi(extension, path);
 		return (semicolon_erased);
 	}
@@ -348,19 +348,19 @@ namespace ft
 	unsigned int parser::strtoul(const std::string &number)
 	{
 		if (number.empty() || number[0] == '-')
-			throw std::invalid_argument("Number parsing error occured.");
+			throw parsing_error("Number parsing error occured.");
 		const char *str_begin = number.c_str();
 		char *str_end = NULL;
 		unsigned long long int ul = std::strtoul(str_begin, &str_end, 10);
 		if (str_end != str_begin + number.length() || ul > std::numeric_limits<unsigned long int>::max())
-			throw std::invalid_argument("Number parsing error occured.");
+			throw parsing_error("Number parsing error occured.");
 		return (ul);
 	}
 
 	std::string &parser::front()
 	{
 		if (this->_chunks.empty())
-			throw std::length_error("Context or directive not completed.");
+			throw parsing_error("Context or directive not completed.");
 		return (this->_chunks.front());
 	}
 
@@ -376,7 +376,7 @@ namespace ft
 	{
 		string_vector arguments;
 		if (front().at(0) == ';')
-			throw std::invalid_argument("Parsing error occured. Empty argument list.");
+			throw parsing_error("Empty argument list.");
 		while (!erase_chunk_middle(";", true))
 			arguments.push_back(pop_front());
 		if (!front().empty())
@@ -388,7 +388,7 @@ namespace ft
 	void parser::memorize_listen(const std::string &host, const std::string &port)
 	{
 		if (this->_listens.find(string_pair(host, port)) != this->_listens.end())
-			throw std::invalid_argument("A duplicate listen " + host + ":" + port + " encountered.");
+			throw parsing_error("A duplicate listen " + host + ":" + port + " encountered.");
 		this->_listens.insert(string_pair(host, port));
 	}
 
@@ -427,7 +427,7 @@ namespace ft
 		const std::string low = front().substr(str_index + 1);
 		const std::string high = pop_front().substr(0, str_index);
 		if (!empty_high_allowed && high.empty())
-			throw std::invalid_argument("Parsing error occured. Emptiness before a " + str + " token.");
+			throw parsing_error("Emptiness before a " + str + " token.");
 		if (!low.empty())
 			this->_chunks.push_front(low);
 		this->_chunks.push_front(high);
@@ -439,7 +439,7 @@ namespace ft
 		if (!erased_before)
 		{
 			if (front().substr(0, token.length()) != token)
-				throw std::invalid_argument("Parsing error occured. " + token + " not met when expected.");
+				throw parsing_error(token + " not met when expected.");
 			erase_chunk_front(token);
 		}
 	}

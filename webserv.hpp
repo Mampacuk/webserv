@@ -23,8 +23,9 @@ namespace ft
 			int error(const std::string &error) const;
 			int log(const std::string &message, const char *color = RESET) const;
 			void start_service();
+			
 		private:
-			int receive_request(int i, int_string_map &socket_messages);
+			int receive_request(request &request);
 			int generate_response(request &request);
 	};
 }

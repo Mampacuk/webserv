@@ -13,17 +13,46 @@ namespace ft
 		return (*this);
 	}
 
-	// first parse Content-Length and see if it's completed
-	request::request(const std::string &message) : _raw(message)
+	request::request(int socket) : _method(), _uri(), _headers(), _body(), _raw(), _socket(socket), _content_length(-1), _headers_end(std::string::npos) {}
+
+	// appends chunk to the request. returns whether the request was fully accepted
+	bool request::operator+=(const std::string &chunk)
 	{
-		read_header_value("Content-Length");
-		read_header_value("Transfer-Encoding");
-		// check it's not bigger than serv's client_max_body_size
-		// if it is, send a "413 Request Entity Too Large" error.
+		this->_raw += chunk;
+		if (this->_headers_end == std::string::npos)
+		{
+			if ((this->_headers_end = this->_raw.find(CLRF CLRF)) == std::string::npos)
+				return (false);
+			read_header_value("Content-Length");
+			read_header_value("Transfer-Encoding");
+			if ((*this)["Content-Length"].empty())
+			{
+				if ((*this)["Transfer-Encoding"].empty())
+					return (true);
+				else if ((*this)["Transfer-Encoding"] != "chunked") // the message is ill-formed
+					throw protocol_error("Invalid request received: `Transfer-Encoding` error.");
+			}
+			else
+			{
+				try
+				{
+					this->_content_length = parser::strtoul((*this)["Content-Length"]);
+				}
+				catch (const std::exception &e)
+				{
+					throw protocol_error("Invalid request received: `Content-Length` error.");
+				}
+			}
+		}
+		if (this->_content_length < 0)
+			return (ends_with(this->_raw, "0" CLRF CLRF));
+		return (this->_raw.size() == this->_content_length + this->_headers_end + std::strlen(CLRF CLRF CLRF));
 	}
 
 	void request::read_header_value(const std::string &key, int pos)
 	{
+		if (this->_headers.find(key) != this->_headers.end())
+			return ;
 		if (pos == std::string::npos)
 			pos = this->_raw.rfind(key + ": "); // last value is saved
 		/*
@@ -52,5 +81,20 @@ namespace ft
 		if (header_pair != this->_headers.end())
 			return (header_pair->second);
 		return ("");
+	}
+
+	int request::operator*() const
+	{
+		return (this->_socket);
+	}
+
+	bool operator<(const request &lhs, const request &rhs)
+	{
+		return (*lhs < *rhs);
+	}
+
+	bool operator==(const request &lhs, const request &rhs)
+	{
+		return (*lhs == *rhs);
 	}
 }

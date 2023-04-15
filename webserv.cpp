@@ -39,7 +39,7 @@ namespace ft
 		return (EXIT_SUCCESS);
 	}
 
-	int webserv::receive_request(int socket, int_string_map &messages)
+	int webserv::receive_request(request &request)
 	{
 		char buffer[BUFSIZ] = {0}; // pass BUFSIZ - 1 so it's null-terminated
 		int  bytes_read = recv(socket, buffer, BUFSIZ - 1, 0);
@@ -97,16 +97,16 @@ namespace ft
 
 	void webserv::start_service()
 	{
-		fd_set			master_set;
-		fd_set			reading_set;
-		fd_set			writing_set;
-		int				desc_ready = 0;
-		int_string_map	requests = this->_protocol->initialize_master(master_set);
-		int				max_sd = (--requests.end())->first;
+		fd_set					master_set;
+		fd_set					reading_set;
+		fd_set					writing_set;
+		int						desc_ready = 0;
+		request_set				requests = this->_protocol->initialize_master(master_set);
+		int						max_sd = (--requests.end())->first;
+		const char				bars[] = {'\\', '|', '/', '-'};
+		const int				nbars = sizeof(bars) / sizeof(bars[0]);
+		int						bar_id = 0;
 		const struct timeval	timeout = {TIMEOUT_SEC, TIMEOUT_MICROSEC};
-		const char		bars[] = {'\\', '|', '/', '-'};
-		const int		nbars = sizeof(bars) / sizeof(bars[0]);
-		int				bar_id = 0;
 
 		while (true)
 		{
@@ -140,7 +140,7 @@ namespace ft
 						{
 							if (fcntl(new_sd, F_SETFL, O_NONBLOCK) != -1)
 							{
-								requests.insert(int_string(new_sd, ""));
+								requests.insert(new_sd);
 								FD_SET(new_sd, &master_set);
 								max_sd = new_sd > max_sd ? new_sd : max_sd;
 							}

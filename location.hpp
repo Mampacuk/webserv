@@ -27,7 +27,6 @@ namespace ft
 			void set_route(const std::string &route, location *parent = NULL);
 			void add_method(const std::string &method);
 			void set_modifier(bool modifier);
-			bool operator<(const location &rhs) const;
 			void flush_cgi();
 			void flush_methods();
 	};

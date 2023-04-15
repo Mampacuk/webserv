@@ -83,12 +83,6 @@ namespace ft
 		this->_modifier = _modifier;
 	}
 
-	bool location::operator<(const location &rhs) const
-	{
-		if (rhs.has_modifier() == has_modifier())
-			return (rhs.get_route() != get_route());
-		return (true);
-	}
 
 	void location::flush_cgi()
 	{
@@ -99,5 +93,12 @@ namespace ft
 	void location::flush_methods()
 	{
 		this->_methods.clear();
+	}
+
+	bool operator<(const location &lhs, const location &rhs)
+	{
+		if (rhs.has_modifier() == lhs.has_modifier())
+			return (rhs.get_route() != lhs.get_route());
+		return (true);
 	}
 }

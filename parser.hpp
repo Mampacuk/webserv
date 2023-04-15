@@ -8,6 +8,8 @@ namespace ft
 {
 	class parser
 	{
+		public:
+			class parsing_error : public std::logic_error { };
 		private:
 			typedef std::pair<bool (parser::*)(base_dir*), bool>		dir_functor;
 			typedef std::pair<base_dir *(parser::*)(base_dir*), bool>	cont_functor;
