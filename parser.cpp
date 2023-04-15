@@ -84,7 +84,7 @@ namespace ft
 		if (front().substr(0, directive.length()) != directive)
 			return (false);
 		if (!erase_chunk_front(directive))
-			throw std::parsing_error("Unknown directive provided.");
+			throw parsing_error("Unknown directive provided.");
 		return (true);
 	}
 
@@ -217,7 +217,7 @@ namespace ft
 		else if (front() == "off")
 			parent->set_autoindex(false);
 		else
-			throw std::parsing_error("Invalid `autoindex` argument.");
+			throw parsing_error("Invalid `autoindex` argument.");
 		pop_front();
 		return (semicolon_erased);
 	}
@@ -239,7 +239,7 @@ namespace ft
 			pop_front();
 		}
 		if (response_codes.empty())
-			throw std::parsing_error("Error page syntax error.");
+			throw parsing_error("Error page syntax error.");
 		for (size_t i = 0; i < response_codes.size(); i++)
 			parent->add_error_page(response_codes[i], front());
 		pop_front();
@@ -260,7 +260,7 @@ namespace ft
 			else if (front_back == 'g' || front_back == 'G')
 				multiplier = 1000000000;
 			else
-				throw std::parsing_error("Bad storage unit extension.");
+				throw parsing_error("Bad storage unit extension.");
 			front().erase(front().end() - 1); // front().pop_back(); in C++11
 		}
 		parent->set_client_max_body_size(multiplier * strtoul(pop_front()));
@@ -281,7 +281,7 @@ namespace ft
 		bool semicolon_erased;
 		std::string expr;
 		if (erase_chunk_middle(";"))
-			throw std::parsing_error("Invalid number of arguments for `rewrite`.");
+			throw parsing_error("Invalid number of arguments for `rewrite`.");
 		expr = pop_front();
 		semicolon_erased = erase_chunk_middle(";");
 		static_cast<base_dir_ext*>(parent)->add_redirect(expr, pop_front());
@@ -330,7 +330,7 @@ namespace ft
 			path = pop_front();
 		}
 		else
-			throw std::parsing_error("Few arguments for `cgi` directive.");
+			throw parsing_error("Few arguments for `cgi` directive.");
 		static_cast<location*>(loc)->add_cgi(extension, path);
 		return (semicolon_erased);
 	}
@@ -344,15 +344,16 @@ namespace ft
 		return (true);
 	}
 
-
-	unsigned int parser::strtoul(const std::string &number)
+	// doesn't tolerate leading or trailing whitespaces,
+	// or characters in the middle of the number.
+	unsigned int parser::strtoul(const std::string &number, int base)
 	{
-		if (number.empty() || number[0] == '-')
+		if (number.empty() || number[0] == '-' || std::isspace(number[0]) || base < 2)
 			throw parsing_error("Number parsing error occured.");
 		const char *str_begin = number.c_str();
 		char *str_end = NULL;
-		unsigned long long int ul = std::strtoul(str_begin, &str_end, 10);
-		if (str_end != str_begin + number.length() || ul > std::numeric_limits<unsigned long int>::max())
+		unsigned long long int ul = std::strtoul(str_begin, &str_end, base);
+		if (str_end != str_begin + number.length() || ul > std::numeric_limits<unsigned int>::max())
 			throw parsing_error("Number parsing error occured.");
 		return (ul);
 	}

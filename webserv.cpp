@@ -42,55 +42,36 @@ namespace ft
 	int webserv::receive_request(request &request)
 	{
 		char buffer[BUFSIZ] = {0}; // pass BUFSIZ - 1 so it's null-terminated
-		int  bytes_read = recv(socket, buffer, BUFSIZ - 1, 0);
+		int  bytes_read = recv(request.get_socket(), buffer, BUFSIZ - 1, 0);
 		if (bytes_read <= 0)
 		{
 			if (!bytes_read)
 				log("Connection closed by the client.", YELLOW);
 			else
 				error("recv() failed: closing connection.");
-			close(socket);
-			messages.erase(socket);
+			close(request.get_socket()); // move into ~request()???
 			return (EXIT_FAILURE);
 		}
-		messages[socket] += buffer;
-		const size_t headers_end = messages[socket].find(CLRF CLRF);
-		if (headers_end != std::string::npos) // headers fully accepted
+		try
 		{
-			request request(messages[socket]);
-			if (request["Content-Length"].empty())
-			{
-				if (request["Transfer-Encoding"] == "chunked")
-				{
-					if (ends_with(messages[socket], "0" CLRF CLRF))
-						return (generate_response(request));
-					return (EXIT_SUCCESS);
-				}
-				else if (request["Transfer-Encoding"].empty())
-					return (generate_response(request));
-				else // else the message is ill-formed
-				{
-					error("Invalid request received: `Transfer-Encoding` error.");
-					return (EXIT_SUCCESS);
-				}
-			}
-
-			try
-			{
-				const size_t content_len = parser::strtoul(request["Content-Length"]);
-				if (messages[socket].size() == content_len + headers_end + std::strlen(CLRF CLRF CLRF))
-					return (generate_response(request));
-			}
-			catch (const std::exception &e)
-			{
-				error("Invalid request received: `Content-Length` error.");
-			}
-			// push_back socket to ready? becomes a part of writing fd?
+			if (!(request += buffer))
+				return (EXIT_SUCCESS); // request wasn't fully received
+			request.decode_chunked_transfer();
+			generate_response(request); // nothing wrong with request, response generated
+		}
+		catch (const std::exception &e)
+		{
+			// pass error code to Anahit and generate appropriate response
 		}
 		return (EXIT_SUCCESS);
 	}
 
 	int webserv::generate_response(request &request)
+	{
+		// Anahit's code
+	}
+
+	int webserv::send_response(response &response)
 	{
 		// Anahit's code
 	}
@@ -101,8 +82,10 @@ namespace ft
 		fd_set					reading_set;
 		fd_set					writing_set;
 		int						desc_ready = 0;
-		request_set				requests = this->_protocol->initialize_master(master_set);
-		int						max_sd = (--requests.end())->first;
+		int_set					sockets = this->_protocol->initialize_master(master_set);
+		request_list			requests;
+		response_list			responses;
+		int						max_sd = *(--sockets.end());
 		const char				bars[] = {'\\', '|', '/', '-'};
 		const int				nbars = sizeof(bars) / sizeof(bars[0]);
 		int						bar_id = 0;
@@ -114,8 +97,10 @@ namespace ft
 			{
 				// copy the master set into the reading set so that select() doesn't modify it
 				std::memcpy(&reading_set, &master_set, sizeof(master_set));
+				// initialize the writing set
 				FD_ZERO(&writing_set);
-				// something with writing_set
+				for (response_list::iterator it = responses.begin(); it != responses.end(); it++)
+					FD_SET(it->get_socket(), &writing_set);
 				std::cout << EL << bars[(bar_id = (bar_id >= nbars) ? 0 : bar_id + 1)] << std::flush;
 				desc_ready = select(max_sd + 1, &reading_set, &writing_set, NULL, &timeout);
 				if (desc_ready == -1)
@@ -124,39 +109,54 @@ namespace ft
 					desc_ready = 0;
 				}
 			}
-			// writing set block
-			log("Received a connection.", GREEN);
-			for (int i = 0; i <= max_sd && desc_ready > 0; i++)
+
+			// accept()/reading_set block
+			for (int_set::iterator it = sockets.begin(); it != sockets.end(); it++)
 			{
-				if (FD_ISSET(i, &reading_set))
+				if (FD_ISSET(*it, &reading_set))
 				{
-					desc_ready--;
-					if (requests.find(i) != requests.end()) // ACCEPT BLOCK
+					int new_sd = accept(*it, NULL, NULL);
+					if (new_sd == -1)
+						error("Couldn't create a socket for accepted connection: " + std::string(strerror(errno)));
+					else
 					{
-						int new_sd = accept(i, NULL, NULL);
-						if (new_sd == -1)
-							error("Couldn't create a socket for accepted connection: " + std::string(strerror(errno)));
+						if (fcntl(new_sd, F_SETFL, O_NONBLOCK) != -1)
+						{
+							requests.push_back(new_sd);
+							FD_SET(new_sd, &master_set);
+							max_sd = new_sd > max_sd ? new_sd : max_sd;
+						}
 						else
-						{
-							if (fcntl(new_sd, F_SETFL, O_NONBLOCK) != -1)
-							{
-								requests.insert(new_sd);
-								FD_SET(new_sd, &master_set);
-								max_sd = new_sd > max_sd ? new_sd : max_sd;
-							}
-							else
-								error("Couldn't mark accepted connection non-blocking.");
-						}
+							error("Couldn't mark accepted connection non-blocking.");
 					}
-					else // RECV BLOCK
+					break ;
+				}
+			}
+
+			// recv()/reading_set block 
+			for (request_list::iterator it = requests.begin(); it != requests.end(); it++)
+			{
+				if (FD_ISSET(it->get_socket(), &reading_set))
+				{
+					if (receive_request(*it) == EXIT_FAILURE)
 					{
-						if (receive_request(i, requests) == EXIT_FAILURE)
-						{
-							FD_CLR(i, &reading_set);
-							FD_CLR(i, &master_set);
-						}
-						//..// push_back socket to ready? becomes a part of writing fd?
+						FD_CLR(it->get_socket(), &reading_set);
+						FD_CLR(it->get_socket(), &master_set);
+						requests.erase(it);
 					}
+					// else must push back a new ready request to response_list
+					break ;
+				}
+			}
+
+			// send()/writing_set block
+			for (response_list::iterator it = responses.begin(); it != responses.end(); it++)
+			{
+				if (FD_ISSET(it->get_socket(), &writing_set))
+				{
+					// call send_response(*it),
+					// do other stuff...
+					break ;
 				}
 			}
 		}

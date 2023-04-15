@@ -9,11 +9,10 @@ namespace ft
 		this->_method = other._method;
 		this->_uri = other._uri;
 		this->_headers = other._headers;
-		this->_body = other._body;
 		return (*this);
 	}
 
-	request::request(int socket) : _method(), _uri(), _headers(), _body(), _raw(), _socket(socket), _content_length(-1), _headers_end(std::string::npos) {}
+	request::request(int socket) : _method(), _uri(), _headers(), _raw(), _socket(socket), _content_length(-1), _headers_end(std::string::npos) {}
 
 	// appends chunk to the request. returns whether the request was fully accepted
 	bool request::operator+=(const std::string &chunk)
@@ -33,18 +32,9 @@ namespace ft
 					throw protocol_error("Invalid request received: `Transfer-Encoding` error.");
 			}
 			else
-			{
-				try
-				{
-					this->_content_length = parser::strtoul((*this)["Content-Length"]);
-				}
-				catch (const std::exception &e)
-				{
-					throw protocol_error("Invalid request received: `Content-Length` error.");
-				}
-			}
+				this->_content_length = parser::strtoul((*this)["Content-Length"]);
 		}
-		if (this->_content_length < 0)
+		if (this->_content_length < 0) // "Transfer-Encoding: chunked" case
 			return (ends_with(this->_raw, "0" CLRF CLRF));
 		return (this->_raw.size() == this->_content_length + this->_headers_end + std::strlen(CLRF CLRF CLRF));
 	}
@@ -70,9 +60,30 @@ namespace ft
 		}
 	}
 
-	const std::string &request::get_body() const
+	void request::decode_chunked_transfer()
 	{
-		return (this->_body);
+		if ((*this)["Transfer-Encoding"].empty())
+			return ;
+		std::string body;
+		this->_content_length = 0;
+		int pos = this->_headers_end + std::strlen(CLRF CLRF);
+		int end_of_line = this->_raw.find(CLRF, pos);
+		int chunk_size = parser::strtoul(this->_raw.substr(pos, end_of_line - pos), 16);
+		while (chunk_size > 0)
+		{
+			pos = end_of_line + std::strlen(CLRF);		// now points to the beginning of chunk
+			end_of_line = this->_raw.find(CLRF, pos);	// now points to the end of chunk
+			if (end_of_line - pos != chunk_size)
+				throw protocol_error("Bad request: chunk size mismatch.");
+			body += this->_raw.substr(pos, chunk_size);	// append the chunk
+			this->_content_length += chunk_size;
+			pos = end_of_line + std::strlen(CLRF);		// now points to the beginning of chunk-size
+			end_of_line = this->_raw.find(CLRF, pos);	// now points to the end of chunk-size
+			chunk_size = parser::strtoul(this->_raw.substr(pos, end_of_line - pos), 16);
+			// 45\r\nbla\r\n0\r\n
+			// 012 3 4567 9
+		}
+		//...do something with body... wanna sleep... z-z-z-z...
 	}
 
 	std::string request::operator[](const std::string &header) const
@@ -83,18 +94,8 @@ namespace ft
 		return ("");
 	}
 
-	int request::operator*() const
+	int request::get_socket() const
 	{
 		return (this->_socket);
-	}
-
-	bool operator<(const request &lhs, const request &rhs)
-	{
-		return (*lhs < *rhs);
-	}
-
-	bool operator==(const request &lhs, const request &rhs)
-	{
-		return (*lhs == *rhs);
 	}
 }

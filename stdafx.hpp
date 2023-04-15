@@ -72,29 +72,31 @@ namespace ft
 	class server;
 	class location;
 	class request;
+	class response;
 
-	typedef std::pair<int, std::string> int_string;
-	typedef std::pair<std::string, std::string> string_pair;
-	typedef std::pair<unsigned int, std::string> error_page;
+	typedef std::pair<int, std::string>				int_string;
+	typedef std::pair<std::string, std::string>		string_pair;
+	typedef std::pair<unsigned int, std::string>	error_page;
 	
-	typedef std::map<int, std::string> int_string_map;
-	typedef std::map<std::string, std::string> string_map;
-	typedef std::map<unsigned int, std::string> error_map;
+	typedef std::map<int, std::string>			int_string_map;
+	typedef std::map<std::string, std::string>	string_map;
+	typedef std::map<unsigned int, std::string>	error_map;
 
-	typedef std::set<int> int_set;
-	typedef std::set<string_pair> string_pair_set;
-	typedef std::set<std::string> string_set;
+	typedef std::set<int>			int_set;
+	typedef std::set<string_pair>	string_pair_set;
+	typedef std::set<std::string>	string_set;
 	
 	typedef std::multimap<std::string, std::string> string_mmap;
 	
-	typedef std::vector<int> int_vector;
-	typedef std::vector<std::string> string_vector;
+	typedef std::vector<int>			int_vector;
+	typedef std::vector<std::string>	string_vector;
+	typedef std::vector<server>			server_vector;
 	
-	typedef std::list<std::string> string_list;
+	typedef std::list<std::string>	string_list;
+	typedef std::list<request>		request_list;
+	typedef std::list<response>		response_list;
 
-	typedef std::vector<server> server_vector;
 	typedef std::set<location> location_set;
-	typedef std::set<request> request_set;
 
 	bool ends_with(const std::string &str, const std::string &suffix)
 	{

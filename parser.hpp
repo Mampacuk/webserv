@@ -8,8 +8,6 @@ namespace ft
 {
 	class parser
 	{
-		public:
-			class parsing_error : public std::logic_error { };
 		private:
 			typedef std::pair<bool (parser::*)(base_dir*), bool>		dir_functor;
 			typedef std::pair<base_dir *(parser::*)(base_dir*), bool>	cont_functor;
@@ -28,7 +26,7 @@ namespace ft
 			parser(const std::string &filename);
 			~parser();
 			base_dir *parse(base_dir *parent = NULL);
-			static unsigned int strtoul(const std::string &number);
+			static unsigned int strtoul(const std::string &number, int base = 10);
 		private:
 			parser();
 			parser(const parser &other);
@@ -61,6 +59,13 @@ namespace ft
 			bool	read_limit_except(base_dir *location);
 			void	load_base_dir();
 			void	unload_base_dir();
+		public:
+			class parsing_error : public std::logic_error
+			{
+				public:
+					explicit parsing_error(const std::string &what) : std::logic_error(what) {}
+					explicit parsing_error(const char *what) : std::logic_error(what) {}
+			};
 	};
 }
 
