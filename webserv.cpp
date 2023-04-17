@@ -66,15 +66,17 @@ namespace ft
 		return (EXIT_SUCCESS);
 	}
 
-	int webserv::generate_response(request &request, int error)
+	int webserv::generate_response(request&, int)
 	{
 		// Anahit's code
 		// if (error) then...
+		return (EXIT_SUCCESS);
 	}
 
-	int webserv::send_response(response &response)
+	int webserv::send_response(response&)
 	{
 		// Anahit's code
+		return (EXIT_SUCCESS);
 	}
 
 	void webserv::start_service()
@@ -90,7 +92,7 @@ namespace ft
 		const char				bars[] = {'\\', '|', '/', '-'};
 		const int				nbars = sizeof(bars) / sizeof(bars[0]);
 		int						bar_id = 0;
-		const struct timeval	timeout = {TIMEOUT_SEC, TIMEOUT_MICROSEC};
+		struct timeval			timeout = {TIMEOUT_SEC, TIMEOUT_MICROSEC};
 
 		while (true)
 		{

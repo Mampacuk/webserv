@@ -4,6 +4,8 @@ namespace ft
 {
 	request::~request() {}
 
+	request::request(const request&) {}
+
 	request &request::operator=(const request &other)
 	{
 		this->_method = other._method;
@@ -12,7 +14,7 @@ namespace ft
 		return (*this);
 	}
 
-	request::request(int socket) : _method(), _uri(), _headers(), _raw(), _socket(socket), _content_length(-1), _headers_end(std::string::npos) {}
+	request::request(int socket) : _method(), _uri(), _query(), _headers(), _raw(), _body(), _socket(socket), _content_length(-1), _headers_end(std::string::npos) {}
 
 	// appends chunk to the request. returns whether the request was fully accepted
 	bool request::operator+=(const std::string &chunk)
@@ -42,53 +44,64 @@ namespace ft
 			return (ends_with(this->_raw, "0" CRLF CRLF));
 		return (this->_raw.size() == this->_content_length + this->_headers_end + std::strlen(CRLF CRLF CRLF));
 	}
-	
+
 	// should only be called once _headers_end is initialized, i.e. all headers were received
 	size_t request::read_header(size_t pos)
 	{
 		// verify the headers is present, it's not in the body, and it's preceded by a CRLF
-		if (pos != std::string::npos && pos <= this->_headers_end && !this->_raw.compare(pos - std::strlen(CRLF), std::strlen(CRLF), CRLF))
+		if (pos != std::string::npos && pos < this->_headers_end && !this->_raw.compare(pos - std::strlen(CRLF), std::strlen(CRLF), CRLF))
 		{
-			//// TODO:
-			// size_t start = this->_raw.find_first_not_of(' ', pos + key.length() + 2);	// line start; 2 is to skip ": "
-			// size_t end = this->_raw.find(CRLF, start);									// line end; 2 is to skip ": "
-			// std::string value = this->_raw.substr(start, end - start);					// line separated with tail spaces
-			// value = value.substr(0, value.find_last_not_of(' ') + 1);					// discard tail spaces
-			// this->_headers[key] = value;
+			size_t line_end = this->_raw.find(CRLF, pos);
+			size_t colon = this->_raw.find(':', pos);
+			// check if there's a key, colon is present, and it's followed by one space
+			if (colon == pos || colon > line_end || this->_raw[colon + 1] != ' ')
+				throw http::protocol_error(400, "Bad Request: Invalid Header.");
+			std::string key = this->_raw.substr(pos, colon - pos);
+			size_t val_start = this->_raw.find_first_not_of(' ', colon + 2);		// val start; 2 is to skip ": "
+			std::string value = this->_raw.substr(val_start, line_end - val_start);	// val separated (with tail spaces)
+			value = value.substr(0, value.find_last_not_of(' ') + 1);				// discard tail spaces
+			this->_headers[key] = value;
+			pos = line_end + std::strlen(CRLF);
 		}
-	}
-
-	void request::decode_chunks()
-	{
-		if (operator[]("Transfer-Encoding").empty())
-			return ;
-		int chunk_size;
-		std::string body;
-		this->_content_length = 0;
-		size_t pos = this->_headers_end + std::strlen(CRLF CRLF);
-		size_t end_of_line = this->_raw.find(CRLF, pos);
-		chunk_size = try_strtoul(this->_raw.substr(pos, end_of_line - pos), 16);
-		while (chunk_size > 0)
-		{
-			pos = end_of_line + std::strlen(CRLF);		// now points to the beginning of chunk
-			end_of_line = this->_raw.find(CRLF, pos);	// now points to the end of chunk
-			if (end_of_line - pos != chunk_size)
-				throw http::protocol_error(400, "Bad Request: Chunk Size Mismatch.");
-			body += this->_raw.substr(pos, chunk_size);	// append the chunk to the body
-			this->_content_length += chunk_size;
-			pos = end_of_line + std::strlen(CRLF);		// now points to the beginning of chunk-size
-			end_of_line = this->_raw.find(CRLF, pos);	// now points to the end of chunk-size
-			chunk_size = try_strtoul(this->_raw.substr(pos, end_of_line - pos), 16);
-		}
-		this->_raw.erase(this->_headers_end + std::strlen(CRLF CRLF));
-		this->_raw += body;
+		return (pos);
 	}
 
 	void request::parse()
 	{
-		decode_chunks();
+		separate_body();
 		size_t pos = parse_request_line();
-		//...
+		while (pos != this->_headers_end)
+			pos = read_header(pos);
+		// ... check for validity
+		parse_query();
+		this->_raw.clear();
+	}
+
+	void request::separate_body()
+	{
+		if (operator[]("Transfer-Encoding").empty())
+			this->_body += this->_raw.substr(this->_headers_end + std::strlen(CRLF CRLF), this->_content_length);
+		else
+		{
+			size_t	chunk_size;
+			size_t	pos = this->_headers_end + std::strlen(CRLF CRLF);
+			size_t	end_of_line = this->_raw.find(CRLF, pos);
+			chunk_size = try_strtoul(this->_raw.substr(pos, end_of_line - pos), 16);
+			this->_content_length = 0;
+			while (chunk_size > 0)
+			{
+				pos = end_of_line + std::strlen(CRLF);		// now points to the beginning of chunk
+				end_of_line = this->_raw.find(CRLF, pos);	// now points to the end of chunk
+				if (end_of_line - pos != chunk_size)
+					throw http::protocol_error(400, "Bad Request: Chunk Size Mismatch.");
+				this->_body += this->_raw.substr(pos, chunk_size);	// append the chunk to the body
+				this->_content_length += chunk_size;
+				pos = end_of_line + std::strlen(CRLF);		// now points to the beginning of chunk-size
+				end_of_line = this->_raw.find(CRLF, pos);	// now points to the end of chunk-size
+				chunk_size = try_strtoul(this->_raw.substr(pos, end_of_line - pos), 16);
+			}
+		}
+		this->_raw.erase(this->_headers_end + std::strlen(CRLF CRLF));
 	}
 
 	size_t request::parse_request_line()
@@ -105,6 +118,16 @@ namespace ft
 		if (this->_raw.compare(space + 1, line_end - space - 1, "HTTP/1.1"))
 			throw http::protocol_error(505, "HTTP Version Not Supported: Invalid Protocol Version.");
 		return (line_end + std::strlen(CRLF));
+	}
+
+	void request::parse_query()
+	{
+		size_t question_mark = this->_uri.find('?');
+		if (question_mark != std::string::npos)
+		{
+			this->_query = this->_uri.substr(question_mark + 1);
+			this->_uri = this->_uri.substr(question_mark);
+		}
 	}
 
 	std::string request::operator[](const std::string &header) const

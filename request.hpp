@@ -9,11 +9,14 @@ namespace ft
 {
 	class request 
 	{
-		private:
+		// private:
+		public:
 			std::string	_method;
 			std::string	_uri;
+			std::string _query;
 			string_map	_headers;
 			std::string	_raw;
+			std::string _body;
 			int			_socket;
 			int			_content_length;
 			size_t		_headers_end;
@@ -30,10 +33,11 @@ namespace ft
 			void parse();
 		private:
 			unsigned int try_strtoul(const std::string &number, int base = 10) const;
-			void find_header(const std::string &header);
-			size_t read_header(size_t pos);
-			void decode_chunks();
-			size_t parse_request_line();
+			void	find_header(const std::string &header);
+			size_t	read_header(size_t pos);
+			void	separate_body();
+			size_t	parse_request_line();
+			void	parse_query();
 	};
 }
 

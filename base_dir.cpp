@@ -2,11 +2,11 @@
 
 namespace ft
 {
-	base_dir::base_dir(): _root("html"), _autoindex(false), _error_pages(), _client_max_body_size(1000000), _indexes() {}
+	base_dir::base_dir() : _autoindex(false), _error_pages(), _root("html"), _indexes(), _client_max_body_size(1000000) {}
 
 	base_dir::~base_dir() {}
 
-	base_dir::base_dir(const base_dir &other): _root(other._root), _autoindex(other._autoindex), _error_pages(other._error_pages), _client_max_body_size(other._client_max_body_size), _indexes(other._indexes) {}
+	base_dir::base_dir(const base_dir &other) : _autoindex(other._autoindex), _error_pages(other._error_pages), _root(other._root), _indexes(other._indexes), _client_max_body_size(other._client_max_body_size) {}
 
 	base_dir &base_dir::operator=(const base_dir &other)
 	{

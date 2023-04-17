@@ -2,13 +2,13 @@
 
 namespace ft
 {
-	base_dir_ext::base_dir_ext(): base_dir(), _locations(), _redirects() {}
+	base_dir_ext::base_dir_ext() : base_dir(), _redirects(), _locations() {}
 
 	base_dir_ext::~base_dir_ext() {}
 
-	base_dir_ext::base_dir_ext(const base_dir_ext &other): base_dir(other), _locations(other._locations), _redirects() {}
+	base_dir_ext::base_dir_ext(const base_dir_ext &other) : base_dir(other), _redirects(), _locations(other._locations) {}
 
-	base_dir_ext::base_dir_ext(const base_dir &other): base_dir(other), _locations(), _redirects() {}
+	base_dir_ext::base_dir_ext(const base_dir &other) : base_dir(other), _redirects(), _locations() {}
 
 	base_dir_ext &base_dir_ext::operator=(const base_dir_ext &other)
 	{
@@ -35,7 +35,7 @@ namespace ft
 	void base_dir_ext::add_location(location location)
 	{
 		if (this->_locations.find(location) != this->_locations.end())
-			throw std::logic_error("Duplicate location.");
+			throw parser::parsing_error("Duplicate location.");
 		this->_locations.insert(location);
 	}
 }

@@ -95,10 +95,10 @@ namespace ft
 		this->_methods.clear();
 	}
 
-	bool operator<(const location &lhs, const location &rhs)
+	bool location::operator<(const location &rhs) const
 	{
-		if (rhs.has_modifier() == lhs.has_modifier())
-			return (rhs.get_route() != lhs.get_route());
+		if (rhs.has_modifier() == has_modifier())
+			return (rhs.get_route() != get_route());
 		return (true);
 	}
 }

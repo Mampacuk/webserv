@@ -19,6 +19,7 @@ namespace ft
 			location(const location &other);
 			location(const base_dir &other);
 			location &operator=(const location &other);
+			bool operator<(const location &rhs) const;
 			const string_pair &get_cgi() const;
 			const std::string &get_route() const;
 			bool method_allowed(const std::string &method) const;
