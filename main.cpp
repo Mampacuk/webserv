@@ -73,3 +73,8 @@ int main()
 	// 	return (webserver.error(e.what()));
 	// }
 }
+
+// dummy definition for Windows
+# if defined(_WIN32) || defined(__CYGWIN__)
+	int fcntl(int, int, ...) { return (0); }
+#endif

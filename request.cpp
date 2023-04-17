@@ -109,14 +109,14 @@ namespace ft
 		size_t line_end = this->_raw.find(CRLF);
 		size_t space = this->_raw.find(' ');
 		if (space > line_end)
-			throw http::protocol_error(400, "Bad Request: Method unspecified.");
+			throw http::protocol_error(HTTP_STATUS_BAD_REQUEST, "Bad Request: Method unspecified.");
 		this->_method = this->_raw.substr(0, space);
 		space = this->_raw.find(' ', space + 1);
 		if (space > line_end)
-			throw http::protocol_error(400, "Bad Request: URI unspecified.");
+			throw http::protocol_error(HTTP_STATUS_BAD_REQUEST, "Bad Request: URI unspecified.");
 		this->_uri = this->_raw.substr(this->_method.length() + 1, space - this->_method.length() - 1);
 		if (this->_raw.compare(space + 1, line_end - space - 1, "HTTP/1.1"))
-			throw http::protocol_error(505, "HTTP Version Not Supported: Invalid Protocol Version.");
+			throw http::protocol_error(HTTP_STATUS_VERSION_NOT_SUP, "HTTP Version Not Supported: Invalid Protocol Version.");
 		return (line_end + std::strlen(CRLF));
 	}
 
@@ -156,7 +156,7 @@ namespace ft
 		}
 		catch (const std::exception &e)
 		{
-			throw http::protocol_error(400, "Bad Request: Unsigned integer parsing failed.");
+			throw http::protocol_error(HTTP_STATUS_BAD_REQUEST, "Bad Request: Unsigned integer parsing failed.");
 		}
 	}
 }
