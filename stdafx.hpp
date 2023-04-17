@@ -42,7 +42,7 @@ int fcntl(int fd, int cmd, ...);
 # define YELLOW "\033[33m"
 # define RESET "\033[0m"
 # define EL "\033[2K" // erase line
-# define CLRF "\r\n"
+# define CRLF "\r\n"
 
 # define BACKLOG 128
 # define TIMEOUT_SEC 0

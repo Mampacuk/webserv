@@ -14,6 +14,7 @@ namespace ft
 			response(const response &other);
 			response &operator=(const response &other);
 			int get_socket() const;
+			operator int() const;
 			//...
 	};
 }

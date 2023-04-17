@@ -54,21 +54,22 @@ namespace ft
 		}
 		try
 		{
-			if (!(request += buffer))
-				return (EXIT_SUCCESS); // request wasn't fully received
-			request.decode_chunked_transfer();
-			generate_response(request); // nothing wrong with request, response generated
+			if (!(request += buffer))	
+				return (EXIT_SUCCESS);	// request wasn't fully received
+			request.parse();
+			generate_response(request);
 		}
-		catch (const std::exception &e)
+		catch (const http::protocol_error &e)
 		{
-			// pass error code to Anahit and generate appropriate response
+			// generate_response(request, e);
 		}
 		return (EXIT_SUCCESS);
 	}
 
-	int webserv::generate_response(request &request)
+	int webserv::generate_response(request &request, int error)
 	{
 		// Anahit's code
+		// if (error) then...
 	}
 
 	int webserv::send_response(response &response)
@@ -100,7 +101,7 @@ namespace ft
 				// initialize the writing set
 				FD_ZERO(&writing_set);
 				for (response_list::iterator it = responses.begin(); it != responses.end(); it++)
-					FD_SET(it->get_socket(), &writing_set);
+					FD_SET(*it, &writing_set);
 				std::cout << EL << bars[(bar_id = (bar_id >= nbars) ? 0 : bar_id + 1)] << std::flush;
 				desc_ready = select(max_sd + 1, &reading_set, &writing_set, NULL, &timeout);
 				if (desc_ready == -1)
@@ -110,7 +111,7 @@ namespace ft
 				}
 			}
 
-			// accept()/reading_set block
+			// accept() reading_set block
 			for (int_set::iterator it = sockets.begin(); it != sockets.end(); it++)
 			{
 				if (FD_ISSET(*it, &reading_set))
@@ -133,15 +134,15 @@ namespace ft
 				}
 			}
 
-			// recv()/reading_set block 
+			// recv() reading_set block 
 			for (request_list::iterator it = requests.begin(); it != requests.end(); it++)
 			{
-				if (FD_ISSET(it->get_socket(), &reading_set))
+				if (FD_ISSET(*it, &reading_set))
 				{
 					if (receive_request(*it) == EXIT_FAILURE)
 					{
-						FD_CLR(it->get_socket(), &reading_set);
-						FD_CLR(it->get_socket(), &master_set);
+						FD_CLR(*it, &reading_set);
+						FD_CLR(*it, &master_set);
 						requests.erase(it);
 					}
 					// else must push back a new ready request to response_list
@@ -149,10 +150,10 @@ namespace ft
 				}
 			}
 
-			// send()/writing_set block
+			// send() writing_set block
 			for (response_list::iterator it = responses.begin(); it != responses.end(); it++)
 			{
-				if (FD_ISSET(it->get_socket(), &writing_set))
+				if (FD_ISSET(*it, &writing_set))
 				{
 					// call send_response(*it),
 					// do other stuff...

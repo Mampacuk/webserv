@@ -20,13 +20,12 @@ namespace ft
 			webserv &operator=(const webserv &other);
 			http &get_http(); // should it be const-qualified?
 			void set_http(base_dir *protocol);
-			void verify_http();
 			int error(const std::string &error) const;
 			int log(const std::string &message, const char *color = RESET) const;
 			void start_service();
 		private:
 			int receive_request(request &request);
-			int generate_response(request &request);
+			int generate_response(request &request, int error = 0);
 			int send_response(response &response);
 	};
 }
