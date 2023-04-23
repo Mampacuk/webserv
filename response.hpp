@@ -20,15 +20,17 @@ namespace ft
 		public:
 			response(const request &request, int status_code = HTTP_STATUS_OK);
 			~response();
-			response &operator=(const response &other);
 			int get_socket() const;
 			operator int() const;
+			std::string get_chunk();
+			bool empty() const;
 		private:
 			void construct_response();
 			void generate_response();
 			void requested_file();
 			void process_get();
 			void process_post();
+			void read_requested_file();
 			void find_error_page();
 			bool is_error_code(int status_code);
 			std::string status_to_string(int status_code) const;

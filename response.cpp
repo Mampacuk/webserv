@@ -47,17 +47,17 @@ namespace ft
 
 	}
 
-	void process_get()
+	void response::process_get()
 	{
 		read_requested_file();
 	}
 
-	void read_requested_file()
+	void response::read_requested_file()
 	{
 		
 	}
 
-	void process_post()
+	void response::process_post()
 	{
 
 	}
@@ -99,5 +99,15 @@ namespace ft
 			case HTTP_STATUS_SERVICE_UNAVAIL: return "Service Unavailable";
 			default: return "Unknown Status Code";
     	}
+	}
+
+	std::string response::get_chunk()
+	{
+		return " ";
+	}
+
+	bool response::empty() const
+	{
+		return (this->_response.empty());
 	}
 }

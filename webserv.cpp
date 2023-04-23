@@ -71,7 +71,7 @@ namespace ft
 		std::string chunk = response.get_chunk();
 		if (send(response, chunk.c_str(), chunk.size(), 0) == -1)
 		{
-			error("send() failed.")
+			error("send() failed.");
 		}
 		return (EXIT_SUCCESS);
 	}
