@@ -39,7 +39,7 @@ namespace ft
 		return (EXIT_SUCCESS);
 	}
 
-	int webserv::receive_request(request &request)
+	int webserv::receive_request(request &request, response_list &responses)
 	{
 		char buffer[BUFSIZ] = {0}; // pass BUFSIZ - 1 so it's null-terminated
 		int  bytes_read = recv(request.get_socket(), buffer, BUFSIZ - 1, 0);
@@ -57,25 +57,22 @@ namespace ft
 			if (!(request += buffer))	
 				return (EXIT_SUCCESS);	// request wasn't fully received
 			request.parse();
-			generate_response(request);
+			responses.push_back(response(request));
 		}
 		catch (const http::protocol_error &e)
 		{
-			// generate_response(request, e);
+			responses.push_back(response(request, e));
 		}
 		return (EXIT_SUCCESS);
 	}
 
-	int webserv::generate_response(request&, int)
+	int webserv::send_response(response &response)
 	{
-		// Anahit's code
-		// if (error) then...
-		return (EXIT_SUCCESS);
-	}
-
-	int webserv::send_response(response&)
-	{
-		// Anahit's code
+		std::string chunk = response.get_chunk();
+		if (send(response, chunk.c_str(), chunk.size(), 0) == -1)
+		{
+			error("send() failed.")
+		}
 		return (EXIT_SUCCESS);
 	}
 
@@ -141,13 +138,13 @@ namespace ft
 			{
 				if (FD_ISSET(*it, &reading_set))
 				{
-					if (receive_request(*it) == EXIT_FAILURE)
+					if (receive_request(*it, responses) == EXIT_FAILURE)
 					{
 						FD_CLR(*it, &reading_set);
 						FD_CLR(*it, &master_set);
-						requests.erase(it);
 					}
-					// else must push back a new ready request to response_list
+					requests.erase(it);
+					// else must push back a new ready response to response_list
 					break ;
 				}
 			}

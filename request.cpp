@@ -19,30 +19,37 @@ namespace ft
 	// appends chunk to the request. returns whether the request was fully accepted
 	bool request::operator+=(const std::string &chunk)
 	{
+		std::cout << "appending chunk |" << chunk << "| of size " << chunk.size() << std::endl;
 		this->_raw += chunk;
 		if (this->_headers_end == std::string::npos)
 		{
 			if ((this->_headers_end = this->_raw.find(CRLF CRLF)) == std::string::npos)
 				return (false);
+			std::cout << "hit headers_end: it's now " << this->_headers_end << std::endl;
+			std::cout << "this->_raw.find(\"Content-Length: \") points to |" << this->_raw[this->_raw.find("Content-Length: ")] << "|" << std::endl;
+			std::cout << "this->_raw.find(\"Transfer-Encoding: \") points to |" << this->_raw[this->_raw.find("Transfer-Encoding: ")] << "|" << std::endl;
 			read_header(this->_raw.find("Content-Length: "));
-			read_header(this->_raw.find("Transfer-Encoding"));
+			read_header(this->_raw.find("Transfer-Encoding: "));
+			std::cout << "Content-Length value: |" << operator[]("Content-Length") << "|" << std::endl; 
+			std::cout << "Transfer-Encoding value: |" << operator[]("Transfer-Encoding") << "|" << std::endl; 
 			if (operator[]("Content-Length").empty())
 			{
 				if (operator[]("Transfer-Encoding").empty())
 					return (true);
 				else if (operator[]("Transfer-Encoding") != "chunked") // the message is ill-formed
-					throw http::protocol_error(400, "Bad Request: Unsupported Transfer Encoding value.");
+					throw http::protocol_error(HTTP_STATUS_BAD_REQUEST, "Bad Request: Unsupported Transfer Encoding value.");
 			}
 			else
 			{
 				if (!operator[]("Transfer-Encoding").empty())
-					throw http::protocol_error(400, "Bad Request: Content Length and Transfer Encoding conflict.");
+					throw http::protocol_error(HTTP_STATUS_BAD_REQUEST, "Bad Request: Content Length and Transfer Encoding conflict.");
 				this->_content_length = try_strtoul(operator[]("Content-Length"));
 			}
 		}
 		if (this->_content_length < 0) // "Transfer-Encoding: chunked" case
 			return (ends_with(this->_raw, "0" CRLF CRLF));
-		return (this->_raw.size() == this->_content_length + this->_headers_end + std::strlen(CRLF CRLF CRLF));
+		return (this->_raw.size() == this->_content_length + this->_headers_end + std::strlen(CRLF CRLF CRLF)
+			|| (ends_with(this->_raw, CRLF) && !ends_with(this->_raw, CRLF CRLF)));
 	}
 
 	// should only be called once _headers_end is initialized, i.e. all headers were received
@@ -53,9 +60,9 @@ namespace ft
 		{
 			size_t line_end = this->_raw.find(CRLF, pos);
 			size_t colon = this->_raw.find(':', pos);
-			// check if there's a key, colon is present, and it's followed by one space
-			if (colon == pos || colon > line_end || this->_raw[colon + 1] != ' ')
-				throw http::protocol_error(400, "Bad Request: Invalid Header.");
+			// check if there's a key, colon is present, there's no spaces in header and it's followed by one space
+			if (colon == pos || colon > line_end || colon != this->_raw.find(' ', pos) - 1)
+				throw http::protocol_error(HTTP_STATUS_BAD_REQUEST, "Bad Request: Invalid Header.");
 			std::string key = this->_raw.substr(pos, colon - pos);
 			size_t val_start = this->_raw.find_first_not_of(' ', colon + 2);		// val start; 2 is to skip ": "
 			std::string value = this->_raw.substr(val_start, line_end - val_start);	// val separated (with tail spaces)
@@ -70,17 +77,44 @@ namespace ft
 	{
 		separate_body();
 		size_t pos = parse_request_line();
-		while (pos != this->_headers_end)
+		std::cout << "method: |" << this->_method << "|" << std::endl;
+		std::cout << "conetent length: " << this->_content_length << std::endl;
+		std::cout << "headers end: " << this->_headers_end << std::endl;
+		std::cout << "body: |" << this->_body << "|, empty? " << (this->_body.empty() ? "yes" : "no") << std::endl;
+		while (pos != this->_headers_end + std::strlen(CRLF))
+		{
 			pos = read_header(pos);
+			// if (pos >= this->_raw.size())
+			// {
+			// 	std::cout << "broke out of while with pos=" << pos << std::endl;
+			// 	break ;
+			// }
+		}
 		// ... check for validity
 		parse_query();
+		for (string_map::iterator it = this->_headers.begin(); it != this->_headers.end(); it++)
+			std::cout << "header: { " << it->first << " : " << it->second << " }" << std::endl;
+		std::cout << "uri: |" << this->_uri << "|" << std::endl;
+		std::cout << "query: |" << this->_query << "|" << std::endl;
 		this->_raw.clear();
 	}
 
 	void request::separate_body()
 	{
 		if (operator[]("Transfer-Encoding").empty())
-			this->_body += this->_raw.substr(this->_headers_end + std::strlen(CRLF CRLF), this->_content_length);
+		{
+			const size_t read_body_start = this->_headers_end + std::strlen(CRLF CRLF);
+			const size_t read_body_end = this->_raw.size() - (ends_with(this->_raw, CRLF) && !ends_with(this->_raw, CRLF CRLF) ? std::strlen(CRLF) : 0);
+			std::cout << "read_body_start:" << read_body_start << ", read_body_end:" << read_body_end << std::endl;
+			std::cout << "read_body_end - read_body_start:" << read_body_end - read_body_start << std::endl;
+			this->_body += this->_raw.substr(read_body_start, read_body_end - read_body_start);
+			std::cout << "body: |" << this->_body << "|, empty? " << (this->_body.empty() ? "yes" : "no") << std::endl;
+			std::cout << "content-length: " << this->_content_length << std::endl;
+			if (this->_content_length == -1)
+				this->_content_length = this->_body.size();
+			else if (static_cast<size_t>(this->_content_length) != read_body_end - read_body_start)
+				throw http::protocol_error(HTTP_STATUS_BAD_REQUEST, "Bad Request: Content-Length mismatch.");
+		}
 		else
 		{
 			size_t	chunk_size;
@@ -93,7 +127,7 @@ namespace ft
 				pos = end_of_line + std::strlen(CRLF);		// now points to the beginning of chunk
 				end_of_line = this->_raw.find(CRLF, pos);	// now points to the end of chunk
 				if (end_of_line - pos != chunk_size)
-					throw http::protocol_error(400, "Bad Request: Chunk Size Mismatch.");
+					throw http::protocol_error(HTTP_STATUS_BAD_REQUEST, "Bad Request: Chunk Size Mismatch.");
 				this->_body += this->_raw.substr(pos, chunk_size);	// append the chunk to the body
 				this->_content_length += chunk_size;
 				pos = end_of_line + std::strlen(CRLF);		// now points to the beginning of chunk-size
@@ -108,7 +142,7 @@ namespace ft
 	{
 		size_t line_end = this->_raw.find(CRLF);
 		size_t space = this->_raw.find(' ');
-		if (space > line_end)
+		if (!space || space > line_end)
 			throw http::protocol_error(HTTP_STATUS_BAD_REQUEST, "Bad Request: Method unspecified.");
 		this->_method = this->_raw.substr(0, space);
 		space = this->_raw.find(' ', space + 1);

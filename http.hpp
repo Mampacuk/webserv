@@ -19,7 +19,7 @@ namespace ft
 			void add_server(server server);
 			void close_server_sockets();
 			int_set initialize_master(fd_set &master_set) const;
-			class protocol_error : std::logic_error
+			class protocol_error : public std::logic_error
 			{
 				private:
 					int _error_code;
