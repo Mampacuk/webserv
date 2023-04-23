@@ -10,20 +10,19 @@ namespace ft
 	{
 		private:
 			int 		_status;
-			std::string _body;
 			string_map	_headers;
+			std::string _body;
 			const 		request &_req;
-			//...
 			// response();
+			response &operator=(const response &other);
 		public:
 			response(const response &other);
-			response(const request &request);
+			response(const request &request, int status_code = HTTP_STATUS_OK);
 			~response();
-;			response &operator=(const response &other);
-			int get_socket() const;
 			operator int() const;
 			std::string to_string() const;
-			//...
+		private:
+			std::string status_to_string(int status_code) const;
 	};
 }
 
