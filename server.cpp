@@ -1,5 +1,6 @@
 #include "server.hpp"
 #include "webserv.hpp"
+#include "socket.hpp"
 
 namespace ft
 {
@@ -86,7 +87,7 @@ namespace ft
 				close(socket_fd);
 				throw std::runtime_error("Failed listening on " + host + ":" + port + ".");
 			}
-			this->_sockets.push_back(socket_fd);
+			this->_sockets.push_back(socket(socket_fd, *this));
 		}
 		freeaddrinfo(result);
 		if (this->_sockets.empty())

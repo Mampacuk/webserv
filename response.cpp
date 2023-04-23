@@ -18,6 +18,7 @@ namespace ft
 		this->_status = other._status;
 		this->_body = other._body;
 		this->_headers = other._headers;
+		this->_response = other._response;
 
 		return (*this);
 	}
@@ -31,13 +32,40 @@ namespace ft
 	{
 		if (is_error_code(_status))
 			find_error_page();
+		else
+		{
+			if (_req._method == "GET")
+				process_get();
+
+		}
+		//For get method
+		//read_requested_file(); // if not found again the error_page part into the body
+			// if (is_error_code(_status))
+			// 	find_error_page();
+			// else
+			// 	find_requested_uri();
 
 	}
 
-	void find_error_page()
+	void process_get()
+	{
+		read_requested_file();
+	}
+
+	void read_requested_file()
+	{
+		
+	}
+
+	void process_post()
 	{
 
 	}
+
+	// void find_error_page()
+	// {
+
+	// }
 
 	bool response::is_error_code(int status_code)
 	{
@@ -50,7 +78,6 @@ namespace ft
 		std::stringstream s;
 		
 		s << _status;
-
 		_response += s.str() + " " + status_to_string(_status) + CRLF;
 		for (string_map::const_iterator it = _headers.begin(); it != _headers.end(); it++)
 			_response += it->first + ": " + it->second + CRLF;
