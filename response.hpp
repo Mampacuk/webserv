@@ -19,7 +19,7 @@ namespace ft
 			response(const response &other);
 			response(const request &request);
 			~response();
-;			response &operator=(const response &other);
+			response &operator=(const response &other);
 			int get_socket() const;
 			operator int() const;
 			std::string to_string() const;
