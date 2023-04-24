@@ -2,19 +2,28 @@
 
 namespace ft
 {
-	request::~request() {}
-
 	request::request(const request&) {}
+
+	request::~request() {}
 
 	request &request::operator=(const request &other)
 	{
 		this->_method = other._method;
 		this->_uri = other._uri;
+		this->_query = other._query;
 		this->_headers = other._headers;
+		this->_raw = other._raw;
+		this->_body = other._body;
+		this->_socket = other._socket;
+		this->_content_length = other._content_length;
+		this->_headers_end = other._headers_end;
 		return (*this);
 	}
 
 	request::request(int socket) : _method(), _uri(), _query(), _headers(), _raw(), _body(), _socket(socket), _content_length(-1), _headers_end(std::string::npos) {}
+
+	request::request(const request &other) : _method(other._method), _uri(other._uri), _query(other._query), _headers(other._headers), _raw(other._raw), _body(other._body),
+		_socket(other._socket), _content_length(other._content_length), _headers_end(other._headers_end) {}
 
 	// appends chunk to the request. returns whether the request was fully accepted
 	bool request::operator+=(const std::string &chunk)
@@ -37,12 +46,12 @@ namespace ft
 				if (operator[]("Transfer-Encoding").empty())
 					return (true);
 				else if (operator[]("Transfer-Encoding") != "chunked") // the message is ill-formed
-					throw http::protocol_error(HTTP_STATUS_BAD_REQUEST, "Bad Request: Unsupported Transfer Encoding value.");
+					throw http::protocol_error(http::code::bad_request, "Bad Request: Unsupported Transfer Encoding value.");
 			}
 			else
 			{
 				if (!operator[]("Transfer-Encoding").empty())
-					throw http::protocol_error(HTTP_STATUS_BAD_REQUEST, "Bad Request: Content Length and Transfer Encoding conflict.");
+					throw http::protocol_error(http::code::bad_request, "Bad Request: Content Length and Transfer Encoding conflict.");
 				this->_content_length = try_strtoul(operator[]("Content-Length"));
 			}
 		}
@@ -62,7 +71,7 @@ namespace ft
 			size_t colon = this->_raw.find(':', pos);
 			// check if there's a key, colon is present, there's no spaces in header and it's followed by one space
 			if (colon == pos || colon > line_end || colon != this->_raw.find(' ', pos) - 1)
-				throw http::protocol_error(HTTP_STATUS_BAD_REQUEST, "Bad Request: Invalid Header.");
+				throw http::protocol_error(http::code::bad_request, "Bad Request: Invalid Header.");
 			std::string key = this->_raw.substr(pos, colon - pos);
 			size_t val_start = this->_raw.find_first_not_of(' ', colon + 2);		// val start; 2 is to skip ": "
 			std::string value = this->_raw.substr(val_start, line_end - val_start);	// val separated (with tail spaces)
@@ -113,7 +122,7 @@ namespace ft
 			if (this->_content_length == -1)
 				this->_content_length = this->_body.size();
 			else if (static_cast<size_t>(this->_content_length) != read_body_end - read_body_start)
-				throw http::protocol_error(HTTP_STATUS_BAD_REQUEST, "Bad Request: Content-Length mismatch.");
+				throw http::protocol_error(http::code::bad_request, "Bad Request: Content-Length mismatch.");
 		}
 		else
 		{
@@ -127,7 +136,7 @@ namespace ft
 				pos = end_of_line + std::strlen(CRLF);		// now points to the beginning of chunk
 				end_of_line = this->_raw.find(CRLF, pos);	// now points to the end of chunk
 				if (end_of_line - pos != chunk_size)
-					throw http::protocol_error(HTTP_STATUS_BAD_REQUEST, "Bad Request: Chunk Size Mismatch.");
+					throw http::protocol_error(http::code::bad_request, "Bad Request: Chunk Size Mismatch.");
 				this->_body += this->_raw.substr(pos, chunk_size);	// append the chunk to the body
 				this->_content_length += chunk_size;
 				pos = end_of_line + std::strlen(CRLF);		// now points to the beginning of chunk-size
@@ -143,14 +152,14 @@ namespace ft
 		size_t line_end = this->_raw.find(CRLF);
 		size_t space = this->_raw.find(' ');
 		if (!space || space > line_end)
-			throw http::protocol_error(HTTP_STATUS_BAD_REQUEST, "Bad Request: Method unspecified.");
+			throw http::protocol_error(http::code::bad_request, "Bad Request: Method unspecified.");
 		this->_method = this->_raw.substr(0, space);
 		space = this->_raw.find(' ', space + 1);
 		if (space > line_end)
-			throw http::protocol_error(HTTP_STATUS_BAD_REQUEST, "Bad Request: URI unspecified.");
+			throw http::protocol_error(http::code::bad_request, "Bad Request: URI unspecified.");
 		this->_uri = this->_raw.substr(this->_method.length() + 1, space - this->_method.length() - 1);
 		if (this->_raw.compare(space + 1, line_end - space - 1, "HTTP/1.1"))
-			throw http::protocol_error(HTTP_STATUS_VERSION_NOT_SUP, "HTTP Version Not Supported: Invalid Protocol Version.");
+			throw http::protocol_error(http::code::http_version_not_supported, "HTTP Version Not Supported: Invalid Protocol Version.");
 		return (line_end + std::strlen(CRLF));
 	}
 
@@ -177,6 +186,11 @@ namespace ft
 		return (this->_socket);
 	}
 
+	const std::string &request::get_method() const
+	{
+		return (this->_method);
+	}
+
 	request::operator int() const
 	{
 		return (this->_socket);
@@ -190,7 +204,7 @@ namespace ft
 		}
 		catch (const std::exception &e)
 		{
-			throw http::protocol_error(HTTP_STATUS_BAD_REQUEST, "Bad Request: Unsigned integer parsing failed.");
+			throw http::protocol_error(http::code::bad_request, "Bad Request: Unsigned integer parsing failed.");
 		}
 	}
 }

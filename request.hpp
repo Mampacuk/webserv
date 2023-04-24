@@ -21,16 +21,17 @@ namespace ft
 			int			_content_length;
 			size_t		_headers_end;
 			request();
-			request(const request &other);
 		public:
 			request(int socket);
 			~request();
+			request(const request &other);
 			request &operator=(const request &other);
 			bool operator+=(const std::string &chunk);
 			std::string operator[](const std::string &header) const;
-			int get_socket() const;
-			operator int() const;
 			void parse();
+			int get_socket() const;
+			const std::string &get_method() const;
+			operator int() const;
 		private:
 			unsigned int try_strtoul(const std::string &number, int base = 10) const;
 			void	find_header(const std::string &header);

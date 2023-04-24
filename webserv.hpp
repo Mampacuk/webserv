@@ -25,7 +25,6 @@ namespace ft
 			void start_service();
 		private:
 			int receive_request(request &request, response_list &responses);
-			int generate_response(request &request, int error = 0);
 			int send_response(response &response);
 	};
 }

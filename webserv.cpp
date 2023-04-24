@@ -42,20 +42,20 @@ namespace ft
 	int webserv::receive_request(request &request, response_list &responses)
 	{
 		char buffer[BUFSIZ] = {0}; // pass BUFSIZ - 1 so it's null-terminated
-		int  bytes_read = recv(request.get_socket(), buffer, BUFSIZ - 1, 0);
+		int  bytes_read = recv(request, buffer, BUFSIZ - 1, 0);
 		if (bytes_read <= 0)
 		{
 			if (!bytes_read)
 				log("Connection closed by the client.", YELLOW);
 			else
 				error("recv() failed: closing connection.");
-			close(request.get_socket()); // move into ~request()???
-			return (EXIT_FAILURE);
+			close(request);
+			return (EXIT_SUCCESS);
 		}
 		try
 		{
 			if (!(request += buffer))	
-				return (EXIT_SUCCESS);	// request wasn't fully received
+				return (EXIT_FAILURE);	// request wasn't fully received
 			request.parse();
 			responses.push_back(response(request));
 		}
@@ -72,7 +72,10 @@ namespace ft
 		if (send(response, chunk.c_str(), chunk.size(), 0) == -1)
 		{
 			error("send() failed.");
+			return (EXIT_SUCCESS);
 		}
+		if (!response.sent())
+			return (EXIT_FAILURE);
 		return (EXIT_SUCCESS);
 	}
 
@@ -101,7 +104,7 @@ namespace ft
 				FD_ZERO(&writing_set);
 				for (response_list::iterator it = responses.begin(); it != responses.end(); it++)
 					FD_SET(*it, &writing_set);
-				std::cout << EL << bars[(bar_id = (bar_id >= nbars) ? 0 : bar_id + 1)] << std::flush;
+				std::cout << EL << "Waiting for a connection " << bars[(bar_id = (bar_id >= nbars) ? 0 : bar_id + 1)] << std::flush;
 				desc_ready = select(max_sd + 1, &reading_set, &writing_set, NULL, &timeout);
 				if (desc_ready == -1)
 				{
@@ -138,13 +141,12 @@ namespace ft
 			{
 				if (FD_ISSET(*it, &reading_set))
 				{
-					if (receive_request(*it, responses) == EXIT_FAILURE)
+					if (receive_request(*it, responses))
 					{
 						FD_CLR(*it, &reading_set);
 						FD_CLR(*it, &master_set);
+						requests.erase(it);
 					}
-					requests.erase(it);
-					// else must push back a new ready response to response_list
 					break ;
 				}
 			}
@@ -154,8 +156,12 @@ namespace ft
 			{
 				if (FD_ISSET(*it, &writing_set))
 				{
-					// call send_response(*it),
-					// do other stuff...
+					if (send_response(*it))
+					{
+						FD_CLR(*it, &writing_set);
+						FD_CLR(*it, &master_set);
+						responses.erase(it);
+					}
 					break ;
 				}
 			}

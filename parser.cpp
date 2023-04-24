@@ -230,7 +230,7 @@ namespace ft
 		while (!erase_chunk_middle(";"))
 		{
 			const unsigned int code = strtoul(front());
-			if (!is_response_code(code))
+			if (!(http::is_redirection_code(code) || http::is_error_code(code)))
 			{
 				semicolon_erased = false;
 				break ;
@@ -296,7 +296,7 @@ namespace ft
 		std::string host = "0.0.0.0";
 		if (!port_specified)
 			semicolon_erased = erase_chunk_middle(";");
-		if (!port_specified && is_port_number(front()))
+		if (!port_specified && http::is_port_number(front()))
 			port = pop_front();
 		else
 			host = pop_front();
@@ -442,24 +442,6 @@ namespace ft
 			if (front().substr(0, token.length()) != token)
 				throw parsing_error(token + " not met when expected.");
 			erase_chunk_front(token);
-		}
-	}
-
-	bool parser::is_response_code(unsigned int response_code)
-	{
-		return (response_code >= 300 && response_code < 600);
-	}
-
-	bool parser::is_port_number(const std::string &port_string)
-	{
-		try
-		{
-			const unsigned int port = strtoul(port_string);
-			return (port >= 1 && port <= 65535);
-		}
-		catch (const std::exception &e)
-		{
-			return (false);
 		}
 	}
 

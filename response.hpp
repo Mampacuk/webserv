@@ -9,21 +9,23 @@ namespace ft
 	class response
 	{
 		private:
-			int 		_status;
-			string_map	_headers;
-			std::string _body;
-			const 		request &_req;
-			std::string _response;
-			// response();
+			http::code		_status;
+			std::string		_body;
+			string_map		_headers;
+			std::string		_message;
+			request			_request;
+			size_t			_cursor; // indicates bytes already sent
 			response &operator=(const response &other);
-			response(const response &other);
+			response();
 		public:
-			response(const request &request, int status_code = HTTP_STATUS_OK);
 			~response();
+			response(const response &other);
+			response(const request &request, http::code status = http::code::ok);
 			int get_socket() const;
 			operator int() const;
 			std::string get_chunk();
 			bool empty() const;
+			bool sent() const;
 		private:
 			void construct_response();
 			void generate_response();
@@ -32,7 +34,6 @@ namespace ft
 			void process_post();
 			void read_requested_file();
 			void find_error_page();
-			bool is_error_code(int status_code);
 			std::string status_to_string(int status_code) const;
 	};
 }
