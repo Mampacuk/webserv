@@ -2,8 +2,6 @@
 
 namespace ft
 {
-	request::request(const request&) {}
-
 	request::~request() {}
 
 	request &request::operator=(const request &other)

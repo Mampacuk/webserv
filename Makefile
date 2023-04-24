@@ -1,9 +1,11 @@
 NAME		= webserv
 
-SRCS		= $(wildcard *.cpp)
+SRC_DIR		= src
+INC_DIR		= include
+SRCS		= $(wildcard $(SRC_DIR)/*.cpp)
 OBJS		= $(SRCS:.cpp=.o)
 CXX			= c++
-CXXFLAGS	= -Wall -Wextra -Werror
+CXXFLAGS	= -Wall -Wextra -Werror -I$(INC_DIR)
 RM			= rm -rf
 
 ifeq ($(OS), Windows_NT)

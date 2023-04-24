@@ -229,13 +229,13 @@ namespace ft
 		parent->flush_error_pages();
 		while (!erase_chunk_middle(";"))
 		{
-			const unsigned int code = strtoul(front());
-			if (!(http::is_redirection_code(code) || http::is_error_code(code)))
+			const http::code status = static_cast<http::code>(strtoul(front()));
+			if (!(http::is_redirection_code(status) || http::is_error_code(status)))
 			{
 				semicolon_erased = false;
 				break ;
 			}
-			response_codes.push_back(code);
+			response_codes.push_back(status);
 			pop_front();
 		}
 		if (response_codes.empty())
