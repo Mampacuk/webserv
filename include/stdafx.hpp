@@ -65,6 +65,7 @@ namespace ft
 	typedef std::map<unsigned int, std::string>	error_map;
 
 	typedef std::set<int>			int_set;
+	typedef std::set<socket>		socket_set;
 	typedef std::set<string_pair>	string_pair_set;
 	typedef std::set<std::string>	string_set;
 	

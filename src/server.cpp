@@ -61,7 +61,7 @@ namespace ft
 			throw std::runtime_error("getaddrinfo: " + std::string(gai_strerror(status)));
 		for (rit = result; rit != NULL; rit = rit->ai_next)
 		{
-			if ((socket_fd = socket(rit->ai_family, rit->ai_socktype, rit->ai_protocol)) == -1)
+			if ((socket_fd = ::socket(rit->ai_family, rit->ai_socktype, rit->ai_protocol)) == -1)
 				continue ;	// not a critical error; exception is thrown when eventually `_sockets` is empty
 			char on = 1;
 			if (setsockopt(socket_fd, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on)) == -1

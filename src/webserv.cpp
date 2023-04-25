@@ -85,7 +85,7 @@ namespace ft
 		fd_set					reading_set;
 		fd_set					writing_set;
 		int						desc_ready = 0;
-		int_set					sockets = this->_protocol->initialize_master(master_set);
+		socket_set				sockets = this->_protocol->initialize_master(master_set);
 		request_list			requests;
 		response_list			responses;
 		int						max_sd = *(--sockets.end());
@@ -114,11 +114,11 @@ namespace ft
 			}
 
 			// accept() reading_set block
-			for (int_set::iterator it = sockets.begin(); it != sockets.end(); it++)
+			for (socket_set::iterator it = sockets.begin(); it != sockets.end(); it++)
 			{
 				if (FD_ISSET(*it, &reading_set))
 				{
-					int new_sd = accept(*it, NULL, NULL);
+					socket new_sd(accept(*it, NULL, NULL), it->get_server());
 					if (new_sd == -1)
 						error("Couldn't create a socket for accepted connection: " + std::string(strerror(errno)));
 					else

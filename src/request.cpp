@@ -12,13 +12,12 @@ namespace ft
 		this->_headers = other._headers;
 		this->_raw = other._raw;
 		this->_body = other._body;
-		this->_socket = other._socket;
 		this->_content_length = other._content_length;
 		this->_headers_end = other._headers_end;
 		return (*this);
 	}
 
-	request::request(int socket) : _method(), _uri(), _query(), _headers(), _raw(), _body(), _socket(socket), _content_length(-1), _headers_end(std::string::npos) {}
+	request::request(socket socket) : _method(), _uri(), _query(), _headers(), _raw(), _body(), _socket(socket), _content_length(-1), _headers_end(std::string::npos) {}
 
 	request::request(const request &other) : _method(other._method), _uri(other._uri), _query(other._query), _headers(other._headers), _raw(other._raw), _body(other._body),
 		_socket(other._socket), _content_length(other._content_length), _headers_end(other._headers_end) {}
@@ -179,7 +178,7 @@ namespace ft
 		return ("");
 	}
 
-	int request::get_socket() const
+	ft::socket request::get_socket() const
 	{
 		return (this->_socket);
 	}

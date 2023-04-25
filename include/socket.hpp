@@ -8,16 +8,15 @@ namespace ft
 	class socket
 	{
 		private:
-			int		_socket_fd;
-			server	&_server;
-			
+			int				_fd;
+			const server	&_server;
 			socket();
 			socket operator=(const socket &other);
 		public:
 			socket(const socket &other);
-			socket(int socket_fd, server &server);
+			socket(int fd, const server &server);
 			~socket();
-			server &get_server() const;
+			const server &get_server() const;
 			operator int() const;
 			
 	};

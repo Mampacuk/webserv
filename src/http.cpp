@@ -32,15 +32,15 @@ namespace ft
 	}
 
 	// adds all sockets from all servers to `master_set`
-	int_set	http::initialize_master(fd_set &master_set) const
+	socket_set	http::initialize_master(fd_set &master_set) const
 	{
-		int_set sockets;
+		socket_set sockets;
 
 		FD_ZERO(&master_set);
-		for (server_vector::const_iterator it = get_servers().begin(); it != get_servers().end(); it++)
-			for (int_vector::const_iterator sock = it->get_sockets().begin(); sock != it->get_sockets().end(); sock++)
+		for (server_vector::const_iterator serv = get_servers().begin(); serv != get_servers().end(); serv++)
+			for (int_vector::const_iterator sock = serv->get_sockets().begin(); sock != serv->get_sockets().end(); sock++)
 			{
-				sockets.insert(*sock);
+				sockets.insert(socket(*sock, *serv));
 				FD_SET(*sock, &master_set);
 			}
 		return (sockets);

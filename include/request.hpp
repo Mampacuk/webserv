@@ -4,6 +4,7 @@
 # include "stdafx.hpp"
 # include "http.hpp"
 # include "parser.hpp"
+# include "socket.hpp"
 
 namespace ft
 {
@@ -17,19 +18,19 @@ namespace ft
 			string_map	_headers;
 			std::string	_raw;
 			std::string _body;
-			int			_socket;
+			socket		_socket;
 			int			_content_length;
 			size_t		_headers_end;
 			request();
 		public:
-			request(int socket);
+			request(socket socket);
 			~request();
 			request(const request &other);
 			request &operator=(const request &other);
 			bool operator+=(const std::string &chunk);
 			std::string operator[](const std::string &header) const;
 			void parse();
-			int get_socket() const;
+			socket get_socket() const;
 			const std::string &get_method() const;
 			operator int() const;
 		private:

@@ -3,6 +3,7 @@
 
 # include "stdafx.hpp"
 # include "base_dir.hpp"
+# include "socket.hpp"
 
 namespace ft
 {
@@ -18,7 +19,7 @@ namespace ft
 			const server_vector &get_servers() const;
 			void add_server(server server);
 			void close_server_sockets();
-			int_set initialize_master(fd_set &master_set) const;
+			socket_set initialize_master(fd_set &master_set) const;
 			static bool is_port_number(const std::string &port_string);
 
 			enum code
