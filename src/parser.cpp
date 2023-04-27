@@ -449,4 +449,9 @@ namespace ft
 	{
 		return (str.size() >= suffix.size() && !str.compare(str.size() - suffix.size(), std::string::npos, suffix));
 	}
+
+	bool starts_with(const std::string &str, const std::string &prefix)
+	{
+		return (str.size() >= prefix.size() && !str.compare(0, prefix.size(), prefix));
+	}
 }

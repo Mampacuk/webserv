@@ -55,6 +55,7 @@ namespace ft
 	class location;
 	class request;
 	class response;
+	class socket;
 
 	typedef std::pair<int, std::string>				int_string;
 	typedef std::pair<std::string, std::string>		string_pair;
@@ -83,6 +84,7 @@ namespace ft
 
 	// defined in parser.cpp
 	bool ends_with(const std::string &str, const std::string &suffix);
+	bool starts_with(const std::string &str, const std::string &prefix);
 }
 
 #endif

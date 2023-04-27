@@ -1,12 +1,12 @@
-#include "response.hpp"
+#include "../include/response.hpp"
 
 namespace ft
 {
-	response::response() : _status(), _body(), _headers(), _message(), _request(), _cursor() {}
+	response::response() : _status(), _body(), _headers(), _message(), _request(), _cursor(), _location() {}
 	
-	response::response(const response &other) : _status(other._status), _body(other._body), _headers(other._headers), _message(other._message), _request(other._request), _cursor(other._cursor) {}
+	response::response(const response &other) : _status(other._status), _body(other._body), _headers(other._headers), _message(other._message), _request(other._request), _cursor(other._cursor), _location(other._location) {}
 
-	response::response(const request &request, http::code status) : _status(status), _body(), _headers(), _message(), _request(request), _cursor()
+	response::response(const request &request, http::code status) : _status(status), _body(), _headers(), _message(), _request(request), _cursor(), _location()
 	{
 		generate_response();
 	}
@@ -22,6 +22,7 @@ namespace ft
 		this->_body = other._body;
 		this->_headers = other._headers;
 		this->_message = other._message;
+		this->_location = other._location;
 		return (*this);
 	}
 
@@ -37,7 +38,7 @@ namespace ft
 		else
 		{
 			if (this->_request.get_method() == "GET")
-				process_get();
+				get();
 
 		}
 		//For get method
@@ -49,7 +50,7 @@ namespace ft
 
 	}
 
-	void response::process_get()
+	void response::get()
 	{
 		read_requested_file();
 	}
@@ -59,7 +60,7 @@ namespace ft
 		
 	}
 
-	void response::process_post()
+	void response::post()
 	{
 
 	}
@@ -68,6 +69,26 @@ namespace ft
 	// {
 
 	// }
+
+	void response::find_location()
+	{
+		for (location_set::const_iterator loc = _request.get_server().get_locations().begin(); 
+						loc != _request.get_server().get_locations().end(); loc++)
+		{
+			if (starts_with(_request._uri, loc->get_route()))
+			{
+				if (loc->has_modifier() && loc->get_route() == _request._uri)
+				{
+					_location = &(*loc);
+					break;
+				}
+				if (_location == NULL || _location->get_route().length() < loc->get_route().length())
+					_location = &(*loc);
+			}
+		}
+		if (_location == NULL)
+			throw server::server_error(404, "Not found");
+	}
 
 	void response::construct_response()
 	{

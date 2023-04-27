@@ -108,8 +108,8 @@ namespace ft
 				private:
 					code _error;
 				public:
-					explicit protocol_error(code error, const std::string &what) : std::logic_error(what), _error(error) {}
-					explicit protocol_error(code error, const char *what) : std::logic_error(what), _error(error) {}
+					protocol_error(code error, const std::string &what) : std::logic_error(what), _error(error) {}
+					protocol_error(code error, const char *what) : std::logic_error(what), _error(error) {}
 					operator http::code() const { return (this->_error); }
 			};
 	};

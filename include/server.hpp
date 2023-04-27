@@ -22,6 +22,16 @@ namespace ft
 			void add_name(const std::string &name);
 			void close_sockets();
 			void add_socket(const std::string &host, const std::string &port);
+
+			class server_error : public std::logic_error
+			{
+				private:
+					int _error;
+				public:
+					explicit server_error(int error, const std::string &what) : std::logic_error(what), _error(error) {}
+					explicit server_error(int error, const char *what) : std::logic_error(what), _error(error) {}
+					operator int() const { return (this->_error); }
+			};
 	};
 }
 

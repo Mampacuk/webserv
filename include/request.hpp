@@ -21,6 +21,7 @@ namespace ft
 			socket		_socket;
 			int			_content_length;
 			size_t		_headers_end;
+			server		*_server;
 			request();
 		public:
 			request(socket socket);
@@ -32,6 +33,7 @@ namespace ft
 			void parse();
 			socket get_socket() const;
 			const std::string &get_method() const;
+			const server &get_server() const;
 			operator int() const;
 		private:
 			unsigned int try_strtoul(const std::string &number, int base = 10) const;
