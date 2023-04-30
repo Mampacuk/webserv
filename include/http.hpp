@@ -10,16 +10,18 @@ namespace ft
 	class http : public base_dir
 	{
 		private:
-			server_vector	_servers;
+			socket_set	_sockets;
+			server_list	_servers;
 		public:
 			http();
 			~http();
 			http(const http &other);
 			http &operator=(const http &other);
-			const server_vector &get_servers() const;
+			const server_list &get_servers() const;
 			void add_server(server server);
-			void close_server_sockets();
-			socket_set initialize_master(fd_set &master_set) const;
+			const socket_set &get_sockets() const;
+			void add_socket(const socket &socket);
+			void close_sockets();
 			static bool is_port_number(const std::string &port_string);
 
 			enum code

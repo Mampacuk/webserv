@@ -1,12 +1,10 @@
-#include "../include/response.hpp"
+#include "response.hpp"
 
 namespace ft
 {
-	response::response() : _status(), _body(), _headers(), _message(), _request(), _cursor(), _location() {}
-	
-	response::response(const response &other) : _status(other._status), _body(other._body), _headers(other._headers), _message(other._message), _request(other._request), _cursor(other._cursor), _location(other._location) {}
+	response::response(const response &other) : _status(other._status), _body(other._body), _headers(other._headers), _message(other._message), _request(other._request), _location(other._location), _cursor(other._cursor) {}
 
-	response::response(const request &request, http::code status) : _status(status), _body(), _headers(), _message(), _request(request), _cursor(), _location()
+	response::response(const request &request, http::code status) : _status(status), _body(), _headers(), _message(), _request(request), _location(), _cursor()
 	{
 		generate_response();
 	}
@@ -65,19 +63,19 @@ namespace ft
 
 	}
 
-	// void find_error_page()
-	// {
+	void response::find_error_page()
+	{
 
-	// }
+	}
 
 	void response::find_location()
 	{
 		for (location_set::const_iterator loc = _request.get_server().get_locations().begin(); 
 						loc != _request.get_server().get_locations().end(); loc++)
 		{
-			if (starts_with(_request._uri, loc->get_route()))
+			if (starts_with(_request.get_uri(), loc->get_route()))
 			{
-				if (loc->has_modifier() && loc->get_route() == _request._uri)
+				if (loc->has_modifier() && loc->get_route() == _request.get_uri())
 				{
 					_location = &(*loc);
 					break;

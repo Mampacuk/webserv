@@ -71,14 +71,17 @@ namespace ft
 	typedef std::set<std::string>	string_set;
 	
 	typedef std::multimap<std::string, std::string> string_mmap;
+	typedef std::multimap<string_pair, const server*> string_pair_server_pointer_mmap;
 	
 	typedef std::vector<int>			int_vector;
+	typedef std::vector<socket>			socket_vector;
 	typedef std::vector<std::string>	string_vector;
-	typedef std::vector<server>			server_vector;
+	typedef std::vector<const server*>	server_pointer_vector;
 	
 	typedef std::list<std::string>	string_list;
 	typedef std::list<request>		request_list;
 	typedef std::list<response>		response_list;
+	typedef std::list<server>		server_list;
 
 	typedef std::set<location> location_set;
 

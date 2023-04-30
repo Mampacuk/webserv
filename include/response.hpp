@@ -17,7 +17,6 @@ namespace ft
 			const location	*_location;
 			size_t			_cursor; // indicates bytes already sent
 			response &operator=(const response &other);
-			response();
 		public:
 			~response();
 			response(const response &other);

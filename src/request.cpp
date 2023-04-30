@@ -188,6 +188,18 @@ namespace ft
 		return (this->_method);
 	}
 
+	const std::string &request::get_uri() const
+	{
+		return (this->_uri);
+	}
+
+	const server &request::get_server() const
+	{
+		if (!this->_server)
+			throw std::runtime_error("Querying an incomplete request for its server is not allowed.");
+		return (*this->_server);
+	}
+
 	request::operator int() const
 	{
 		return (this->_socket);

@@ -84,16 +84,19 @@ namespace ft
 		fd_set					master_set;
 		fd_set					reading_set;
 		fd_set					writing_set;
-		int						desc_ready = 0;
-		socket_set				sockets = this->_protocol->initialize_master(master_set);
 		request_list			requests;
 		response_list			responses;
-		int						max_sd = *(--sockets.end());
+		int						desc_ready = 0;
+		int						bar_id = 0;
 		const char				bars[] = {'\\', '|', '/', '-'};
 		const int				nbars = sizeof(bars) / sizeof(bars[0]);
-		int						bar_id = 0;
 		struct timeval			timeout = {TIMEOUT_SEC, TIMEOUT_MICROSEC};
+		const socket_set		&sockets = this->_protocol->get_sockets();
+		int						max_sd = *(--sockets.end());
 
+		FD_ZERO(&master_set);
+		for (socket_set::const_iterator sock = sockets.begin(); sock != sockets.end(); sock++)
+			FD_SET(*sock, &master_set);
 		while (true)
 		{
 			while (desc_ready == 0)
@@ -118,7 +121,7 @@ namespace ft
 			{
 				if (FD_ISSET(*it, &reading_set))
 				{
-					socket new_sd(accept(*it, NULL, NULL), it->get_server());
+					socket new_sd(accept(*it, NULL, NULL));
 					if (new_sd == -1)
 						error("Couldn't create a socket for accepted connection: " + std::string(strerror(errno)));
 					else
@@ -127,7 +130,7 @@ namespace ft
 						{
 							requests.push_back(new_sd);
 							FD_SET(new_sd, &master_set);
-							max_sd = new_sd > max_sd ? new_sd : max_sd;
+							max_sd = new_sd.get_fd() > max_sd ? new_sd.get_fd() : max_sd;
 						}
 						else
 							error("Couldn't mark accepted connection non-blocking.");

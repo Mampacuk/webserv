@@ -2,22 +2,28 @@
 
 namespace ft
 {
-	http::http(): base_dir(), _servers() {}
+	http::http(): base_dir(), _sockets(), _servers() {}
 
 	http::~http() {}
 
-	http::http(const http &other): base_dir(other), _servers(other._servers) {}
+	http::http(const http &other): base_dir(other), _sockets(other._sockets), _servers(other._servers) {}
 
 	http &http::operator=(const http &other)
 	{
 		base_dir::operator=(other);
+		this->_sockets = other._sockets;
 		this->_servers = other._servers;
 		return (*this);
 	}
 
-	const server_vector &http::get_servers() const
+	const server_list &http::get_servers() const
 	{
 		return (this->_servers);
+	}
+
+	const socket_set &http::get_sockets() const
+	{
+		return (this->_sockets);
 	}
 
 	void http::add_server(server server)
@@ -25,25 +31,15 @@ namespace ft
 		this->_servers.push_back(server);
 	}
 
-	void http::close_server_sockets()
+	void http::add_socket(const socket &socket)
 	{
-		for (size_t i = 0; this->_servers.size(); i++)
-			this->_servers[i].close_sockets();
+		this->_sockets.insert(socket);
 	}
 
-	// adds all sockets from all servers to `master_set`
-	socket_set	http::initialize_master(fd_set &master_set) const
+	void http::close_sockets()
 	{
-		socket_set sockets;
-
-		FD_ZERO(&master_set);
-		for (server_vector::const_iterator serv = get_servers().begin(); serv != get_servers().end(); serv++)
-			for (int_vector::const_iterator sock = serv->get_sockets().begin(); sock != serv->get_sockets().end(); sock++)
-			{
-				sockets.insert(socket(*sock, *serv));
-				FD_SET(*sock, &master_set);
-			}
-		return (sockets);
+		for (socket_set::iterator it = this->_sockets.begin(); it != this->_sockets.end(); it++)
+			close(*it);
 	}
 
 	bool http::is_port_number(const std::string &port_string)

@@ -3,6 +3,10 @@
 
 # include "stdafx.hpp"
 # include "base_dir.hpp"
+# include "http.hpp"
+# include "location.hpp"
+# include "server.hpp"
+# include "webserv.hpp"
 
 namespace ft
 {
@@ -17,11 +21,12 @@ namespace ft
 			typedef std::pair<std::string, cont_functor>	context;
 			typedef std::map<std::string, cont_functor>		context_map;
 
-			directive_map	_directives;
-			context_map		_contexts;
-			std::ifstream	_config;
-			string_list		_chunks;
-			string_pair_set	_listens;
+			directive_map					_directives;
+			context_map						_contexts;
+			std::ifstream					_config;
+			string_list						_chunks;
+			string_pair_set					_listens;
+			string_pair_server_pointer_mmap	_sockets;
 		public:
 			parser(const std::string &filename);
 			~parser();
@@ -36,7 +41,8 @@ namespace ft
 			std::string pop_front();
 			string_vector get_argument_list();
 			void memorize_listen(const std::string &host, const std::string &port);
-			void open_sockets(server &server);
+			void map_sockets(const server *server);
+			void open_sockets(http *protocol);
 			bool erase_chunk_middle(std::string str, bool b = false);
 			bool erase_chunk_front(std::string str);
 			void erase_token_front(std::string token, bool);

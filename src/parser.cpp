@@ -1,7 +1,4 @@
 #include "parser.hpp"
-#include "http.hpp"
-#include "location.hpp"
-#include "server.hpp"
 
 namespace ft
 {
@@ -127,6 +124,7 @@ namespace ft
 			unload_base_dir();
 			this->_contexts["server"].second = false;
 			parse(protocol);
+			open_sockets(protocol);
 		}
 		catch (...)
 		{
@@ -149,13 +147,11 @@ namespace ft
 			parse(&serv);
 		erase_chunk_front("}");
 
-		if (serv.get_sockets().empty())
-			serv.add_socket("0.0.0.0", "80");
 		if (serv.get_names().empty())
 			serv.add_name("");
-		open_sockets(serv);
-		
+
 		static_cast<http*>(protocol)->add_server(serv);
+		map_sockets(&static_cast<http*>(protocol)->get_servers().back());
 
 		this->_directives["rewrite"].second = false;
 		this->_directives["server_name"].second = false;
@@ -388,20 +384,87 @@ namespace ft
 
 	void parser::memorize_listen(const std::string &host, const std::string &port)
 	{
-		if (this->_listens.find(string_pair(host, port)) != this->_listens.end())
+		if (this->_listens.find(string_pair((host == "localhost" ? "127.0.0.1" : host), port)) != this->_listens.end())
 			throw parsing_error("A duplicate listen " + host + ":" + port + " encountered.");
-		this->_listens.insert(string_pair(host, port));
+		this->_listens.insert(string_pair((host == "localhost" ? "127.0.0.1" : host), port));
 	}
 
-	void parser::open_sockets(server &server)
+	void parser::map_sockets(const server *server)
 	{
-		for (string_pair_set::iterator it = this->_listens.begin();
-			it != this->_listens.end();
-			it++)
+		if (this->_listens.empty())
+			this->_sockets.insert(std::make_pair(string_pair("0.0.0.0", "80"), server));
+		else
 		{
-			server.add_socket(it->first, it->second);
+			for (string_pair_set::iterator it = this->_listens.begin(); it != this->_listens.end(); it++)
+				this->_sockets.insert(std::make_pair(*it, server));
+			this->_listens.clear();
 		}
-		this->_listens.clear();
+	}
+
+	void parser::open_sockets(http *protocol)
+	{
+		socket copy_socket;
+
+		for (string_pair_server_pointer_mmap::iterator it = this->_sockets.begin(); it != this->_sockets.end(); it++)
+		{
+			// if it's the first socker or a different listen address, create new socket, add old one to http
+			if (!copy_socket || *it != *(--string_pair_server_pointer_mmap::iterator(it)))
+			{
+				int	status;
+				bool bound;
+				struct addrinfo hints;
+				struct addrinfo *result, *rit;
+				const std::string host = it->first.first;
+				const std::string port = it->first.second;
+
+				if (copy_socket)
+					protocol->add_socket(copy_socket);
+				std::memset(&hints, 0, sizeof(struct addrinfo)); // clear hints structure
+				hints.ai_family = AF_INET;						 // what family to search?
+				hints.ai_socktype = SOCK_STREAM;				 // what type of _sockets?
+				hints.ai_flags = AI_ADDRCONFIG;					 // only address families configured on the system
+				if ((status = getaddrinfo(host.c_str(), port.c_str(), &hints, &result)) != 0)
+					throw std::runtime_error("getaddrinfo: " + std::string(gai_strerror(status)));
+				bound = false;
+				rit = result;
+				while (rit != NULL && (copy_socket = ::socket(rit->ai_family, rit->ai_socktype, rit->ai_protocol)) == -1)
+						rit = rit->ai_next;	// not a critical error; exception is thrown when eventually `_sockets` is empty
+				for (; rit != NULL; rit = rit->ai_next)
+				{
+					char on = 1;
+					if (setsockopt(copy_socket, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on)) == -1
+						|| setsockopt(copy_socket, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on) == -1)
+						|| setsockopt(copy_socket, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(on) == -1))
+					{
+						close(copy_socket);
+						throw std::runtime_error("Couldn't set socket options.");
+					}
+					if (fcntl(copy_socket, F_SETFL, O_NONBLOCK) == -1)
+					{
+						close(copy_socket);
+						throw std::runtime_error("Couldn't set the flags of a socket.");
+					}
+					if (bind(copy_socket, rit->ai_addr, rit->ai_addrlen) == -1)
+					{
+						close(copy_socket);
+						webserver.error("bind() to " + host + ":" + port + " failed (" + strerror(errno) + ")");
+						continue ;	// not a critical error; exception is thrown when eventually `_sockets` is empty
+					}
+					if (listen(copy_socket, BACKLOG) == -1)
+					{
+						close(copy_socket);
+						throw std::runtime_error("Failed listening on " + host + ":" + port + ".");
+					}
+					// this->_sockets.push_back(socket(socket_fd, *this));
+				}
+				freeaddrinfo(result);
+				if (this->_sockets.empty())
+					throw std::runtime_error("Socket creation and binding failed for a server block.");
+			}
+			copy_socket.add_server(it->second);
+			// if it's the first one of this key or the key changed then create new socket,
+			// else just push to the last socket 
+		}
 	}
 
 	// returns true if the erased str was a separate chunk, otherwise false
@@ -444,7 +507,10 @@ namespace ft
 			erase_chunk_front(token);
 		}
 	}
+}
 
+namespace ft
+{
 	bool ends_with(const std::string &str, const std::string &suffix)
 	{
 		return (str.size() >= suffix.size() && !str.compare(str.size() - suffix.size(), std::string::npos, suffix));

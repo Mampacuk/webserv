@@ -10,8 +10,7 @@ namespace ft
 {
 	class request 
 	{
-		// private:
-		public:
+		private:
 			std::string	_method;
 			std::string	_uri;
 			std::string _query;
@@ -22,7 +21,6 @@ namespace ft
 			int			_content_length;
 			size_t		_headers_end;
 			server		*_server;
-			request();
 		public:
 			request(socket socket);
 			~request();
@@ -33,6 +31,7 @@ namespace ft
 			void parse();
 			socket get_socket() const;
 			const std::string &get_method() const;
+			const std::string &get_uri() const;
 			const server &get_server() const;
 			operator int() const;
 		private:

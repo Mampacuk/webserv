@@ -8,17 +8,18 @@ namespace ft
 	class socket
 	{
 		private:
-			int				_fd;
-			const server	&_server;
-			socket();
-			socket operator=(const socket &other);
+			int						_fd;
+			server_pointer_vector	_servers;
 		public:
-			socket(const socket &other);
-			socket(int fd, const server &server);
+			socket();
 			~socket();
-			const server &get_server() const;
+			socket(const socket &other);
+			socket(int fd);
+			socket &operator=(const socket &other);
+			void add_server(const server *server);
+			const server_pointer_vector &get_servers() const;
+			int get_fd() const;
 			operator int() const;
-			
 	};
 }
 
