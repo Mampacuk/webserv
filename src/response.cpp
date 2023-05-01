@@ -1,4 +1,4 @@
-#include "response.hpp"
+#include "../include/response.hpp"		//change later
 
 namespace ft
 {
@@ -35,8 +35,20 @@ namespace ft
 			find_error_page();
 		else
 		{
-			if (this->_request.get_method() == "GET")
-				get();
+			try
+			{
+				find_location();
+				if (!_location->method_allowed(_request.get_method()))
+					throw server::server_error(405, "Method not allowed");
+				if (this->_request.get_method() == "GET")
+					get();                                    
+				else if (this->_request.get_method() == "POST")
+					post();
+			}
+			catch(server::server_error e)
+			{
+				//construct error page;
+			}
 
 		}
 		//For get method
