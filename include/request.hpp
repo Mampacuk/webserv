@@ -11,16 +11,16 @@ namespace ft
 	class request 
 	{
 		private:
-			std::string	_method;
-			std::string	_uri;
-			std::string _query;
-			string_map	_headers;
-			std::string	_raw;
-			std::string _body;
-			socket		_socket;
-			int			_content_length;
-			size_t		_headers_end;
-			server		*_server;
+			std::string		_method;
+			std::string		_uri;
+			std::string 	_query;
+			string_map		_headers;
+			std::string		_raw;
+			std::string 	_body;
+			socket			_socket;
+			int				_content_length;
+			size_t			_headers_end;
+			const server	*_server;
 		public:
 			request(socket socket);
 			~request();
@@ -41,6 +41,7 @@ namespace ft
 			void	separate_body();
 			size_t	parse_request_line();
 			void	parse_query();
+			void	select_server();
 	};
 }
 

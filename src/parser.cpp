@@ -401,6 +401,7 @@ namespace ft
 		}
 	}
 
+	// INVALID
 	void parser::open_sockets(http *protocol)
 	{
 		socket copy_socket;
@@ -420,7 +421,8 @@ namespace ft
 				if (copy_socket)
 					protocol->add_socket(copy_socket);
 				std::memset(&hints, 0, sizeof(struct addrinfo)); // clear hints structure
-				hints.ai_family = AF_INET;						 // what family to search?
+				hints.ai_protocol = IPPROTO_TCP;				 // only TCP connections
+				hints.ai_family = AF_INET;						 // what family to search? ipv4
 				hints.ai_socktype = SOCK_STREAM;				 // what type of _sockets?
 				hints.ai_flags = AI_ADDRCONFIG;					 // only address families configured on the system
 				if ((status = getaddrinfo(host.c_str(), port.c_str(), &hints, &result)) != 0)
