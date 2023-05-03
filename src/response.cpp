@@ -32,7 +32,7 @@ namespace ft
 	void response::generate_response()
 	{
 		if (http::is_error_code(this->_status))
-			find_error_page();
+			find_error_page();	//shoudl become like the catch block
 		else
 		{
 			try
@@ -48,7 +48,11 @@ namespace ft
 			}
 			catch(server::server_error e)
 			{
-				//construct error page;
+				// if (!read_requested_file(_location->get_error_page(e)))
+				// 	if (!read_requested_file(_location->get_error_page(404)))
+						//construct somehow a 404
+				//add_headers();
+				//construct response();
 			}
 		}
 	}
@@ -56,6 +60,9 @@ namespace ft
 	void response::get()
 	{
 		find_requested_file();
+		//add_headers();
+		//construct_response();
+
 	}
 
 	bool response::read_requested_file(const std::string &path)
@@ -67,6 +74,7 @@ namespace ft
 		{
 			_path = path;
 			file >> _body;
+			// content length and body size should be the same I guess
 			return (true);
 		}
 		return (false);
@@ -162,7 +170,7 @@ namespace ft
 		if (pos)
 		{
 			_uri.replace(pos, pos + portion.length(), portion);
-			return (true);
+			return true;
 		}
 		return false;
 	}
