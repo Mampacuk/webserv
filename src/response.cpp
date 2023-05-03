@@ -2,9 +2,9 @@
 
 namespace ft
 {
-	response::response(const response &other) : _status(other._status), _body(other._body), _headers(other._headers), _message(other._message), _request(other._request), _location(other._location), _cursor(other._cursor) {}
+	response::response(const response &other) : _status(other._status), _body(other._body), _headers(other._headers), _message(other._message), _uri(other._uri), _request(other._request), _location(other._location), _cursor(other._cursor), _path(other._path) {}
 
-	response::response(const request &request, http::code status) : _status(status), _body(), _headers(), _message(), _request(request), _location(), _cursor()
+	response::response(const request &request, http::code status) : _status(status), _body(), _headers(), _message(), _uri(request.get_uri()), _request(request), _location(), _cursor(), _path()
 	{
 		generate_response();
 	}
@@ -37,9 +37,10 @@ namespace ft
 		{
 			try
 			{
-				find_location();
+				find_rewritten_location();
 				if (!_location->method_allowed(_request.get_method()))
-					throw server::server_error(405, "Method not allowed");
+					throw server::server_error(405, "Method not allowed.");
+				_path = _location->get_root() + _uri;
 				if (this->_request.get_method() == "GET")
 					get();                                    
 				else if (this->_request.get_method() == "POST")
@@ -49,25 +50,51 @@ namespace ft
 			{
 				//construct error page;
 			}
-
 		}
-		//For get method
-		//read_requested_file(); // if not found again the error_page part into the body
-			// if (is_error_code(_status))
-			// 	find_error_page();
-			// else
-			// 	find_requested_uri();
-
 	}
 
 	void response::get()
 	{
-		read_requested_file();
+		find_requested_file();
 	}
 
-	void response::read_requested_file()
+	bool response::read_requested_file(const std::string &path)
 	{
-		
+		std::ifstream file;
+
+		file.open(path);
+		if (file.is_open())
+		{
+			_path = path;
+			file >> _body;
+			return (true);
+		}
+		return (false);
+	}
+
+	void response::find_requested_file()
+	{
+		if (ends_with(_path, "/"))
+		{
+			if (!_location->get_indexes().empty())
+			{
+				for (ft::string_vector::const_iterator it = _location->get_indexes().begin(); it != _location->get_indexes().end(); it++)
+					if (read_requested_file(_path + *it))
+						break;
+			}
+			else
+			{
+				if (_location->get_autoindex())
+				{
+					//somewhow generate the response;
+				}
+				else
+					throw server::server_error(404, "File not found.");
+			}
+		}
+		else
+			if (!read_requested_file(_path))
+				throw server::server_error(404, "File not found.");
 	}
 
 	void response::post()
@@ -85,9 +112,9 @@ namespace ft
 		for (location_set::const_iterator loc = _request.get_server().get_locations().begin(); 
 						loc != _request.get_server().get_locations().end(); loc++)
 		{
-			if (starts_with(_request.get_uri(), loc->get_route()))
+			if (starts_with(_uri, loc->get_route()))
 			{
-				if (loc->has_modifier() && loc->get_route() == _request.get_uri())
+				if (loc->has_modifier() && loc->get_route() == _uri)
 				{
 					_location = &(*loc);
 					break;
@@ -97,7 +124,7 @@ namespace ft
 			}
 		}
 		if (_location == NULL)
-			throw server::server_error(404, "Not found");
+			throw server::server_error(404, "File not found.");
 	}
 
 	void response::construct_response()
@@ -111,7 +138,6 @@ namespace ft
 			this->_message += it->first + ": " + it->second + CRLF;
 		this->_message += CRLF + _body;
 	}
-
 
 	std::string response::get_chunk()
 	{
@@ -128,5 +154,37 @@ namespace ft
 	bool response::sent() const
 	{
 		return (this->_cursor == this->_message.size());
+	}
+
+	bool response::rewrite(const std::string &portion, const std::string &withwhat)
+	{
+		size_t pos = _uri.find(portion);
+		if (pos)
+		{
+			_uri.replace(pos, pos + portion.length(), portion);
+			return (true);
+		}
+		return false;
+	}
+
+	void response::find_rewritten_location()
+	{
+		if (!_request.get_server().get_redirects().empty())
+			for (ft::string_mmap::const_iterator it = _request.get_server().get_redirects().begin(); it != _request.get_server().get_redirects().end(); it++)
+				rewrite(it->first, it->second);
+		int i = 0;
+		find_location();
+		while (i != 10)
+		{
+			if (!_location->get_redirects().empty())
+			{
+				for (ft::string_mmap::const_iterator it = _location->get_redirects().begin(); it != _location->get_redirects().end(); it++)
+					rewrite(it->first, it->second);
+				find_location();
+				i++;
+			}
+			else
+				break;
+		}
 	}
 }

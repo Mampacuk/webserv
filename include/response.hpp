@@ -3,6 +3,7 @@
 
 # include "request.hpp"
 # include "stdafx.hpp"
+# include <fstream>
 
 namespace ft
 {
@@ -13,9 +14,11 @@ namespace ft
 			std::string		_body;
 			string_map		_headers;
 			std::string		_message;
+			std::string		_uri;
 			request			_request;
 			const location	*_location;
 			size_t			_cursor; // indicates bytes already sent
+			std::string		_path;
 			response &operator=(const response &other);
 		public:
 			~response();
@@ -30,12 +33,15 @@ namespace ft
 			void find_location();
 			void construct_response();
 			void generate_response();
-			void requested_file();
 			void get();
 			void post();
-			void read_requested_file();
+			void find_requested_file();
+			bool read_requested_file(const std::string &file);
 			void find_error_page();
 			std::string status_to_string(int status_code) const;
+			void find_rewritten_location();
+			bool rewrite(const std::string &portion, const std::string &withwhat);
+			void find_path();
 	};
 }
 
