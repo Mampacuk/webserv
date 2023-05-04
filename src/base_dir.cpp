@@ -2,11 +2,11 @@
 
 namespace ft
 {
-	base_dir::base_dir() : _autoindex(false), _error_pages(), _root("html"), _indexes(), _client_max_body_size(1000000) {}
+	base_dir::base_dir() : _autoindex(false), _error_pages(), _root("html"), _indexes(), _client_max_body_size(1000000), _cgi_params() {}
 
 	base_dir::~base_dir() {}
 
-	base_dir::base_dir(const base_dir &other) : _autoindex(other._autoindex), _error_pages(other._error_pages), _root(other._root), _indexes(other._indexes), _client_max_body_size(other._client_max_body_size) {}
+	base_dir::base_dir(const base_dir &other) : _autoindex(other._autoindex), _error_pages(other._error_pages), _root(other._root), _indexes(other._indexes), _client_max_body_size(other._client_max_body_size), _cgi_params(other._cgi_params) {}
 
 	base_dir &base_dir::operator=(const base_dir &other)
 	{
@@ -15,6 +15,7 @@ namespace ft
 		this->_client_max_body_size = other._client_max_body_size;
 		this->_error_pages = other._error_pages;
 		this->_indexes = other._indexes;
+		this->_cgi_params = other._cgi_params;
 		return (*this);
 	}
 
@@ -58,19 +59,35 @@ namespace ft
 		this->_indexes.push_back(index_file);
 	}
 
-	const std::string base_dir::get_error_page(unsigned int error_code) const
+	void base_dir::add_cgi_param(const std::string &key, const std::string &value)
 	{
-		std::map<unsigned int, std::string>::const_iterator it;
+		this->_cgi_params.insert(string_pair(key, value));
+	}
+
+	std::string base_dir::get_error_page(unsigned int error_code) const
+	{
+		error_map::const_iterator it;
 		
-		it = _error_pages.find(error_code);
-		if (it != _error_pages.end())
-			return (it->second);
-		return ("");
+		it = this->_error_pages.find(error_code);
+		return (it != this->_error_pages.end() ? it->second : "");
+	}
+
+	std::string base_dir::get_cgi_param(const std::string &key) const
+	{
+		string_map::const_iterator it;
+
+		it = this->_cgi_params.find(key);
+		return (it != this->_cgi_params.end() ? it->second : "");
 	}
 
 	const string_vector &base_dir::get_indexes() const
 	{
 		return (this->_indexes);
+	}
+
+	const string_map &base_dir::get_cgi_params() const
+	{
+		return (this->_cgi_params);
 	}
 
 	void base_dir::flush_error_pages()
@@ -81,5 +98,10 @@ namespace ft
 	void base_dir::flush_indexes()
 	{
 		this->_indexes.clear();
+	}
+
+	void base_dir::flush_cgi_params()
+	{
+		this->_cgi_params.clear();
 	}
 }

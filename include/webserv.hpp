@@ -12,14 +12,16 @@ namespace ft
 	class webserv
 	{
 		private:
-			http *_protocol;
+			http	*_protocol;
+			char	**_environ;
 		public:
 			webserv();
 			~webserv();
 			webserv(const webserv &other);
 			webserv &operator=(const webserv &other);
-			http &get_http(); // should it be const-qualified?
+			const http &get_http();
 			void set_http(base_dir *protocol);
+			void set_environ(char **environ);
 			int error(const std::string &error) const;
 			int log(const std::string &message, const char *color = RESET) const;
 			void start_service();

@@ -4,7 +4,7 @@
 
 ft::webserv webserver;
 
-int main(int argc, char **argv)
+int main(int argc, char **argv, char **environ)
 // int main()
 {
 	// try {
@@ -80,6 +80,7 @@ int main(int argc, char **argv)
 	{
 		ft::parser config(filename);
 		webserver.set_http(config.parse());
+		webserver.set_environ(environ);
 		return (EXIT_SUCCESS);
 	}
 	catch (const std::exception &e)

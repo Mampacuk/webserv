@@ -20,7 +20,7 @@ namespace ft
 		this->_directives.insert(directive("listen", dir_functor(&parser::read_listen, false)));
 		this->_directives.insert(directive("server_name", dir_functor(&parser::read_server_name, false)));
 		this->_directives.insert(directive("rewrite", dir_functor(&parser::read_redirect, false)));
-		this->_directives.insert(directive("cgi", dir_functor(&parser::read_cgi, false)));
+		this->_directives.insert(directive("cgi_param", dir_functor(&parser::read_cgi_param, false)));
 		this->_directives.insert(directive("limit_except", dir_functor(&parser::read_limit_except, false)));
 		parse_chunks();
 	}
@@ -187,10 +187,12 @@ namespace ft
 		this->_directives["error_page"].second = true;
 		this->_directives["client_max_body_size"].second = true;
 		this->_directives["index"].second = true;
+		this->_directives["cgi_param"].second = true;
 	}
 
 	void parser::unload_base_dir()
 	{
+		this->_directives["cgi_param"].second = false;
 		this->_directives["index"].second = false;
 		this->_directives["client_max_body_size"].second = false;
 		this->_directives["error_page"].second = false;
@@ -313,21 +315,21 @@ namespace ft
 		return (true);
 	}
 
-	bool parser::read_cgi(base_dir *loc)
+	bool parser::read_cgi_param(base_dir *parent)
 	{
-		std::string extension;
-		std::string path;
+		std::string key;
+		std::string value;
 		bool semicolon_erased = false;
-		static_cast<location*>(loc)->flush_cgi();
+		parent->flush_cgi_params();
 		if (!erase_chunk_middle(";"))
 		{
-			extension = pop_front();
+			key = pop_front();
 			semicolon_erased = erase_chunk_middle(";");
-			path = pop_front();
+			value = pop_front();
 		}
 		else
 			throw parsing_error("Few arguments for `cgi` directive.");
-		static_cast<location*>(loc)->add_cgi(extension, path);
+		parent->add_cgi_param(key, value);
 		return (semicolon_erased);
 	}
 

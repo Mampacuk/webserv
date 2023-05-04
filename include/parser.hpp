@@ -59,7 +59,7 @@ namespace ft
 			bool	read_redirect(base_dir *parent);
 			bool	read_listen(base_dir *server);
 			bool	read_server_name(base_dir *server);
-			bool	read_cgi(base_dir *location);
+			bool	read_cgi_param(base_dir *parent);
 			bool	read_limit_except(base_dir *location);
 			void	load_base_dir();
 			void	unload_base_dir();

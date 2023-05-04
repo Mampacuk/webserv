@@ -13,6 +13,7 @@ namespace ft
 			std::string			_root;
 			string_vector		_indexes;
 			unsigned long int	_client_max_body_size; // in bytes
+			string_map			_cgi_params;
 		public:
 			base_dir();
 			virtual ~base_dir();
@@ -26,10 +27,14 @@ namespace ft
 			unsigned int get_client_max_body_size() const;
 			void add_error_page(unsigned int error_code, const std::string &page);
 			void add_index(const std::string &index_file);
-			const std::string get_error_page(unsigned int error_code) const;
+			void add_cgi_param(const std::string &key, const std::string &value);
+			std::string get_error_page(unsigned int error_code) const;
+			std::string get_cgi_param(const std::string &key) const;
 			const string_vector &get_indexes() const;
+			const string_map &get_cgi_params() const;
 			void flush_error_pages();
 			void flush_indexes();
+			void flush_cgi_params();
 	};
 }
 

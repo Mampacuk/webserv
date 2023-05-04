@@ -45,6 +45,7 @@ namespace ft
 					get();                                    
 				else if (this->_request.get_method() == "POST")
 					post();
+				// else if ... delete() else throw exception ("invalid method")
 			}
 			catch(server::server_error e)
 			{
@@ -107,7 +108,11 @@ namespace ft
 
 	void response::post()
 	{
-
+		const std::string cgi = this->_location->get_cgi_param("SCRIPT_FILENAME");
+		if (cgi.empty())
+			throw server::server_error(http::code::internal_server_error, "POST method with unspecified CGI is not allowed.");
+		
+		// if execve() failed return 404 file not found
 	}
 
 	void response::find_error_page()

@@ -17,7 +17,7 @@ namespace ft
 		return (*this);
 	}
 
-	http &webserv::get_http()
+	const http &webserv::get_http()
 	{
 		return (*this->_protocol);
 	}
@@ -25,6 +25,11 @@ namespace ft
 	void webserv::set_http(base_dir *protocol)
 	{
 		this->_protocol = static_cast<http*>(protocol);
+	}
+
+	void webserv::set_environ(char **environ)
+	{
+		this->_environ = environ;
 	}
 
 	int webserv::error(const std::string &error) const
