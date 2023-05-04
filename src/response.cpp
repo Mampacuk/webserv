@@ -31,30 +31,26 @@ namespace ft
 
 	void response::generate_response()
 	{
-		if (http::is_error_code(this->_status))
-			find_error_page();	//shoudl become like the catch block
-		else
+		try
 		{
-			try
-			{
-				find_rewritten_location();
-				if (!_location->method_allowed(_request.get_method()))
-					throw server::server_error(405, "Method not allowed.");
-				_path = _location->get_root() + _uri;
-				if (this->_request.get_method() == "GET")
-					get();                                    
-				else if (this->_request.get_method() == "POST")
-					post();
-				// else if ... delete() else throw exception ("invalid method")
-			}
-			catch(server::server_error e)
-			{
-				// if (!read_requested_file(_location->get_error_page(e)))
-				// 	if (!read_requested_file(_location->get_error_page(404)))
-						//construct somehow a 404
-				//add_headers();
-				//construct response();
-			}
+			if (http::is_error_code(this->_status))
+				throw server::server_error(this->_status, "Request error.");
+			find_rewritten_location();
+			if (!_location->method_allowed(_request.get_method()))
+				throw server::server_error(405, "Method not allowed.");
+			_path = _location->get_root() + _uri;
+			if (this->_request.get_method() == "GET")
+				get();                                    
+			else if (this->_request.get_method() == "POST")
+				post();
+		}
+		catch(server::server_error e)
+		{
+			// if (!read_requested_file(_location->get_error_page(e)))
+			// 	if (!read_requested_file(_location->get_error_page(404)))
+					//construct somehow a 404
+			//add_headers();
+			//construct response();
 		}
 	}
 
@@ -94,9 +90,7 @@ namespace ft
 			else
 			{
 				if (_location->get_autoindex())
-				{
-					//somewhow generate the response;
-				}
+					generate_autoindex(_path);
 				else
 					throw server::server_error(404, "File not found.");
 			}
@@ -113,11 +107,6 @@ namespace ft
 			throw server::server_error(http::code::internal_server_error, "POST method with unspecified CGI is not allowed.");
 		
 		// if execve() failed return 404 file not found
-	}
-
-	void response::find_error_page()
-	{
-
 	}
 
 	void response::find_location()
@@ -200,4 +189,30 @@ namespace ft
 				break;
 		}
 	}
+
+	void response::generate_autoindex(const std::string &path) 
+	{
+		std::string host;		//later change to getting from the socket
+		std::string port;
+	
+		std::vector<std::string> files;
+		DIR* dir = opendir(path.c_str());
+
+		if (dir == nullptr)
+			throw std::domain_error("File not found."); //does autoindex have it's own error code??
+
+		dirent* entry;
+		while ((entry = readdir(dir)) != nullptr)
+			if (entry->d_name[0] != '.')
+				files.push_back(entry->d_name);
+
+		closedir(dir);
+		_body = "<html>\n\t<head>\n\t\t<title>Index of " + path + "</title>\n\t</head>"
+					+ "\n\t<body>\n\t\t<h1>Index of " + path + "</h1>\n\t\t<hr>\n\t\t\t<ul>";
+
+		for (size_t i = 0; i < files.size(); i++)
+			_body += "\n\t\t\t\t<li><a href=\"http://" + host + ":" + port + path + files[i] + "\">" + files[i] + "</a></li>";		//also here
+
+		_body += "\n\t\t\t</ul>\n\t\t<hr>\n\t</body>\n</html>\n"; 
+	}	
 }

@@ -4,6 +4,7 @@
 # include "request.hpp"
 # include "stdafx.hpp"
 # include <fstream>
+# include <dirent.h>
 
 namespace ft
 {
@@ -42,6 +43,7 @@ namespace ft
 			void find_rewritten_location();
 			bool rewrite(const std::string &portion, const std::string &withwhat);
 			void find_path();
+			void generate_autoindex(const std::string &path);
 	};
 }
 
