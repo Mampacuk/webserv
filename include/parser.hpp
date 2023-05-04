@@ -7,6 +7,7 @@
 # include "location.hpp"
 # include "server.hpp"
 # include "webserv.hpp"
+# include "server_socket.hpp"
 
 namespace ft
 {
@@ -40,7 +41,7 @@ namespace ft
 			std::string &front();
 			std::string pop_front();
 			string_vector get_argument_list();
-			void memorize_listen(const std::string &host, const std::string &port);
+			void memorize_listen(const std::string &host, const std::string &port, const server *server);
 			void map_sockets(const server *server);
 			void open_sockets(http *protocol);
 			bool erase_chunk_middle(std::string str, bool b = false);

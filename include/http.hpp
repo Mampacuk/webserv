@@ -10,8 +10,8 @@ namespace ft
 	class http : public base_dir
 	{
 		private:
-			socket_set	_sockets;
-			server_list	_servers;
+			server_socket_set	_sockets;
+			server_list			_servers;
 		public:
 			http();
 			~http();
@@ -19,7 +19,7 @@ namespace ft
 			http &operator=(const http &other);
 			const server_list &get_servers() const;
 			void add_server(server server);
-			const socket_set &get_sockets() const;
+			const server_socket_set &get_sockets() const;
 			void add_socket(const socket &socket);
 			void close_sockets();
 			static bool is_port_number(const std::string &port_string);

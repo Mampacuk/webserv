@@ -21,7 +21,7 @@ namespace ft
 		return (this->_servers);
 	}
 
-	const socket_set &http::get_sockets() const
+	const server_socket_set &http::get_sockets() const
 	{
 		return (this->_sockets);
 	}
@@ -38,7 +38,7 @@ namespace ft
 
 	void http::close_sockets()
 	{
-		for (socket_set::iterator it = this->_sockets.begin(); it != this->_sockets.end(); it++)
+		for (server_socket_set::iterator it = this->_sockets.begin(); it != this->_sockets.end(); it++)
 			close(*it);
 	}
 

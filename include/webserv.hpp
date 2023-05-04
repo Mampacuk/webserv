@@ -26,6 +26,7 @@ namespace ft
 			int log(const std::string &message, const char *color = RESET) const;
 			void start_service();
 		private:
+			client_socket accept_connection(const server_socket &socket);
 			int receive_request(request &request, response_list &responses);
 			int send_response(response &response);
 	};

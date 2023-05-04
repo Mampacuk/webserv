@@ -22,6 +22,7 @@
 #  include <netdb.h>
 #  include <unistd.h>
 #  include <fcntl.h>
+#  include <dirent.h>
 # endif
 
 # include <string>
@@ -67,6 +68,7 @@ namespace ft
 
 	typedef std::set<int>			int_set;
 	typedef std::set<socket>		socket_set;
+	typedef std::set<server_socket>	server_socket_set;
 	typedef std::set<string_pair>	string_pair_set;
 	typedef std::set<std::string>	string_set;
 	
@@ -88,6 +90,7 @@ namespace ft
 	// defined in parser.cpp
 	bool ends_with(const std::string &str, const std::string &suffix);
 	bool starts_with(const std::string &str, const std::string &prefix);
+	std::string inet_ntoa(struct in_addr addr);
 }
 
 #endif

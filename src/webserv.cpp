@@ -44,6 +44,11 @@ namespace ft
 		return (EXIT_SUCCESS);
 	}
 
+	client_socket webserv::accept_connection(const server_socket &socket)
+	{
+		
+	}
+
 	int webserv::receive_request(request &request, response_list &responses)
 	{
 		char buffer[BUFSIZ] = {0}; // pass BUFSIZ - 1 so it's null-terminated
@@ -96,11 +101,11 @@ namespace ft
 		const char				bars[] = {'\\', '|', '/', '-'};
 		const int				nbars = sizeof(bars) / sizeof(bars[0]);
 		struct timeval			timeout = {TIMEOUT_SEC, TIMEOUT_MICROSEC};
-		const socket_set		&sockets = this->_protocol->get_sockets();
+		const server_socket_set	&sockets = this->_protocol->get_sockets();
 		int						max_sd = *(--sockets.end());
 
 		FD_ZERO(&master_set);
-		for (socket_set::const_iterator sock = sockets.begin(); sock != sockets.end(); sock++)
+		for (server_socket_set::const_iterator sock = sockets.begin(); sock != sockets.end(); sock++)
 			FD_SET(*sock, &master_set);
 		while (true)
 		{
@@ -122,11 +127,11 @@ namespace ft
 			}
 
 			// accept() reading_set block
-			for (socket_set::iterator it = sockets.begin(); it != sockets.end(); it++)
+			for (server_socket_set::iterator it = sockets.begin(); it != sockets.end(); it++)
 			{
 				if (FD_ISSET(*it, &reading_set))
 				{
-					socket new_sd(accept(*it, NULL, NULL));
+					socket new_sd(accept_connection(*it));
 					if (new_sd == -1)
 						error("Couldn't create a socket for accepted connection: " + std::string(strerror(errno)));
 					else

@@ -286,7 +286,7 @@ namespace ft
 		return (semicolon_erased);
 	}
 
-	bool parser::read_listen(base_dir*)
+	bool parser::read_listen(base_dir *server)
 	{
 		bool port_specified = erase_chunk_middle(":");
 		bool semicolon_erased = false;
@@ -303,7 +303,7 @@ namespace ft
 			semicolon_erased = erase_chunk_middle(";");
 			port = pop_front();
 		}
-		memorize_listen(host, port);
+		memorize_listen(host, port, static_cast<ft::server*>(server));
 		return (semicolon_erased);
 	}
 
@@ -384,11 +384,27 @@ namespace ft
 		return (arguments);
 	}
 
-	void parser::memorize_listen(const std::string &host, const std::string &port)
+	void parser::memorize_listen(const std::string &host, const std::string &port, const server *server)
 	{
-		if (this->_listens.find(string_pair((host == "localhost" ? "127.0.0.1" : host), port)) != this->_listens.end())
-			throw parsing_error("A duplicate listen " + host + ":" + port + " encountered.");
-		this->_listens.insert(string_pair((host == "localhost" ? "127.0.0.1" : host), port));
+		int	status;
+		struct addrinfo hints;
+		struct addrinfo *result, *rit;
+
+		std::memset(&hints, 0, sizeof(struct addrinfo)); // clear hints structure
+		hints.ai_protocol = IPPROTO_TCP;				 // only TCP connections
+		hints.ai_family = AF_INET;						 // what family to search? ipv4
+		hints.ai_socktype = SOCK_STREAM;				 // what type of _sockets?
+		hints.ai_flags = AI_ADDRCONFIG;					 // only address families configured on the system
+		if ((status = getaddrinfo(host.c_str(), port.c_str(), &hints, &result)) != 0)
+			throw std::runtime_error("getaddrinfo: " + std::string(gai_strerror(status)));
+		for (rit = result; rit != NULL; rit = rit->ai_next)
+		{
+			const std::string host = ft::inet_ntoa(reinterpret_cast<struct sockaddr_in*>(rit->ai_addr)->sin_addr);
+			if (this->_listens.find(string_pair(host, port)) != this->_listens.end())
+				throw parsing_error("A duplicate listen " + host + ":" + port + " encountered.");
+			this->_listens.insert(string_pair(host, port));
+		}
+		freeaddrinfo(result);
 	}
 
 	void parser::map_sockets(const server *server)
@@ -398,76 +414,66 @@ namespace ft
 		else
 		{
 			for (string_pair_set::iterator it = this->_listens.begin(); it != this->_listens.end(); it++)
-				this->_sockets.insert(std::make_pair(*it, server));
+				this->_sockets.insert(std::make_pair(string_pair(it->first, it->second), server));
 			this->_listens.clear();
 		}
 	}
 
-	// INVALID
 	void parser::open_sockets(http *protocol)
 	{
-		socket copy_socket;
-
-		for (string_pair_server_pointer_mmap::iterator it = this->_sockets.begin(); it != this->_sockets.end(); it++)
+		for (string_pair_server_pointer_mmap::iterator it = this->_sockets.begin(); it != this->_sockets.end();)
 		{
-			// if it's the first socker or a different listen address, create new socket, add old one to http
-			if (!copy_socket || *it != *(--string_pair_server_pointer_mmap::iterator(it)))
-			{
-				int	status;
-				bool bound;
-				struct addrinfo hints;
-				struct addrinfo *result, *rit;
-				const std::string host = it->first.first;
-				const std::string port = it->first.second;
+			std::pair<string_pair_server_pointer_mmap::iterator, string_pair_server_pointer_mmap::iterator> range = this->_sockets.equal_range(it->first);
+			const std::string host = it->first.first;
+			const std::string port = it->first.second;
 
-				if (copy_socket)
-					protocol->add_socket(copy_socket);
-				std::memset(&hints, 0, sizeof(struct addrinfo)); // clear hints structure
-				hints.ai_protocol = IPPROTO_TCP;				 // only TCP connections
-				hints.ai_family = AF_INET;						 // what family to search? ipv4
-				hints.ai_socktype = SOCK_STREAM;				 // what type of _sockets?
-				hints.ai_flags = AI_ADDRCONFIG;					 // only address families configured on the system
-				if ((status = getaddrinfo(host.c_str(), port.c_str(), &hints, &result)) != 0)
-					throw std::runtime_error("getaddrinfo: " + std::string(gai_strerror(status)));
-				bound = false;
-				rit = result;
-				while (rit != NULL && (copy_socket = ::socket(rit->ai_family, rit->ai_socktype, rit->ai_protocol)) == -1)
-						rit = rit->ai_next;	// not a critical error; exception is thrown when eventually `_sockets` is empty
-				for (; rit != NULL; rit = rit->ai_next)
-				{
-					char on = 1;
-					if (setsockopt(copy_socket, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on)) == -1
-						|| setsockopt(copy_socket, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on) == -1)
-						|| setsockopt(copy_socket, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(on) == -1))
-					{
-						close(copy_socket);
-						throw std::runtime_error("Couldn't set socket options.");
-					}
-					if (fcntl(copy_socket, F_SETFL, O_NONBLOCK) == -1)
-					{
-						close(copy_socket);
-						throw std::runtime_error("Couldn't set the flags of a socket.");
-					}
-					if (bind(copy_socket, rit->ai_addr, rit->ai_addrlen) == -1)
-					{
-						close(copy_socket);
-						webserver.error("bind() to " + host + ":" + port + " failed (" + strerror(errno) + ")");
-						continue ;	// not a critical error; exception is thrown when eventually `_sockets` is empty
-					}
-					if (listen(copy_socket, BACKLOG) == -1)
-					{
-						close(copy_socket);
-						throw std::runtime_error("Failed listening on " + host + ":" + port + ".");
-					}
-					// this->_sockets.push_back(socket(socket_fd, *this));
-				}
-				freeaddrinfo(result);
-				if (this->_sockets.empty())
-					throw std::runtime_error("Socket creation and binding failed for a server block.");
+			int	status;
+			char on = 1;
+			struct addrinfo hints;
+			struct addrinfo *result, *rit;
+
+			std::memset(&hints, 0, sizeof(struct addrinfo)); // clear hints structure
+			hints.ai_protocol = IPPROTO_TCP;				 // only TCP connections
+			hints.ai_family = AF_INET;						 // what family to search? ipv4
+			hints.ai_socktype = SOCK_STREAM;				 // what type of _sockets?
+			hints.ai_flags = AI_ADDRCONFIG;					 // only address families configured on the system
+			if ((status = getaddrinfo(host.c_str(), port.c_str(), &hints, &result)) != 0)
+				throw std::runtime_error("getaddrinfo: " + std::string(gai_strerror(status)));
+			rit = result;
+
+			server_socket socket(::socket(rit->ai_family, rit->ai_socktype, rit->ai_protocol), host, port);
+			if (socket == -1)
+				throw std::runtime_error("Failed to create a socket.");
+			if (setsockopt(socket, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on)) == -1
+				|| setsockopt(socket, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on) == -1)
+				|| setsockopt(socket, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(on) == -1))
+			{
+				close(socket);
+				throw std::runtime_error("Couldn't set socket options.");
 			}
-			copy_socket.add_server(it->second);
-			// if it's the first one of this key or the key changed then create new socket,
-			// else just push to the last socket 
+			if (fcntl(socket, F_SETFL, O_NONBLOCK) == -1)
+			{
+				close(socket);
+				throw std::runtime_error("Couldn't set the flags of a socket.");
+			}
+			if (bind(socket, rit->ai_addr, rit->ai_addrlen) == -1)
+			{
+				close(socket);
+				webserver.error("bind() to " + host + ":" + port + " failed (" + strerror(errno) + ")");
+			}
+			if (listen(socket, BACKLOG) == -1)
+			{
+				close(socket);
+				throw std::runtime_error("Failed listening on " + host + ":" + port + ".");
+			}
+			freeaddrinfo(result);
+
+			while (it != range.second)
+			{
+				socket.add_server(it->second);
+				it++;
+			}
+			protocol->add_socket(socket);
 		}
 	}
 
@@ -523,5 +529,15 @@ namespace ft
 	bool starts_with(const std::string &str, const std::string &prefix)
 	{
 		return (str.size() >= prefix.size() && !str.compare(0, prefix.size(), prefix));
+	}
+
+	std::string inet_ntoa(struct in_addr addr)
+	{
+		std::stringstream ss;
+		ss << ((addr.s_addr >> 0) & 0xff) << '.'
+		   << ((addr.s_addr >> 8) & 0xff) << '.'
+		   << ((addr.s_addr >> 16) & 0xff) << '.'
+		   << ((addr.s_addr >> 24) & 0xff);
+		return (ss.str());
 	}
 }
