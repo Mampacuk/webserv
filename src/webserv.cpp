@@ -2,14 +2,14 @@
 
 namespace ft
 {
-	webserv::webserv(): _protocol() {}
+	webserv::webserv(): _protocol(), _environ() {}
 
 	webserv::~webserv()
 	{
 		delete this->_protocol;
 	}
 
-	webserv::webserv(const webserv &other): _protocol(new http(*other._protocol)) {}
+	webserv::webserv(const webserv &other) : _protocol(new http(*other._protocol)), _environ(other._environ) {}
 
 	webserv &webserv::operator=(const webserv &other)
 	{
@@ -46,7 +46,18 @@ namespace ft
 
 	client_socket webserv::accept_connection(const server_socket &socket)
 	{
-		
+		int client_fd;
+		std::string host;
+		std::string port;
+		struct sockaddr_in client_addr;
+		socklen_t client_addr_len = sizeof(client_addr);
+
+		client_fd = accept(socket, reinterpret_cast<struct sockaddr*>(&client_addr), &client_addr_len);
+		if (client_fd == -1 || fcntl(new_sd, F_SETFL, O_NONBLOCK) == -1)
+			return (client_socket(client_fd, "", "", socket));
+		host = ft::inet_ntoa(&client_addr.sin_addr);
+		port = ft::to_string(ntohs(client_addr.sin_port));
+		return (client_socket(client_fd, host, port, socket));
 	}
 
 	int webserv::receive_request(request &request, response_list &responses)
@@ -131,19 +142,14 @@ namespace ft
 			{
 				if (FD_ISSET(*it, &reading_set))
 				{
-					socket new_sd(accept_connection(*it));
+					client_socket new_sd(accept_connection(*it));
 					if (new_sd == -1)
 						error("Couldn't create a socket for accepted connection: " + std::string(strerror(errno)));
 					else
 					{
-						if (fcntl(new_sd, F_SETFL, O_NONBLOCK) != -1)
-						{
-							requests.push_back(new_sd);
-							FD_SET(new_sd, &master_set);
-							max_sd = new_sd.get_fd() > max_sd ? new_sd.get_fd() : max_sd;
-						}
-						else
-							error("Couldn't mark accepted connection non-blocking.");
+						requests.push_back(new_sd);
+						FD_SET(new_sd, &master_set);
+						max_sd = new_sd.get_fd() > max_sd ? new_sd.get_fd() : max_sd;
 					}
 					break ;
 				}
