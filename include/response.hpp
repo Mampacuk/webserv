@@ -36,13 +36,12 @@ namespace ft
 			void post();
 			void find_requested_file();
 			bool read_requested_file(const std::string &file);
-			void find_error_page();
-			std::string status_to_string(int status_code) const;
 			void find_rewritten_location();
 			bool rewrite(const std::string &portion, const std::string &withwhat);
 			// void find_path();
 			void generate_autoindex(const std::string &path);
-			void read_error_page(int error_code);
+			void read_error_page(int error_code, bool loc = true);
+			void construct_error_page(int error_code);
 	};
 }
 

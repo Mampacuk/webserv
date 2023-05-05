@@ -46,8 +46,10 @@ namespace ft
 		}
 		catch(server::server_error e)
 		{
-			//make sure that the error is not from request
-			//if it's from request generate without looking into error_code
+			// this->_status = e; should be e at this point but ... 
+
+			if (e == 400 || e == 505) //bad request or http version not supported
+				read_error_page(e, false);
 			if (!read_requested_file(_location->get_error_page(e)))
 				if (!read_requested_file(_location->get_error_page(404)))
 					read_error_page(e);
@@ -56,14 +58,26 @@ namespace ft
 		}
 	}
 
-	/*
-	void construct_bad_request_body(int error_code) //probably taking error code, not sure
 	
-	*/
-
-	void read_error_code(int error_code)
+	void response::construct_error_page(int error_code)
 	{
-		// error_map::iterator it 
+		std::stringstream code;
+
+		code << error_code;
+		_body = "<html>\n\t<head>\n\t\t<title>Error " + code.str() + "</title>\n\t</head>"
+				+ "\n\t<body>\n\t\t<h1>Error " + code.str() + " " + http::reason_phrase(this->_status) +" + </h1>\n\t</body>\n</html>\n";
+	}
+
+
+	void response::read_error_page(int error_code, bool loc) //check how the path is constructed
+	{
+		std::string error_page;
+		if (!loc)
+			error_page = _request.get_server().get_root() + _request.get_server().get_error_page(error_code);	//root?
+		else
+			error_page = _location->get_route() + _location->get_error_page(error_code);
+		if (!error_page.length() || !read_requested_file(error_page))
+			construct_error_page(error_code);
 	}
 
 	void response::get()
@@ -71,7 +85,6 @@ namespace ft
 		find_requested_file();
 		//add_headers();
 		//construct_response();
-
 	}
 
 	bool response::read_requested_file(const std::string &path)
@@ -83,6 +96,23 @@ namespace ft
 		{
 			_path = path;
 			file >> _body;
+			/*
+			if (_body.length() != 0)
+			{
+				std::string ext = extension(_path);
+				if (ext == "html")
+					_headers["Content-Type"] = "text/html";
+				else if (ext == "txt")
+					_headers["Content-Type"] = "text/plain";
+				else if (ext == "css")
+					_headers["Content-Type"] = "text/css";
+				else if (ext == "js")
+					_headers["Content-Type"] = "text/javascript";
+				else if (ext == "jpg" || ext == "jpeg")
+					_headers["Content-Type"] = "image/jpeg";
+			}
+			*/
+
 			// content length and body size should be the same I guess
 			return (true);
 		}
@@ -151,6 +181,9 @@ namespace ft
 
 	void response::construct_response()
 	{
+		_headers["Content-Length"] = _body.length();
+		// if (!_status)		//need to fix the status type
+		// 	_status = 200;
 		std::stringstream s;
 
 		this->_message = "HTTP/1.1 ";
@@ -212,9 +245,6 @@ namespace ft
 
 	void response::generate_autoindex(const std::string &path) 
 	{
-		std::string host;		//later change to getting from the socket
-		std::string port;
-	
 		std::vector<std::string> files;
 		DIR* dir = opendir(path.c_str());
 
@@ -231,7 +261,7 @@ namespace ft
 					+ "\n\t<body>\n\t\t<h1>Index of " + path + "</h1>\n\t\t<hr>\n\t\t\t<ul>";
 
 		for (size_t i = 0; i < files.size(); i++)
-			_body += "\n\t\t\t\t<li><a href=\"http://" + host + ":" + port + path + files[i] + "\">" + files[i] + "</a></li>";		//also here
+			_body += "\n\t\t\t\t<li><a href=\"http://" + _request.get_socket().get_host() + ":" + _request.get_socket().get_port() + path + files[i] + "\">" + files[i] + "</a></li>";
 
 		_body += "\n\t\t\t</ul>\n\t\t<hr>\n\t</body>\n</html>\n"; 
 	}	

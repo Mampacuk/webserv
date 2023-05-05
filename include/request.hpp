@@ -22,7 +22,7 @@ namespace ft
 			size_t			_headers_end;
 			const server	*_server;
 		public:
-			request(socket socket);
+			request(client_socket socket);
 			~request();
 			request(const request &other);
 			request &operator=(const request &other);
