@@ -12,15 +12,17 @@ namespace ft
 		this->_headers = other._headers;
 		this->_raw = other._raw;
 		this->_body = other._body;
+		this->_socket = other._socket;
 		this->_content_length = other._content_length;
 		this->_headers_end = other._headers_end;
+		this->_server = other._server;
 		return (*this);
 	}
 
-	request::request(client_socket socket) : _method(), _uri(), _query(), _headers(), _raw(), _body(), _socket(socket), _content_length(-1), _headers_end(std::string::npos) {}
+	request::request(client_socket socket) : _method(), _uri(), _query(), _headers(), _raw(), _body(), _socket(socket), _content_length(-1), _headers_end(std::string::npos), _server() {}
 
 	request::request(const request &other) : _method(other._method), _uri(other._uri), _query(other._query), _headers(other._headers), _raw(other._raw), _body(other._body),
-		_socket(other._socket), _content_length(other._content_length), _headers_end(other._headers_end) {}
+		_socket(other._socket), _content_length(other._content_length), _headers_end(other._headers_end), _server(other._server) {}
 
 	// appends chunk to the request. returns whether the request was fully accepted
 	bool request::operator+=(const std::string &chunk)
@@ -180,7 +182,7 @@ namespace ft
 		return ("");
 	}
 
-	const ft::socket &request::get_socket() const
+	const client_socket &request::get_socket() const
 	{
 		return (this->_socket);
 	}
@@ -193,6 +195,21 @@ namespace ft
 	const std::string &request::get_uri() const
 	{
 		return (this->_uri);
+	}
+
+	const std::string &request::get_query() const
+	{
+		return (this->_query);
+	}
+
+	const std::string &request::get_body() const
+	{
+		return (this->_body);
+	}
+
+	ssize_t request::get_content_length() const
+	{
+		return (this->_content_length);
 	}
 
 	const server &request::get_server() const

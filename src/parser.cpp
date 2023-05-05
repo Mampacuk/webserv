@@ -531,20 +531,6 @@ namespace ft
 		return (str.size() >= prefix.size() && !str.compare(0, prefix.size(), prefix));
 	}
 
-	std::string to_string(int val)
-	{
-		std::stringstream ss;
-		ss << val;
-		return (ss.str());
-	}
-
-	std::string to_string(unsigned int val)
-	{
-		std::stringstream ss;
-		ss << val;
-		return (ss.str());
-	}
-
 	std::string inet_ntoa(struct in_addr addr)
 	{
 		std::stringstream ss;

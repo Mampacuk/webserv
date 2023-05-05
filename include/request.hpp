@@ -18,7 +18,7 @@ namespace ft
 			std::string		_raw;
 			std::string 	_body;
 			client_socket	_socket;
-			int				_content_length;
+			ssize_t			_content_length;
 			size_t			_headers_end;
 			const server	*_server;
 		public:
@@ -29,9 +29,12 @@ namespace ft
 			bool operator+=(const std::string &chunk);
 			std::string operator[](const std::string &header) const;
 			void parse();
-			const socket &get_socket() const;
+			const client_socket &get_socket() const;
 			const std::string &get_method() const;
 			const std::string &get_uri() const;
+			const std::string &get_query() const;
+			const std::string &get_body() const;
+			ssize_t get_content_length() const;
 			const server &get_server() const;
 			operator int() const;
 		private:

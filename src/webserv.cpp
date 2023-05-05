@@ -2,14 +2,14 @@
 
 namespace ft
 {
-	webserv::webserv(): _protocol(), _environ() {}
+	webserv::webserv(): _protocol(), _environment() {}
 
 	webserv::~webserv()
 	{
 		delete this->_protocol;
 	}
 
-	webserv::webserv(const webserv &other) : _protocol(new http(*other._protocol)), _environ(other._environ) {}
+	webserv::webserv(const webserv &other) : _protocol(new http(*other._protocol)), _environment(other._environment) {}
 
 	webserv &webserv::operator=(const webserv &other)
 	{
@@ -24,7 +24,7 @@ namespace ft
 
 	char **webserv::get_environ() const
 	{
-		return (this->_environ);
+		return (this->_environment);
 	}
 
 	void webserv::set_http(base_dir *protocol)
@@ -32,9 +32,9 @@ namespace ft
 		this->_protocol = static_cast<http*>(protocol);
 	}
 
-	void webserv::set_environ(char **environ)
+	void webserv::set_environment(char **environment)
 	{
-		this->_environ = environ;
+		this->_environment = environment;
 	}
 
 	int webserv::error(const std::string &error) const
@@ -58,9 +58,9 @@ namespace ft
 		socklen_t client_addr_len = sizeof(client_addr);
 
 		client_fd = accept(socket, reinterpret_cast<struct sockaddr*>(&client_addr), &client_addr_len);
-		if (client_fd == -1 || fcntl(new_sd, F_SETFL, O_NONBLOCK) == -1)
+		if (client_fd == -1 || fcntl(client_fd, F_SETFL, O_NONBLOCK) == -1)
 			return (client_socket(client_fd, "", "", socket));
-		host = ft::inet_ntoa(&client_addr.sin_addr);
+		host = ft::inet_ntoa(client_addr.sin_addr);
 		port = ft::to_string(ntohs(client_addr.sin_port));
 		return (client_socket(client_fd, host, port, socket));
 	}

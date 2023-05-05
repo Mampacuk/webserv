@@ -1,4 +1,4 @@
-#include "../include/response.hpp"		//change later
+#include "response.hpp"		//change later
 
 namespace ft
 {
@@ -40,7 +40,12 @@ namespace ft
 				throw server::server_error(405, "Method not allowed.");
 			_path = _location->get_root() + _uri;
 			if (this->_request.get_method() == "GET")
-				get();                                    
+			{
+				if (this->_request.get_query().empty())
+					get();
+				else
+					post();
+			}
 			else if (this->_request.get_method() == "POST")
 				post();
 		}
@@ -152,29 +157,29 @@ namespace ft
 		char **cgi_args;
 		char **cgi_env;
 
-		malloc_safe_syscall(cgi_path = std::strdup(cgi));
-		malloc_safe_syscall(cgi_args = std::calloc(2, sizeof(char*)), cgi_path);
-		malloc_safe_syscall(cgi_args[0] = std::strdup(cgi), cgi_path, cgi_args);
+		malloc_safe_syscall(cgi_path = strdup(cgi.c_str()));
+		malloc_safe_syscall(cgi_args = static_cast<char**>(std::calloc(2, sizeof(char*))), cgi_path);
+		malloc_safe_syscall(cgi_args[0] = strdup(cgi.c_str()), cgi_path, cgi_args);
 		{
 			string_vector environment;
 
 			for (size_t i = 0; serv_env[i] != NULL; i++)
 				environment.push_back(serv_env[i]);
-			environment.push_back("SERVER_NAME=" + this->_request["Host"]);
+			environment.push_back("SERVER_NAME=" + this->_request[std::string("Host")]);
 			environment.push_back("SERVER_PROTOCOL=" HTTP_VERSION);
 			environment.push_back("SERVER_PORT=" + this->_request.get_socket().get_server_socket().get_port());
 			environment.push_back("REQUEST_METHOD=" + this->_request.get_method());
-			environment.push_back("SCRIPT_NAME=" + this->_location.get_cgi_param("SCRIPT_NAME"));
-			environment.push_back("DOCUMENT_ROOT=" + this->_location.get_root());
+			environment.push_back("SCRIPT_NAME=" + this->_location->get_cgi_param("SCRIPT_NAME"));
+			environment.push_back("DOCUMENT_ROOT=" + this->_location->get_root());
 			if (!this->_request.get_query().empty())
 				environment.push_back("QUERY_STRING=" + this->_request.get_query());
 			environment.push_back("REMOTE_ADDR=" + this->_request.get_socket().get_host());
-			environment.push_back("CONTENT_LENGTH=" + ft::to_string(this->_request.get_content_length()));
+			environment.push_back("CONTENT_LENGTH=" + to_string(this->_request.get_content_length()));
 			environment.push_back("REQUEST_URI=" + this->_request.get_uri());
-			malloc_safe_syscall(cgi_env = std::calloc(environment.size() + 1, sizeof(char*)), cgi_path, cgi_args[0], cgi_args);
+			malloc_safe_syscall(cgi_env = static_cast<char**>(std::calloc(environment.size() + 1, sizeof(char*))), cgi_path, cgi_args[0], cgi_args);
 			for (size_t i = 0; i < environment.size(); i++)
 			{
-				cgi_env[i] = std::strdup(environment[i]);
+				cgi_env[i] = strdup(environment[i].c_str());
 				if (!cgi_env[i])
 				{
 					for (size_t j = 0; j < i; j++)
@@ -185,7 +190,7 @@ namespace ft
 		}
 		try
 		{
-			execute_cgi()
+			execute_cgi(cgi_path, cgi_args, cgi_env);
 		}
 		catch (...)
 		{
@@ -205,7 +210,7 @@ namespace ft
 
 		if (pipe(in_pipe) == -1)
 			throw server::server_error(http::code::internal_server_error, "Exceptional error while attempting to run CGI.");
-		pipe_safe_syscall(pipe(out_pipe), in_pipe, NULL);
+		pipe_safe_syscall(pipe(out_pipe), in_pipe);
 		cgi_pid = fork();
 		if (cgi_pid == -1)
 			pipe_safe_syscall(cgi_pid, in_pipe, out_pipe);
@@ -217,7 +222,7 @@ namespace ft
 				throw server::server_error(http::code::internal_server_error, "Exceptional error while attempting to run CGI.");
 			close(in_pipe[0]);
 			close(out_pipe[1]);
-			execve(cgi_path, cgi_args, cgi_env)
+			execve(cgi_path, cgi_args, cgi_env);
 			throw server::server_error(http::code::internal_server_error, "CGI file not found.");
 		}
 		close(in_pipe[0]);
@@ -225,7 +230,7 @@ namespace ft
 		bytes_written = write(in_pipe[1], this->_request.get_body().c_str(), this->_request.get_content_length());
 		if (bytes_written != this->_request.get_content_length())
 		{
-			kill(cgi_pid, SIG_TERM);
+			kill(cgi_pid, SIGTERM);
 			close(in_pipe[1]);
 			close(out_pipe[0]);
 			throw server::server_error(http::code::internal_server_error, "Exceptional error while attempting to run CGI.");
@@ -240,14 +245,14 @@ namespace ft
 		}
 		if (bytes_read == -1)
 		{
-			kill(cgi_pid, SIG_TERM);
+			kill(cgi_pid, SIGTERM);
 			close(out_pipe[0]);
 			this->_body.clear();
 			throw server::server_error(http::code::internal_server_error, "Exceptional error while attempting to run CGI.");
 		}
 		close(out_pipe[0]);
-		wait_pid(cgi_pid, &term_status, 0);
-		// ...
+		if (wait_pid(cgi_pid, &term_status, 0) == -1 || !WIFEXITED(term_status) || WEXITSTATUS(term_status) != 0)
+			throw server::server_error(http::code::internal_server_error, "Exceptional error while attempting to run CGI.");
 	}
 
 	void pipe_safe_syscall(int status, int in_pipe[2], int out_pipe[2])
@@ -272,7 +277,7 @@ namespace ft
 	{
 		if (!memory)
 		{
-			free(mem1), free(mem2), free(mem3), free(mem4);
+			std::free(mem1), std::free(mem2), std::free(mem3), std::free(mem4);
 			throw server::server_error(http::code::internal_server_error, "Not enough memory to run CGI.");
 		}
 	}
@@ -312,7 +317,7 @@ namespace ft
 		_headers["Content-Length"] = _body.length();
 		// if (!_status)		//need to fix the status type
 		// 	_status = 200;
-		std::stringstream s;
+		std::stringstream ss;
 
 		this->_message = HTTP_VERSION " ";
 		ss << this->_status;
@@ -373,13 +378,13 @@ namespace ft
 
 	void response::generate_autoindex(const std::string &path) 
 	{
+		DIR *dir = opendir(path.c_str());
 		std::vector<std::string> files;
-		DIR* dir = opendir(path.c_str());
 
 		if (dir == nullptr)
 			throw std::domain_error("File not found."); //does autoindex have it's own error code??
 
-		dirent* entry;
+		dirent *entry;
 		while ((entry = readdir(dir)) != nullptr)
 			if (entry->d_name[0] != '.')
 				files.push_back(entry->d_name);

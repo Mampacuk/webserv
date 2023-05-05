@@ -6,14 +6,37 @@
 #  define NOMINMAX
 #  define WINVER 0x0A00
 #  define _WIN32_WINNT 0x0A00
-#  define SO_REUSEPORT 0x0200
 #  include <WinSock2.h>
 #  include <WS2tcpip.h>
 #  include <wspiapi.h>
 #  include <io.h>
+#  define SO_REUSEPORT 0x0200
 #  define F_SETFL 4
 #  define O_NONBLOCK 00004000
+#  ifdef _WIN64
+#   define ssize_t __int64
+#  else
+#   define ssize_t long
+#  endif
+#  define STDIN_FILENO 0
+#  define STDOUT_FILENO 1
+#  define STDERR_FILENO 2
+   typedef int pid_t;
    int fcntl(int, int, ...);
+   int kill(...);
+   pid_t fork(...);
+   int pipe(...);
+   int execve(...);
+   typedef struct {} DIR;
+   DIR *opendir(...);
+   typedef struct { char *d_name; } dirent;
+   dirent *readdir(...);
+   void closedir(...);
+   pid_t wait_pid(...);
+#  define WTERMSIG(status)    ((status) & 0x7f)
+#  define WIFEXITED(status)   (WTERMSIG(status) == 0)
+#  define WEXITSTATUS(status) (((status) & 0xff00) >> 8)
+#  define SIGTERM 15
 # elif defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
 #  include <sys/types.h>
 #  include <sys/socket.h>
@@ -27,6 +50,7 @@
 
 # include <string>
 # include <cstring>
+# include <string.h>
 # include <cstdlib>
 # include <fstream>
 # include <sstream>
@@ -91,9 +115,15 @@ namespace ft
 	// defined in parser.cpp
 	bool ends_with(const std::string &str, const std::string &suffix);
 	bool starts_with(const std::string &str, const std::string &prefix);
-	std::string to_string(int val);
-	std::string to_string(unsigned int val);
 	std::string inet_ntoa(struct in_addr addr);
+
+	template <typename Integral>
+	std::string to_string(Integral val)
+	{
+		std::stringstream ss;
+		ss << val;
+		return (ss.str());
+	}
 }
 
 #endif

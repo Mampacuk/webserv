@@ -13,7 +13,7 @@ namespace ft
 	{
 		private:
 			http	*_protocol;
-			char	**_environ;
+			char	**_environment;
 		public:
 			webserv();
 			~webserv();
@@ -22,7 +22,7 @@ namespace ft
 			const http &get_http() const;
 			char **get_environ() const;
 			void set_http(base_dir *protocol);
-			void set_environ(char **environ);
+			void set_environment(char **environment);
 			int error(const std::string &error) const;
 			int log(const std::string &message, const char *color = RESET) const;
 			void start_service();
