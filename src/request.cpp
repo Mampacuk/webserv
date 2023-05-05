@@ -17,7 +17,7 @@ namespace ft
 		return (*this);
 	}
 
-	request::request(socket socket) : _method(), _uri(), _query(), _headers(), _raw(), _body(), _socket(socket), _content_length(-1), _headers_end(std::string::npos) {}
+	request::request(client_socket socket) : _method(), _uri(), _query(), _headers(), _raw(), _body(), _socket(socket), _content_length(-1), _headers_end(std::string::npos) {}
 
 	request::request(const request &other) : _method(other._method), _uri(other._uri), _query(other._query), _headers(other._headers), _raw(other._raw), _body(other._body),
 		_socket(other._socket), _content_length(other._content_length), _headers_end(other._headers_end) {}
@@ -160,7 +160,7 @@ namespace ft
 		const std::string hostname = operator[]("Host");
 		if (hostname.empty())
 			throw http::protocol_error(http::code::bad_request, "Host unspecified.");
-		for (server_pointer_vector::const_iterator server = this->_socket.get_servers().begin(); server != this->_socket.get_servers().end(); server++)
+		for (server_pointer_vector::const_iterator server = this->_socket.get_server_socket().get_servers().begin(); server != this->_socket.get_server_socket().get_servers().end(); server++)
 			for (string_vector::const_iterator name = (*server)->get_names().begin(); name != (*server)->get_names().end(); name++)
 			{
 				if (*name == hostname)
@@ -169,7 +169,7 @@ namespace ft
 					return ;
 				}
 			}
-		this->_server = this->_socket.get_servers().front();
+		this->_server = this->_socket.get_server_socket().get_servers().front();
 	}
 
 	std::string request::operator[](const std::string &header) const

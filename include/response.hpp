@@ -37,16 +37,16 @@ namespace ft
 			void post();
 			void find_requested_file();
 			bool read_requested_file(const std::string &file);
-			void find_error_page();
-			std::string status_to_string(int status_code) const;
 			void find_rewritten_location();
 			bool rewrite(const std::string &portion, const std::string &withwhat);
-			void find_path();
+			// void find_path();
 			void generate_autoindex(const std::string &path);
 			void execute_cgi(char *cgi_path, char **cgi_args, char **cgi_env);
 			void malloc_safe_syscall(void *memory, void *mem1 = NULL, void *mem2 = NULL, void *mem3 = NULL, void *mem4 = NULL);
 			void free_cgi_args();
 			void pipe_safe_syscall(int status, int in_pipe[2], int out_pipe[2]);
+			void read_error_page(int error_code, bool loc = true);
+			void construct_error_page(int error_code);
 	};
 }
 
