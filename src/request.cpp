@@ -180,7 +180,7 @@ namespace ft
 		return ("");
 	}
 
-	ft::socket request::get_socket() const
+	const ft::socket &request::get_socket() const
 	{
 		return (this->_socket);
 	}

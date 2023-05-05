@@ -12,6 +12,16 @@ namespace ft
 
 	socket &socket::operator=(const socket &other) { return (*this); }
 
+	const std::string &socket::get_host() const
+	{
+		return (this->_host);
+	}
+
+	const std::string &socket::get_port() const
+	{
+		return (this->_port);
+	}
+
 	int socket::get_fd() const
 	{
 		return (this->_fd);

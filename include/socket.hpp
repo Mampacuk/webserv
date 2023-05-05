@@ -18,8 +18,8 @@ namespace ft
 			socket(int fd, const std::string &host, const std::string &port);
 			socket &operator=(const socket &other);
 			int get_fd() const;
-			const std::string get_host() const;
-			const std::string get_port() const;
+			const std::string &get_host() const;
+			const std::string &get_port() const;
 			operator int() const;
 	};
 }

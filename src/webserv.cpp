@@ -17,9 +17,14 @@ namespace ft
 		return (*this);
 	}
 
-	const http &webserv::get_http()
+	const http &webserv::get_http() const
 	{
 		return (*this->_protocol);
+	}
+
+	char **webserv::get_environ() const
+	{
+		return (this->_environ);
 	}
 
 	void webserv::set_http(base_dir *protocol)

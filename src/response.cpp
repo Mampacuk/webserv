@@ -105,16 +105,144 @@ namespace ft
 		const std::string cgi = this->_location->get_cgi_param("SCRIPT_FILENAME");
 		if (cgi.empty())
 			throw server::server_error(http::code::internal_server_error, "POST method with unspecified CGI is not allowed.");
-		
-		// size_t environ_len = 0;
-		// while (this->_environ[environ_len] != NULL)
-		// 	environ_len++;
-		// char **cgi_env = calloc(environ_len + 10 + !this->_request.get_query().empty(), sizeof(char*));
-		// size_t i = 0;
-		// for (; i < environ_len; i++)
-		// 	cgi_env[i] = this->_environ[i];
-		// cgi_env[i++] = 
-		// if execve() failed return 404 file not found
+		char **serv_env = webserver.get_environ();
+		char *cgi_path;
+		char **cgi_args;
+		char **cgi_env;
+
+		malloc_safe_syscall(cgi_path = std::strdup(cgi));
+		malloc_safe_syscall(cgi_args = std::calloc(2, sizeof(char*)), cgi_path);
+		malloc_safe_syscall(cgi_args[0] = std::strdup(cgi), cgi_path, cgi_args);
+		{
+			string_vector environment;
+
+			for (size_t i = 0; serv_env[i] != NULL; i++)
+				environment.push_back(serv_env[i]);
+			environment.push_back("SERVER_NAME=" + this->_request["Host"]);
+			environment.push_back("SERVER_PROTOCOL=" HTTP_VERSION);
+			environment.push_back("SERVER_PORT=" + this->_request.get_socket().get_server_socket().get_port());
+			environment.push_back("REQUEST_METHOD=" + this->_request.get_method());
+			environment.push_back("SCRIPT_NAME=" + this->_location.get_cgi_param("SCRIPT_NAME"));
+			environment.push_back("DOCUMENT_ROOT=" + this->_location.get_root());
+			if (!this->_request.get_query().empty())
+				environment.push_back("QUERY_STRING=" + this->_request.get_query());
+			environment.push_back("REMOTE_ADDR=" + this->_request.get_socket().get_host());
+			environment.push_back("CONTENT_LENGTH=" + ft::to_string(this->_request.get_content_length()));
+			environment.push_back("REQUEST_URI=" + this->_request.get_uri());
+			malloc_safe_syscall(cgi_env = std::calloc(environment.size() + 1, sizeof(char*)), cgi_path, cgi_args[0], cgi_args);
+			for (size_t i = 0; i < environment.size(); i++)
+			{
+				cgi_env[i] = std::strdup(environment[i]);
+				if (!cgi_env[i])
+				{
+					for (size_t j = 0; j < i; j++)
+						std::free(cgi_env[j]);
+					malloc_safe_syscall(NULL, cgi_path, cgi_args[0], cgi_args, cgi_env);
+				}
+			}
+		}
+		try
+		{
+			execute_cgi()
+		}
+		catch (...)
+		{
+			free_cgi_args(cgi_path, cgi_args, cgi_env);
+			throw ;
+		}
+		free_cgi_args(cgi_path, cgi_args, cgi_env);
+	}
+
+	void response::execute_cgi(char *cgi_path, char **cgi_args, char **cgi_env)
+	{
+		pid_t cgi_pid;
+		int term_status;
+		ssize_t bytes_written;
+		ssize_t bytes_read = 1; // to activate the loop
+		int in_pipe[2], out_pipe[2];
+
+		if (pipe(in_pipe) == -1)
+			throw server::server_error(http::code::internal_server_error, "Exceptional error while attempting to run CGI.");
+		pipe_safe_syscall(pipe(out_pipe), in_pipe, NULL);
+		cgi_pid = fork();
+		if (cgi_pid == -1)
+			pipe_safe_syscall(cgi_pid, in_pipe, out_pipe);
+		else if (cgi_pid == 0) // CGI child process code
+		{
+			close(in_pipe[1]);
+			close(out_pipe[0]);
+			if (dup2(in_pipe[0], STDIN_FILENO) == -1 || dup2(out_pipe[1], STDOUT_FILENO) == -1)
+				throw server::server_error(http::code::internal_server_error, "Exceptional error while attempting to run CGI.");
+			close(in_pipe[0]);
+			close(out_pipe[1]);
+			execve(cgi_path, cgi_args, cgi_env)
+			throw server::server_error(http::code::internal_server_error, "CGI file not found.");
+		}
+		close(in_pipe[0]);
+		close(out_pipe[1]);
+		bytes_written = write(in_pipe[1], this->_request.get_body().c_str(), this->_request.get_content_length());
+		if (bytes_written != this->_request.get_content_length())
+		{
+			kill(cgi_pid, SIG_TERM);
+			close(in_pipe[1]);
+			close(out_pipe[0]);
+			throw server::server_error(http::code::internal_server_error, "Exceptional error while attempting to run CGI.");
+		}
+		close(in_pipe[1]);
+		while (bytes_read > 0)
+		{
+			char buffer[BUFSIZ] = {0};
+			bytes_read = read(out_pipe[0], buffer, BUFSIZ - 1);
+			if (bytes_read <= 0) break ;
+			this->_body += buffer;
+		}
+		if (bytes_read == -1)
+		{
+			kill(cgi_pid, SIG_TERM);
+			close(out_pipe[0]);
+			this->_body.clear();
+			throw server::server_error(http::code::internal_server_error, "Exceptional error while attempting to run CGI.");
+		}
+		close(out_pipe[0]);
+		wait_pid(cgi_pid, &term_status, 0);
+		// ...
+	}
+
+	void pipe_safe_syscall(int status, int in_pipe[2], int out_pipe[2])
+	{
+		if (status == -1)
+		{
+			if (in_pipe)
+			{
+				close(in_pipe[0]);
+				close(in_pipe[1]);
+			}
+			if (out_pipe)
+			{
+				close(out_pipe[0]);
+				close(out_pipe[1]);
+			}
+			throw server::server_error(http::code::internal_server_error, "Exceptional error while attempting to run CGI.");
+		}
+	}
+
+	void response::malloc_safe_syscall(void *memory, void *mem1 = NULL, void *mem2 = NULL, void *mem3 = NULL, void *mem4 = NULL)
+	{
+		if (!memory)
+		{
+			free(mem1), free(mem2), free(mem3), free(mem4);
+			throw server::server_error(http::code::internal_server_error, "Not enough memory to run CGI.");
+		}
+	}
+
+	void response::free_cgi_args(char *cgi_path, char **cgi_args, char **cgi_env)
+	{
+		for (size_t i = 0; cgi_env[i] != NULL; i++)
+			std::free(cgi_env[i]);
+		std::free(cgi_env);
+		std::free(cgi_args[0]);
+		std::free(cgi_args);
+		std::free(cgi_path);
 	}
 
 	void response::find_location()
@@ -139,11 +267,11 @@ namespace ft
 
 	void response::construct_response()
 	{
-		std::stringstream s;
+		std::stringstream ss;
 
-		this->_message = "HTTP/1.1 ";
-		s << this->_status;
-		this->_message += s.str() + " " + http::reason_phrase(this->_status) + CRLF;
+		this->_message = HTTP_VERSION " ";
+		ss << this->_status;
+		this->_message += ss.str() + " " + http::reason_phrase(this->_status) + CRLF;
 		for (string_map::const_iterator it = this->_headers.begin(); it != this->_headers.end(); it++)
 			this->_message += it->first + ": " + it->second + CRLF;
 		this->_message += CRLF + _body;

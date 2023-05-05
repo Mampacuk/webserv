@@ -29,7 +29,7 @@ namespace ft
 			bool operator+=(const std::string &chunk);
 			std::string operator[](const std::string &header) const;
 			void parse();
-			socket get_socket() const;
+			const socket &get_socket() const;
 			const std::string &get_method() const;
 			const std::string &get_uri() const;
 			const server &get_server() const;

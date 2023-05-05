@@ -3,6 +3,7 @@
 
 # include "stdafx.hpp"
 # include "request.hpp"
+# include "webserv.hpp"
 
 namespace ft
 {
@@ -42,6 +43,10 @@ namespace ft
 			bool rewrite(const std::string &portion, const std::string &withwhat);
 			void find_path();
 			void generate_autoindex(const std::string &path);
+			void execute_cgi(char *cgi_path, char **cgi_args, char **cgi_env);
+			void malloc_safe_syscall(void *memory, void *mem1 = NULL, void *mem2 = NULL, void *mem3 = NULL, void *mem4 = NULL);
+			void free_cgi_args();
+			void pipe_safe_syscall(int status, int in_pipe[2], int out_pipe[2]);
 	};
 }
 

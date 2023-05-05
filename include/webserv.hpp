@@ -19,7 +19,8 @@ namespace ft
 			~webserv();
 			webserv(const webserv &other);
 			webserv &operator=(const webserv &other);
-			const http &get_http();
+			const http &get_http() const;
+			char **get_environ() const;
 			void set_http(base_dir *protocol);
 			void set_environ(char **environ);
 			int error(const std::string &error) const;
