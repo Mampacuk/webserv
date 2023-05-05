@@ -140,7 +140,7 @@ namespace ft
 		if (space > line_end)
 			throw http::protocol_error(http::code::bad_request, "URI unspecified.");
 		this->_uri = this->_raw.substr(this->_method.length() + 1, space - this->_method.length() - 1);
-		if (this->_raw.compare(space + 1, line_end - space - 1, "HTTP/1.1"))
+		if (this->_raw.compare(space + 1, line_end - space - 1, HTTP_VERSION))
 			throw http::protocol_error(http::code::http_version_not_supported, "Invalid Protocol Version.");
 		return (line_end + std::strlen(CRLF));
 	}

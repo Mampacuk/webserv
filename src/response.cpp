@@ -118,6 +118,14 @@ namespace ft
 		if (cgi.empty())
 			throw server::server_error(http::code::internal_server_error, "POST method with unspecified CGI is not allowed.");
 		
+		// size_t environ_len = 0;
+		// while (this->_environ[environ_len] != NULL)
+		// 	environ_len++;
+		// char **cgi_env = calloc(environ_len + 10 + !this->_request.get_query().empty(), sizeof(char*));
+		// size_t i = 0;
+		// for (; i < environ_len; i++)
+		// 	cgi_env[i] = this->_environ[i];
+		// cgi_env[i++] = 
 		// if execve() failed return 404 file not found
 	}
 

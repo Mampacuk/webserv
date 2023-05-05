@@ -1,10 +1,8 @@
 #ifndef RESPONSE_HPP
 # define RESPONSE_HPP
 
-# include "request.hpp"
 # include "stdafx.hpp"
-# include <fstream>
-# include <dirent.h>
+# include "request.hpp"
 
 namespace ft
 {

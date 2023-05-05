@@ -22,6 +22,7 @@
 #  include <netdb.h>
 #  include <unistd.h>
 #  include <fcntl.h>
+#  include <dirent.h>
 # endif
 
 # include <string>
@@ -45,6 +46,7 @@
 # define EL		"\033[2K" // erase line
 # define CRLF	"\r\n"
 
+# define HTTP_VERSION		"HTTP/1.1"
 # define BACKLOG			128
 # define TIMEOUT_SEC		0
 # define TIMEOUT_MICROSEC	500000
@@ -67,6 +69,7 @@ namespace ft
 
 	typedef std::set<int>			int_set;
 	typedef std::set<socket>		socket_set;
+	typedef std::set<server_socket>	server_socket_set;
 	typedef std::set<string_pair>	string_pair_set;
 	typedef std::set<std::string>	string_set;
 	
@@ -88,6 +91,9 @@ namespace ft
 	// defined in parser.cpp
 	bool ends_with(const std::string &str, const std::string &suffix);
 	bool starts_with(const std::string &str, const std::string &prefix);
+	std::string to_string(int val);
+	std::string to_string(unsigned int val);
+	std::string inet_ntoa(struct in_addr addr);
 }
 
 #endif

@@ -4,7 +4,7 @@
 # include "stdafx.hpp"
 # include "http.hpp"
 # include "parser.hpp"
-# include "socket.hpp"
+# include "client_socket.hpp"
 
 namespace ft
 {
@@ -17,7 +17,7 @@ namespace ft
 			string_map		_headers;
 			std::string		_raw;
 			std::string 	_body;
-			socket			_socket;
+			client_socket	_socket;
 			int				_content_length;
 			size_t			_headers_end;
 			const server	*_server;
