@@ -46,12 +46,24 @@ namespace ft
 		}
 		catch(server::server_error e)
 		{
-			// if (!read_requested_file(_location->get_error_page(e)))
-			// 	if (!read_requested_file(_location->get_error_page(404)))
-					//construct somehow a 404
+			//make sure that the error is not from request
+			//if it's from request generate without looking into error_code
+			if (!read_requested_file(_location->get_error_page(e)))
+				if (!read_requested_file(_location->get_error_page(404)))
+					read_error_page(e);
 			//add_headers();
 			//construct response();
 		}
+	}
+
+	/*
+	void construct_bad_request_body(int error_code) //probably taking error code, not sure
+	
+	*/
+
+	void read_error_code(int error_code)
+	{
+		// error_map::iterator it 
 	}
 
 	void response::get()

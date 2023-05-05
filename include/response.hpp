@@ -42,8 +42,9 @@ namespace ft
 			std::string status_to_string(int status_code) const;
 			void find_rewritten_location();
 			bool rewrite(const std::string &portion, const std::string &withwhat);
-			void find_path();
+			// void find_path();
 			void generate_autoindex(const std::string &path);
+			void read_error_page(int error_code);
 	};
 }
 
