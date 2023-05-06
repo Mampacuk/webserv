@@ -62,6 +62,7 @@ namespace ft
 			return (client_socket(client_fd, "", "", socket));
 		host = ft::inet_ntoa(client_addr.sin_addr);
 		port = ft::to_string(ntohs(client_addr.sin_port));
+		webserver.log("succesfully accepted", GREEN);
 		return (client_socket(client_fd, host, port, socket));
 	}
 
@@ -134,8 +135,9 @@ namespace ft
 				FD_ZERO(&writing_set);
 				for (response_list::iterator it = responses.begin(); it != responses.end(); it++)
 					FD_SET(*it, &writing_set);
-				std::cout << EL << "Waiting for a connection " << bars[(bar_id = (bar_id >= nbars) ? 0 : bar_id + 1)] << std::flush;
+				std::cout << "\rWaiting for a connection " << bars[(bar_id = (bar_id >= nbars) ? 0 : bar_id + 1)] << std::flush;
 				desc_ready = select(max_sd + 1, &reading_set, &writing_set, NULL, &timeout);
+				webserver.log("select() returned " + to_string(desc_ready) + " descriptors", YELLOW);
 				if (desc_ready == -1)
 				{
 					error("select() call failed: " + std::string(strerror(errno)));
@@ -150,7 +152,11 @@ namespace ft
 				{
 					client_socket new_sd(accept_connection(*it));
 					if (new_sd == -1)
+					{
 						error("Couldn't create a socket for accepted connection: " + std::string(strerror(errno)));
+						// // PLEASE REMOVE THIS vvv
+						// throw std::exception();
+					}
 					else
 					{
 						requests.push_back(new_sd);
@@ -190,6 +196,7 @@ namespace ft
 					break ;
 				}
 			}
+			desc_ready = 0;
 		}
 	}
 }

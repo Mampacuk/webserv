@@ -41,7 +41,7 @@ namespace ft
 				break ;
 			}
 		directive_map::iterator dir_it = this->_directives.begin();
-		for (; dir_it != this->_directives.end(); dir_it++)
+		for (; dir_it != this->_directives.end(); dir_it++) 
 			if (dir_it->second.second && is_directive(dir_it->first))
 			{
 				erase_token_front(";", (this->*(dir_it->second.first))(parent));
@@ -164,7 +164,7 @@ namespace ft
 	base_dir *parser::process_location(base_dir *parent)
 	{
 		location loc(*parent);
-		this->_directives["cgi"].second = true;
+		this->_directives["cgi_param"].second = true;
 		this->_directives["limit_except"].second = true;
 
 		loc.set_route(pop_front(), dynamic_cast<location*>(parent));
@@ -176,7 +176,7 @@ namespace ft
 		static_cast<base_dir_ext*>(parent)->add_location(loc);
 
 		this->_directives["limit_except"].second = false;
-		this->_directives["cgi"].second = false;
+		this->_directives["cgi_param"].second = false;
 		return (parent);
 	}
 
@@ -328,7 +328,7 @@ namespace ft
 			value = pop_front();
 		}
 		else
-			throw parsing_error("Few arguments for `cgi` directive.");
+			throw parsing_error("Few arguments for `cgi_param` directive.");
 		parent->add_cgi_param(key, value);
 		return (semicolon_erased);
 	}
@@ -344,7 +344,6 @@ namespace ft
 
 	// doesn't tolerate leading or trailing whitespaces,
 	// or characters in the middle of the number.
-
 	std::string &parser::front()
 	{
 		if (this->_chunks.empty())
@@ -416,8 +415,10 @@ namespace ft
 			const std::string host = it->first.first;
 			const std::string port = it->first.second;
 
+			std::cout << "Initializing a socket for combination " << host << ":" << port << std::endl;
+
 			int	status;
-			char on = 1;
+			// char on = 1;
 			struct addrinfo hints;
 			struct addrinfo *result, *rit;
 
@@ -433,13 +434,13 @@ namespace ft
 			server_socket socket(::socket(rit->ai_family, rit->ai_socktype, rit->ai_protocol), host, port);
 			if (socket == -1)
 				throw std::runtime_error("Failed to create a socket.");
-			if (setsockopt(socket, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on)) == -1
-				|| setsockopt(socket, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on) == -1)
-				|| setsockopt(socket, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(on) == -1))
-			{
-				close(socket);
-				throw std::runtime_error("Couldn't set socket options.");
-			}
+			// if (setsockopt(socket, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on)) == -1
+			// 	|| setsockopt(socket, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on)) == -1
+			// 	|| setsockopt(socket, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(on)) == -1)
+			// {
+			// 	close(socket);
+			// 	throw std::runtime_error("Couldn't set socket options.");
+			// }
 			if (fcntl(socket, F_SETFL, O_NONBLOCK) == -1)
 			{
 				close(socket);
@@ -450,11 +451,13 @@ namespace ft
 				close(socket);
 				webserver.error("bind() to " + host + ":" + port + " failed (" + strerror(errno) + ")");
 			}
+			webserver.log("Successfully bound to address " + host + ":" + port, GREEN);
 			if (listen(socket, BACKLOG) == -1)
 			{
 				close(socket);
 				throw std::runtime_error("Failed listening on " + host + ":" + port + ".");
 			}
+			webserver.log("Started listening on address " + host + ":" + port, GREEN);
 			freeaddrinfo(result);
 
 			while (it != range.second)
