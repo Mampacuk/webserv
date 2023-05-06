@@ -80,7 +80,7 @@ int main(int argc, char **argv, char **environ)
 	{
 		ft::parser config(filename);
 		webserver.set_http(config.parse());
-		webserver.set_environ(environ);
+		webserver.set_environment(environ);
 		return (EXIT_SUCCESS);
 	}
 	catch (const std::exception &e)

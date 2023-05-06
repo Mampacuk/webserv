@@ -32,7 +32,7 @@ namespace ft
 		return (this->_route);
 	}
 
-	bool location::method_allowed(const std::string &method) const
+	bool location::is_allowed_method(const std::string &method) const
 	{
 		if (this->_methods.find(method) != this->_methods.end())
 			return (true);

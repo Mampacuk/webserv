@@ -105,7 +105,7 @@ namespace ft
 		return (EXIT_SUCCESS);
 	}
 
-	void webserv::start_service()
+	void webserv::serve()
 	{
 		fd_set					master_set;
 		fd_set					reading_set;
@@ -125,6 +125,7 @@ namespace ft
 			FD_SET(*sock, &master_set);
 		while (true)
 		{
+			// select() block
 			while (desc_ready == 0)
 			{
 				// copy the master set into the reading set so that select() doesn't modify it
