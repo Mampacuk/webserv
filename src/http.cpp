@@ -55,37 +55,37 @@ namespace ft
 		}
 	}
 
-	bool http::is_informational_code(code status)
+	bool http::is_informational_code(http_code status)
 	{
 		return (status >= 100 && status < 200);
 	}
 
-	bool http::is_successful_code(code status)
+	bool http::is_successful_code(http_code status)
 	{
 		return (status >= 200 && status < 300);
 	}
 
-	bool http::is_redirection_code(code status)
+	bool http::is_redirection_code(http_code status)
 	{
 		return (status >= 300 && status < 400);
 	}
 
-	bool http::is_client_error_code(code status)
+	bool http::is_client_error_code(http_code status)
 	{
 		return (status >= 400 && status < 500);
 	}
 
-	bool http::is_server_error_code(code status)
+	bool http::is_server_error_code(http_code status)
 	{
 		return (status >= 500 && status < 600);
 	}
 	
-	bool http::is_error_code(code status)
+	bool http::is_error_code(http_code status)
 	{
 		return (status >= 400);
 	}
 
-	std::string http::reason_phrase(code status)
+	std::string http::reason_phrase(http_code status)
 	{
 		switch (status)
 		{

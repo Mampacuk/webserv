@@ -227,7 +227,7 @@ namespace ft
 		parent->flush_error_pages();
 		while (!erase_chunk_middle(";"))
 		{
-			const http::code status = static_cast<http::code>(strtoul(front()));
+			const http_code status = static_cast<http_code>(strtoul(front()));
 			if (!(http::is_redirection_code(status) || http::is_error_code(status)))
 			{
 				semicolon_erased = false;
@@ -529,6 +529,15 @@ namespace ft
 	bool starts_with(const std::string &str, const std::string &prefix)
 	{
 		return (str.size() >= prefix.size() && !str.compare(0, prefix.size(), prefix));
+	}
+
+	std::string &getFileExtension(const std::string& filename)
+	{
+		std::string extension;
+		size_t dot_pos = filename.find_last_of(".");
+		if (dot_pos != std::string::npos && dot_pos < filename.size() - 1)
+			extension = filename.substr(dot_pos + 1);
+		return (extension);
 	}
 
 	std::string inet_ntoa(struct in_addr addr)

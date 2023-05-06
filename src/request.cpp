@@ -39,12 +39,12 @@ namespace ft
 				if (operator[]("Transfer-Encoding").empty())
 					return (true);
 				else if (operator[]("Transfer-Encoding") != "chunked") // the message is ill-formed
-					throw http::protocol_error(http::code::bad_request, "Unsupported Transfer Encoding value.");
+					throw http::protocol_error(http_code::bad_request, "Unsupported Transfer Encoding value.");
 			}
 			else
 			{
 				if (!operator[]("Transfer-Encoding").empty())
-					throw http::protocol_error(http::code::bad_request, "Content Length and Transfer Encoding conflict.");
+					throw http::protocol_error(http_code::bad_request, "Content Length and Transfer Encoding conflict.");
 				this->_content_length = try_strtoul(operator[]("Content-Length"));
 			}
 		}
@@ -64,7 +64,7 @@ namespace ft
 			size_t colon = this->_raw.find(':', pos);
 			// check if there's a key, colon is present, there's no spaces in header and it's followed by one space
 			if (colon == pos || colon > line_end || colon != this->_raw.find(' ', pos) - 1)
-				throw http::protocol_error(http::code::bad_request, "Invalid Header.");
+				throw http::protocol_error(http_code::bad_request, "Invalid Header.");
 			std::string key = this->_raw.substr(pos, colon - pos);
 			size_t val_start = this->_raw.find_first_not_of(' ', colon + 2);		// val start; 2 is to skip ": "
 			std::string value = this->_raw.substr(val_start, line_end - val_start);	// val separated (with tail spaces)
@@ -106,7 +106,7 @@ namespace ft
 			if (this->_content_length == -1)
 				this->_content_length = this->_body.size();
 			else if (static_cast<size_t>(this->_content_length) != read_body_end - read_body_start)
-				throw http::protocol_error(http::code::bad_request, "Content-Length mismatch.");
+				throw http::protocol_error(http_code::bad_request, "Content-Length mismatch.");
 		}
 		else
 		{
@@ -120,7 +120,7 @@ namespace ft
 				pos = end_of_line + std::strlen(CRLF);		// now points to the beginning of chunk
 				end_of_line = this->_raw.find(CRLF, pos);	// now points to the end of chunk
 				if (end_of_line - pos != chunk_size)
-					throw http::protocol_error(http::code::bad_request, "Chunk Size Mismatch.");
+					throw http::protocol_error(http_code::bad_request, "Chunk Size Mismatch.");
 				this->_body += this->_raw.substr(pos, chunk_size);	// append the chunk to the body
 				this->_content_length += chunk_size;
 				pos = end_of_line + std::strlen(CRLF);		// now points to the beginning of chunk-size
@@ -136,14 +136,14 @@ namespace ft
 		size_t line_end = this->_raw.find(CRLF);
 		size_t space = this->_raw.find(' ');
 		if (!space || space > line_end)
-			throw http::protocol_error(http::code::bad_request, "Method unspecified.");
+			throw http::protocol_error(http_code::bad_request, "Method unspecified.");
 		this->_method = this->_raw.substr(0, space);
 		space = this->_raw.find(' ', space + 1);
 		if (space > line_end)
-			throw http::protocol_error(http::code::bad_request, "URI unspecified.");
+			throw http::protocol_error(http_code::bad_request, "URI unspecified.");
 		this->_uri = this->_raw.substr(this->_method.length() + 1, space - this->_method.length() - 1);
 		if (this->_raw.compare(space + 1, line_end - space - 1, HTTP_VERSION))
-			throw http::protocol_error(http::code::http_version_not_supported, "Invalid Protocol Version.");
+			throw http::protocol_error(http_code::http_version_not_supported, "Invalid Protocol Version.");
 		return (line_end + std::strlen(CRLF));
 	}
 
@@ -161,7 +161,7 @@ namespace ft
 	{
 		const std::string hostname = operator[]("Host");
 		if (hostname.empty())
-			throw http::protocol_error(http::code::bad_request, "Host unspecified.");
+			throw http::protocol_error(http_code::bad_request, "Host unspecified.");
 		for (server_pointer_vector::const_iterator server = this->_socket.get_server_socket().get_servers().begin(); server != this->_socket.get_server_socket().get_servers().end(); server++)
 			for (string_vector::const_iterator name = (*server)->get_names().begin(); name != (*server)->get_names().end(); name++)
 			{
@@ -232,7 +232,7 @@ namespace ft
 		}
 		catch (const std::exception &e)
 		{
-			throw http::protocol_error(http::code::bad_request, "Unsigned integer parsing failed.");
+			throw http::protocol_error(http_code::bad_request, "Unsigned integer parsing failed.");
 		}
 	}
 }

@@ -22,11 +22,11 @@ namespace ft
 			class server_error : public std::logic_error
 			{
 				private:
-					int _error;
+					http_code _error;
 				public:
-					explicit server_error(int error, const std::string &what) : std::logic_error(what), _error(error) {}
-					explicit server_error(int error, const char *what) : std::logic_error(what), _error(error) {}
-					operator int() const { return (this->_error); }
+					explicit server_error(http_code error, const std::string &what) : std::logic_error(what), _error(error) {}
+					explicit server_error(http_code error, const char *what) : std::logic_error(what), _error(error) {}
+					operator http_code() const { return (this->_error); }
 			};
 	};
 }

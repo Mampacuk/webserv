@@ -4,13 +4,14 @@
 # include "stdafx.hpp"
 # include "request.hpp"
 # include "webserv.hpp"
+# include <signal.h>
 
 namespace ft
 {
 	class response
 	{
 		private:
-			http::code		_status;
+			http_code		_status;
 			std::string		_body;
 			string_map		_headers;
 			std::string		_message;
@@ -23,7 +24,7 @@ namespace ft
 		public:
 			~response();
 			response(const response &other);
-			response(const request &request, http::code status = http::code::ok);
+			response(const request &request, http_code status = http_code::ok);
 			int get_socket() const;
 			operator int() const;
 			std::string get_chunk();
