@@ -16,7 +16,7 @@ namespace ft
 			~socket();
 			socket(const socket &other);
 			socket(int fd, const std::string &host, const std::string &port);
-			socket &operator=(const socket &other);
+			socket &operator=(const socket&);
 			int get_fd() const;
 			const std::string &get_host() const;
 			const std::string &get_port() const;

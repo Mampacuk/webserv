@@ -356,7 +356,7 @@ namespace ft
 			throw server::server_error(internal_server_error, "Exceptional error while attempting to run CGI.");
 	}
 
-	void pipe_failsafe(int status, int in_pipe[2], int out_pipe[2])
+	void response::pipe_failsafe(int status, int in_pipe[2], int out_pipe[2])
 	{
 		if (status == -1)
 		{

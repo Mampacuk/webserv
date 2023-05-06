@@ -10,7 +10,7 @@ namespace ft
 
 	socket::~socket() {}
 
-	socket &socket::operator=(const socket &other) { return (*this); }
+	socket &socket::operator=(const socket&) { return (*this); }
 
 	const std::string &socket::get_host() const
 	{

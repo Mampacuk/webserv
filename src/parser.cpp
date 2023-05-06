@@ -507,35 +507,3 @@ namespace ft
 		}
 	}
 }
-
-namespace ft
-{
-	bool ends_with(const std::string &str, const std::string &suffix)
-	{
-		return (str.size() >= suffix.size() && !str.compare(str.size() - suffix.size(), std::string::npos, suffix));
-	}
-
-	bool starts_with(const std::string &str, const std::string &prefix)
-	{
-		return (str.size() >= prefix.size() && !str.compare(0, prefix.size(), prefix));
-	}
-
-	std::string get_file_extension(const std::string &filename)
-	{
-		std::string extension;
-		size_t dot_pos = filename.find_last_of(".");
-		if (dot_pos != std::string::npos && dot_pos < filename.size() - 1)
-			extension = filename.substr(dot_pos + 1);
-		return (extension);
-	}
-
-	std::string inet_ntoa(struct in_addr addr)
-	{
-		std::stringstream ss;
-		ss << ((addr.s_addr >> 0) & 0xff) << '.'
-		   << ((addr.s_addr >> 8) & 0xff) << '.'
-		   << ((addr.s_addr >> 16) & 0xff) << '.'
-		   << ((addr.s_addr >> 24) & 0xff);
-		return (ss.str());
-	}
-}
