@@ -1,11 +1,10 @@
 #include "parser.hpp"
-#include "webserv.hpp"
-#include "request.hpp"
+// #include "request.hpp"
 
 ft::webserv webserver;
 
-int main(int argc, char **argv, char **environ)
-// int main()
+// int main(int argc, char **argv, char **environ)
+int main()
 {
 	// try {
 	// 	const char *chunks1[] = {
@@ -62,32 +61,32 @@ int main(int argc, char **argv, char **environ)
 	// 	std::cerr << "vvvvvvvvvvvvvvvvvvvvvvvvvvvv" << std::endl;
 	// 	std::cerr << e.what() << std::endl;
 	// }
-// 	std::vector<std::string> request_chunks2 = {
-//   };
+	// std::vector<std::string> request_chunks2 = {
+  };
 	
 	// std::string request3 =
 
 
 // 	std::vector<std::string> request_chunks4 = {
 // };
-	std::string filename("conf/webserv.conf");
+// 	std::string filename("conf/webserv.conf");
 
-	if (argc == 2)
-		filename = argv[1];
-	else if (argc != 1)
-		return (webserver.error("Too many arguments!"));
-	try
-	{
-		ft::parser config(filename);
-		webserver.set_http(config.parse());
-		webserver.set_environment(environ);
-		return (EXIT_SUCCESS);
-	}
-	catch (const std::exception &e)
-	{
-		return (webserver.error(e.what()));
-	}
-}
+// 	if (argc == 2)
+// 		filename = argv[1];
+// 	else if (argc != 1)
+// 		return (webserver.error("Too many arguments!"));
+// 	try
+// 	{
+// 		ft::parser config(filename);
+// 		webserver.set_http(config.parse());
+// 		webserver.set_environ(environ);
+// 		return (EXIT_SUCCESS);
+// 	}
+// 	catch (const std::exception &e)
+// 	{
+// 		return (webserver.error(e.what()));
+// 	}
+// }
 
 // dummy definition for Windows
 # if defined(_WIN32) || defined(__CYGWIN__)

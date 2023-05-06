@@ -1,11 +1,11 @@
 #ifndef WEBSERV_HPP
 # define WEBSERV_HPP
 
-# include "stdafx.hpp"
+// # include "stdafx.hpp"
 # include "http.hpp"
-# include "request.hpp"
+// # include "request.hpp" //included from response.cpp
 # include "response.hpp"
-# include "parser.hpp"
+// # include "parser.hpp"
 
 namespace ft
 {

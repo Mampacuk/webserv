@@ -1,13 +1,13 @@
 #ifndef PARSER_HPP
 # define PARSER_HPP
 
-# include "stdafx.hpp"
+// # include "stdafx.hpp"
 # include "base_dir.hpp"
-# include "http.hpp"
-# include "location.hpp"
-# include "server.hpp"
 # include "webserv.hpp"
-# include "server_socket.hpp"
+// # include "http.hpp"
+// # include "location.hpp"
+// # include "server.hpp"
+// # include "server_socket.hpp"	//included from webserv
 
 namespace ft
 {
@@ -32,7 +32,7 @@ namespace ft
 			parser(const std::string &filename);
 			~parser();
 			base_dir *parse(base_dir *parent = NULL);
-			static unsigned int strtoul(const std::string &number, int base = 10);
+			// static unsigned int strtoul(const std::string &number, int base = 10);
 		private:
 			parser();
 			parser(const parser &other);
@@ -41,7 +41,7 @@ namespace ft
 			std::string &front();
 			std::string pop_front();
 			string_vector get_argument_list();
-			void memorize_listen(const std::string &host, const std::string &port, const server *server);
+			void memorize_listen(const std::string &host, const std::string &port);
 			void map_sockets(const server *server);
 			void open_sockets(http *protocol);
 			bool erase_chunk_middle(std::string str, bool b = false);
@@ -58,19 +58,19 @@ namespace ft
 			bool	read_client_max_body_size(base_dir *parent);
 			bool	read_index(base_dir *parent);
 			bool	read_redirect(base_dir *parent);
-			bool	read_listen(base_dir *server);
+			bool	read_listen(base_dir*);
 			bool	read_server_name(base_dir *server);
 			bool	read_cgi_param(base_dir *parent);
 			bool	read_limit_except(base_dir *location);
 			void	load_base_dir();
 			void	unload_base_dir();
-		public:
-			class parsing_error : public std::logic_error
-			{
-				public:
-					explicit parsing_error(const std::string &what) : std::logic_error(what) {}
-					explicit parsing_error(const char *what) : std::logic_error(what) {}
-			};
+		// public:
+		// 	class parsing_error : public std::logic_error
+		// 	{
+		// 		public:
+		// 			explicit parsing_error(const std::string &what) : std::logic_error(what) {}
+		// 			explicit parsing_error(const char *what) : std::logic_error(what) {}
+		// 	};
 	};
 }
 

@@ -1,7 +1,8 @@
 #ifndef SERVER_SOCKET_HPP
 # define SERVER_SOCKET_HPP
 
-# include "server.hpp"
+// # include "server.hpp" //instread of this inlcude socket.hpp
+# include "socket.hpp"
 
 namespace ft
 {

@@ -1,10 +1,9 @@
 #ifndef RESPONSE_HPP
 # define RESPONSE_HPP
 
-# include "stdafx.hpp"
+// # include "stdafx.hpp" // included in request
 # include "request.hpp"
-# include "webserv.hpp"
-# include <signal.h>
+# include "webserv.hpp" //?
 
 namespace ft
 {
@@ -24,7 +23,7 @@ namespace ft
 		public:
 			~response();
 			response(const response &other);
-			response(const request &request, http_code status = http_code::ok);
+			response(const request &request, http_code status = ok);
 			int get_socket() const;
 			operator int() const;
 			std::string get_chunk();
@@ -40,7 +39,7 @@ namespace ft
 			void find_requested_file();
 			bool read_requested_file(const std::string &file);
 			void find_rewritten_location();
-			bool rewrite(const std::string &portion, const std::string &withwhat);
+			bool rewrite(const std::string &what, const std::string &with_what);
 			// void find_path();
 			void generate_autoindex(const std::string &path);
 			void execute_cgi(char *cgi_path, char **cgi_args, char **cgi_env);
