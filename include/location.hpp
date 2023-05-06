@@ -1,7 +1,7 @@
 #ifndef LOCATION_HPP
 # define LOCATION_HPP
 
-# include "stdafx.hpp"
+// # include "stdafx.hpp"
 # include "base_dir_ext.hpp"
 
 namespace ft

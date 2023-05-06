@@ -33,8 +33,8 @@ namespace ft
 	{
 		try
 		{
-			if (http::is_error_code(this->_status))
-				throw server::server_error(this->_status, "Request error.");
+			if (http::is_error_code(_status))
+				throw server::server_error(_status, "Request error.");
 			find_rewritten_location();
 			if (!_location->method_allowed(_request.get_method()))
 				throw server::server_error(method_not_allowed, "Method not allowed.");
@@ -69,7 +69,7 @@ namespace ft
 
 		code << error_code;
 		_body = "<html>\n\t<head>\n\t\t<title>Error " + code.str() + "</title>\n\t</head>"
-				+ "\n\t<body>\n\t\t<h1>Error " + code.str() + " " + http::reason_phrase(this->_status) +" + </h1>\n\t</body>\n</html>\n";
+				+ "\n\t<body>\n\t\t<h1>Error " + code.str() + " " + reason_phrase(this->_status) +" + </h1>\n\t</body>\n</html>\n";
 	}
 
 	void response::read_error_page(int error_code, bool loc) //check how the path is constructed
@@ -99,10 +99,9 @@ namespace ft
 		{
 			_path = path;
 			file >> _body;
-
 			if (_body.length() != 0)
 			{
-				std::string ext = getFileExtension(_path);
+				std::string ext = get_file_extension(_path);
 				if (ext == "html")
 					_headers["Content-Type"] = "text/html";
 				else if (ext == "txt")
@@ -114,8 +113,6 @@ namespace ft
 				else if (ext == "jpg" || ext == "jpeg")
 					_headers["Content-Type"] = "image/jpeg";
 			}
-
-			// content length and body size should be the same I guess
 			return (true);
 		}
 		return (false);
@@ -168,13 +165,13 @@ namespace ft
 	void response::construct_response()
 	{
 		_headers["Content-Length"] = _body.length();
-		if (!_status)		//need to fix the status type
+		if (!_status)
 			_status = ok;
 		std::stringstream ss;
 
 		this->_message = HTTP_VERSION " ";
 		ss << this->_status;
-		this->_message += ss.str() + " " + http::reason_phrase(this->_status) + CRLF;
+		this->_message += ss.str() + " " + reason_phrase(this->_status) + CRLF;
 		for (string_map::const_iterator it = this->_headers.begin(); it != this->_headers.end(); it++)
 			this->_message += it->first + ": " + it->second + CRLF;
 		this->_message += CRLF + _body;
@@ -197,12 +194,12 @@ namespace ft
 		return (this->_cursor == this->_message.size());
 	}
 
-	bool response::rewrite(const std::string &portion, const std::string &withwhat)
+	bool response::rewrite(const std::string &what, const std::string &with_what)
 	{
-		size_t pos = _uri.find(portion);
+		size_t pos = _uri.find(what);
 		if (pos)
 		{
-			_uri.replace(pos, pos + portion.length(), portion);
+			_uri.replace(pos, pos + portion.length(), with_what);
 			return true;
 		}
 		return false;
@@ -235,7 +232,7 @@ namespace ft
 		std::vector<std::string> files;
 
 		if (dir == nullptr)
-			throw std::domain_error("File not found."); //does autoindex have it's own error code??
+			throw server::server_error(not_found, "File not found."); //does autoindex have it's own error code??
 
 		dirent *entry;
 		while ((entry = readdir(dir)) != nullptr)
@@ -314,7 +311,7 @@ namespace ft
 		int in_pipe[2], out_pipe[2];
 
 		if (pipe(in_pipe) == -1)
-			throw server::server_error(http_code::internal_server_error, "Exceptional error while attempting to run CGI.");
+			throw server::server_error(internal_server_error, "Exceptional error while attempting to run CGI.");
 		pipe_safe_syscall(pipe(out_pipe), in_pipe);
 		cgi_pid = fork();
 		if (cgi_pid == -1)
@@ -324,11 +321,11 @@ namespace ft
 			close(in_pipe[1]);
 			close(out_pipe[0]);
 			if (dup2(in_pipe[0], STDIN_FILENO) == -1 || dup2(out_pipe[1], STDOUT_FILENO) == -1)
-				throw server::server_error(http_code::internal_server_error, "Exceptional error while attempting to run CGI.");
+				throw server::server_error(internal_server_error, "Exceptional error while attempting to run CGI.");
 			close(in_pipe[0]);
 			close(out_pipe[1]);
 			execve(cgi_path, cgi_args, cgi_env);
-			throw server::server_error(http_code::internal_server_error, "CGI file not found.");
+			throw server::server_error(internal_server_error, "CGI file not found.");
 		}
 		close(in_pipe[0]);
 		close(out_pipe[1]);
@@ -338,7 +335,7 @@ namespace ft
 			kill(cgi_pid, SIGTERM);
 			close(in_pipe[1]);
 			close(out_pipe[0]);
-			throw server::server_error(http_code::internal_server_error, "Exceptional error while attempting to run CGI.");
+			throw server::server_error(internal_server_error, "Exceptional error while attempting to run CGI.");
 		}
 		close(in_pipe[1]);
 		while (bytes_read > 0)
@@ -353,11 +350,11 @@ namespace ft
 			kill(cgi_pid, SIGTERM);
 			close(out_pipe[0]);
 			this->_body.clear();
-			throw server::server_error(http_code::internal_server_error, "Exceptional error while attempting to run CGI.");
+			throw server::server_error(internal_server_error, "Exceptional error while attempting to run CGI.");
 		}
 		close(out_pipe[0]);
 		if (waitpid(cgi_pid, &term_status, 0) == -1 || !WIFEXITED(term_status) || WEXITSTATUS(term_status) != 0)
-			throw server::server_error(http_code::internal_server_error, "Exceptional error while attempting to run CGI.");
+			throw server::server_error(internal_server_error, "Exceptional error while attempting to run CGI.");
 	}
 
 	void pipe_safe_syscall(int status, int in_pipe[2], int out_pipe[2])
@@ -374,7 +371,7 @@ namespace ft
 				close(out_pipe[0]);
 				close(out_pipe[1]);
 			}
-			throw server::server_error(http_code::internal_server_error, "Exceptional error while attempting to run CGI.");
+			throw server::server_error(internal_server_error, "Exceptional error while attempting to run CGI.");
 		}
 	}
 
@@ -383,7 +380,7 @@ namespace ft
 		if (!memory)
 		{
 			std::free(mem1), std::free(mem2), std::free(mem3), std::free(mem4);
-			throw server::server_error(http_code::internal_server_error, "Not enough memory to run CGI.");
+			throw server::server_error(internal_server_error, "Not enough memory to run CGI.");
 		}
 	}
 

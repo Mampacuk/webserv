@@ -227,7 +227,7 @@ namespace ft
 		parent->flush_error_pages();
 		while (!erase_chunk_middle(";"))
 		{
-			const http_code status = static_cast<http_code>(strtoul(front()));
+			const http_code status = static_cast<http_code>(ft::strtoul(front()));
 			if (!(http::is_redirection_code(status) || http::is_error_code(status)))
 			{
 				semicolon_erased = false;
@@ -261,7 +261,7 @@ namespace ft
 				throw parsing_error("Bad storage unit extension.");
 			front().erase(front().end() - 1); // front().pop_back(); in C++11
 		}
-		parent->set_client_max_body_size(multiplier * strtoul(pop_front()));
+		parent->set_client_max_body_size(multiplier * ft::strtoul(pop_front()));
 		return (semicolon_erased);
 	}
 
@@ -286,7 +286,7 @@ namespace ft
 		return (semicolon_erased);
 	}
 
-	bool parser::read_listen(base_dir *server)
+	bool parser::read_listen(base_dir*)
 	{
 		bool port_specified = erase_chunk_middle(":");
 		bool semicolon_erased = false;
@@ -303,7 +303,7 @@ namespace ft
 			semicolon_erased = erase_chunk_middle(";");
 			port = pop_front();
 		}
-		memorize_listen(host, port, static_cast<ft::server*>(server));
+		memorize_listen(host, port);
 		return (semicolon_erased);
 	}
 
@@ -344,17 +344,6 @@ namespace ft
 
 	// doesn't tolerate leading or trailing whitespaces,
 	// or characters in the middle of the number.
-	unsigned int parser::strtoul(const std::string &number, int base)
-	{
-		if (number.empty() || number[0] == '-' || std::isspace(number[0]) || base < 2)
-			throw parsing_error("Number parsing error occured.");
-		const char *str_begin = number.c_str();
-		char *str_end = NULL;
-		unsigned long long int ul = std::strtoul(str_begin, &str_end, base);
-		if (str_end != str_begin + number.length() || ul > std::numeric_limits<unsigned int>::max())
-			throw parsing_error("Number parsing error occured.");
-		return (ul);
-	}
 
 	std::string &parser::front()
 	{
@@ -384,7 +373,7 @@ namespace ft
 		return (arguments);
 	}
 
-	void parser::memorize_listen(const std::string &host, const std::string &port, const server *server)
+	void parser::memorize_listen(const std::string &host, const std::string &port)
 	{
 		int	status;
 		struct addrinfo hints;
@@ -531,7 +520,7 @@ namespace ft
 		return (str.size() >= prefix.size() && !str.compare(0, prefix.size(), prefix));
 	}
 
-	std::string &getFileExtension(const std::string& filename)
+	std::string get_file_extension(const std::string &filename)
 	{
 		std::string extension;
 		size_t dot_pos = filename.find_last_of(".");

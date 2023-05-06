@@ -35,7 +35,7 @@ namespace ft
 	void base_dir_ext::add_location(location location)
 	{
 		if (this->_locations.find(location) != this->_locations.end())
-			throw parser::parsing_error("Duplicate location.");
+			throw ft::parsing_error("Duplicate location.");
 		this->_locations.insert(location);
 	}
 }

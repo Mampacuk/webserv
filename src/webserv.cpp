@@ -85,7 +85,7 @@ namespace ft
 			request.parse();
 			responses.push_back(response(request));
 		}
-		catch (const http::protocol_error &e)
+		catch (const protocol_error &e)
 		{
 			responses.push_back(response(request, e));
 		}
