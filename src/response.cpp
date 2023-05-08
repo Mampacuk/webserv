@@ -30,7 +30,7 @@ namespace ft
 	{
 		try
 		{
-			std::cout << MAGENTA BOLDED("HELLO????") RESET << std::endl;
+			// std::cout << MAGENTA BOLDED("HELLO????") RESET << std::endl;
 			if (http::is_error_code(_status))
 				throw server::server_error(_status, "Request error.");
 			find_rewritten_location();
@@ -39,13 +39,13 @@ namespace ft
 				get_method();
 			else if (this->_request.get_method() == "POST")
 				post_method();
-			std::cout << MAGENTA BOLDED("BYE????") RESET << std::endl;
+			// std::cout << MAGENTA BOLDED("BYE????") RESET << std::endl;
 		}
 		catch (const server::server_error &e)
 		{
-			std::cout << "Path: " << _path << "\n";
-			throw std::exception();
-			std::cout << "In catch block\n";
+			// std::cout << "Path: " << _path << "\n";
+			// throw std::exception();
+			// std::cout << "In catch block\n";
 			this->_status = e;
 
 			if (e == 400 || e == 505 || _location == NULL) //bad request or http version not supported
@@ -81,7 +81,7 @@ namespace ft
 		// std::cout << "Error page: " << error_page << std::endl;
 		if (!error_page.length() || !read_requested_file(error_page))
 		{
-			std::cout << "Could not open file\n";
+			// std::cout << "Could not open file\n";
 			construct_error_page(error_code);
 		}
 	}
@@ -104,12 +104,9 @@ namespace ft
 		{
 			std::ostringstream ss;
 
-			ss << file.rdbuf();
-			std::cout << "Reading requested file\n";
 			_path = filename;
+			ss << file.rdbuf();
 			_body = ss.str();
-			std::cout << "File: " << file << std::endl;
-			std::cout << "Body: " << _body << std::endl;
 			if (_body.length() != 0)
 			{
 				std::string ext = get_file_extension(_path);
@@ -158,7 +155,7 @@ namespace ft
 		for (location_set::const_iterator loc = _request.get_server().get_locations().begin(); 
 						loc != _request.get_server().get_locations().end(); loc++)
 		{
-			std::cout << "Finding location\n";
+			// std::cout << "Finding location\n";
 			if (starts_with(_uri, loc->get_route()))
 			{
 				if (loc->has_modifier() && loc->get_route() == _uri)
@@ -168,7 +165,7 @@ namespace ft
 				}
 				if (_location == NULL || _location->get_route().length() < loc->get_route().length())
 				{
-					std::cout << "HMMMMM\n";
+					// std::cout << "HMMMMM\n";
 					_location = &(*loc);
 				}
 					
@@ -176,7 +173,7 @@ namespace ft
 		}
 		if (_location == NULL)
 		{
-			std::cout << "Hn?\n";
+			// std::cout << "Hn?\n";
 			throw server::server_error(not_found, "File not found.");
 		}
 	}
@@ -194,7 +191,6 @@ namespace ft
 		for (string_map::const_iterator it = this->_headers.begin(); it != this->_headers.end(); it++)
 			this->_message += it->first + ": " + it->second + CRLF;
 		this->_message += CRLF + _body;
-		std::cout << _message << std::endl;
 		// throw std::exception();
 	}
 
@@ -232,7 +228,7 @@ namespace ft
 			for (ft::string_mmap::const_iterator it = _request.get_server().get_redirects().begin(); it != _request.get_server().get_redirects().end(); it++)
 				rewrite(it->first, it->second);
 		int i = 0;
-		std::cout << "HERE-_-\n";
+		// std::cout << "HERE-_-\n";
 		find_location();
 		while (i != 10)
 		{
@@ -248,8 +244,8 @@ namespace ft
 		}
 		if (!_location->is_allowed_method(_request.get_method()))
 		{
-			std::cout << "Method: " << _request.get_method() << std::endl;
-			std::cout << "Shoud be here\n";
+			// std::cout << "Method: " << _request.get_method() << std::endl;
+			// std::cout << "Shoud be here\n";
 			throw server::server_error(method_not_allowed, "Method not allowed.");
 		}
 		if (this->_location->get_client_max_body_size() < this->_request.get_body().size())
@@ -295,7 +291,7 @@ namespace ft
 		malloc_failsafe(cgi_path = strdup(cgi.c_str()));
 		malloc_failsafe(cgi_args = static_cast<char**>(std::calloc(3, sizeof(char*))), cgi_path);
 		malloc_failsafe(cgi_args[0] = strdup(cgi.c_str()), cgi_path, cgi_args);
-		malloc_failsafe(cgi_args[1] = strdup(this->_path.c_str()), cgi_path, cgi_args[0], cgi_args);
+		malloc_failsafe(cgi_args[1] = strdup(this->_path.c_str()), cgi_path, cgi_args);
 		{
 			string_vector environment;
 
@@ -313,7 +309,7 @@ namespace ft
 			environment.push_back("CONTENT_LENGTH=" + to_string(this->_request.get_content_length()));
 			environment.push_back("PATH_INFO=" + this->_path);
 			environment.push_back("REQUEST_URI=" + this->_request.get_uri() + (this->_request.get_query().empty() ? "" : "?" + this->_request.get_query()));
-			malloc_failsafe(cgi_env = static_cast<char**>(std::calloc(environment.size() + 1, sizeof(char*))), cgi_path, cgi_args[0], cgi_args[1], cgi_args);
+			malloc_failsafe(cgi_env = static_cast<char**>(std::calloc(environment.size() + 1, sizeof(char*))), cgi_path, cgi_args);
 			for (size_t i = 0; i < environment.size(); i++)
 			{
 				cgi_env[i] = strdup(environment[i].c_str());
@@ -321,7 +317,7 @@ namespace ft
 				{
 					for (size_t j = 0; j < i; j++)
 						std::free(cgi_env[j]);
-					malloc_failsafe(NULL, cgi_path, cgi_args[0], cgi_args[1], cgi_args, cgi_env);
+					malloc_failsafe(NULL, cgi_path, cgi_args, cgi_env);
 				}
 			}
 		}
@@ -410,11 +406,13 @@ namespace ft
 		}
 	}
 
-	void response::malloc_failsafe(void *memory, void *mem1, void *mem2, void *mem3, void *mem4, void *mem5)
+	void response::malloc_failsafe(void *memory, void *path, char **args, void *env)
 	{
 		if (!memory)
 		{
-			std::free(mem1), std::free(mem2), std::free(mem3), std::free(mem4), std::free(mem5);
+			std::free(path), std::free(env);
+			if (args)
+				std::free(args[0]), std::free(args[1]), std::free(args);
 			throw server::server_error(internal_server_error, "Not enough memory to run CGI.");
 		}
 	}

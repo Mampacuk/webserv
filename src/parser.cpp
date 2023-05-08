@@ -433,6 +433,7 @@ namespace ft
 			server_socket socket(::socket(rit->ai_family, rit->ai_socktype, rit->ai_protocol), host, port);
 			if (socket == -1)
 				throw std::runtime_error("[SOCKET] Failed to create a socket.");
+			webserver.label_log("Successfully created a socket " + to_string(socket), BOLDED("SOCKET"), GREEN, GREEN);
 			int on = 1;
 			if (setsockopt(socket, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on)) == -1
 				|| setsockopt(socket, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on)) == -1

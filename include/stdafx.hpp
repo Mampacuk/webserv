@@ -66,16 +66,21 @@
 
 # define RESET		"\033[0m"
 # define BOLD		"\033[1m"
+# define BLACK		"\033[30m"
 # define RED		"\033[31m"
 # define GREEN		"\033[32m"
 # define YELLOW		"\033[33m"
 # define BLUE		"\033[34m"
 # define MAGENTA	"\033[35m"
 # define CYAN		"\033[36m"
-# define EL			"\033[2K" // erase line
-# define CRLF		"\r\n"
+# define LGRAY		"\033[37m"
+# define GRAY		"\033[90m"
+# define LRED		"\033[91m"
+# define LGREEN		"\033[92m"
 
 # define BOLDED(x) BOLD x RESET
+
+# define CRLF		"\r\n"
 
 # define HTTP_VERSION		"HTTP/1.1"
 # define BACKLOG			128

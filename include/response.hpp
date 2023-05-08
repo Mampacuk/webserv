@@ -44,7 +44,7 @@ namespace ft
 			void generate_autoindex(const std::string &path);
 			void execute_cgi(char *cgi_path, char **cgi_args, char **cgi_env);
 			void pipe_failsafe(int status, int in_pipe[2] = NULL, int out_pipe[2] = NULL);
-			void malloc_failsafe(void *memory, void *mem1 = NULL, void *mem2 = NULL, void *mem3 = NULL, void *mem4 = NULL, void *mem5 = NULL);
+			void malloc_failsafe(void *memory, void *path = NULL, char **args = NULL, void *env = NULL);
 			void free_cgi_args(char *cgi_path, char **cgi_args, char **cgi_env);
 			void read_error_page(int error_code, bool loc = true);
 			void construct_error_page(int error_code);

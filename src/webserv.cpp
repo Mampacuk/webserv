@@ -39,7 +39,7 @@ namespace ft
 
 	int webserv::error(const std::string &error) const
 	{
-		std::cerr << "[webserv]: " << RED << "Error" << RESET << ": " << error << std::endl;
+		std::cerr << "[webserv]: " RED "Error" RESET ": " << error << std::endl;
 		return (EXIT_FAILURE);
 	}
 
@@ -51,7 +51,7 @@ namespace ft
 
 	int webserv::label_log(const std::string &msg, const std::string &label, const char *msg_color, const char *label_color) const
 	{
-		std::cout << "[webserv]: " << "[" << label_color << label << RESET << "] " << msg_color << msg << RESET << std::endl;
+		std::cout << "[webserv]: [" << label_color << label << RESET "] " << msg_color << msg << RESET << std::endl;
 		return (EXIT_SUCCESS);
 	}
 
@@ -68,29 +68,31 @@ namespace ft
 			return (client_socket(client_fd, "", "", socket));
 		host = ft::inet_ntoa(client_addr.sin_addr);
 		port = ft::to_string(ntohs(client_addr.sin_port));
-		label_log("Successfully accepted connection from " + host + ":" + port, BOLDED("ACCEPT"), GREEN);
+		label_log("Successfully accepted connection from " + host + ":" + port, BOLDED("ACCEPT"), GREEN, LGREEN);
 		return (client_socket(client_fd, host, port, socket));
 	}
 
 	int webserv::receive_request(request &request, response_list &responses)
 	{
-		char buffer[BUFSIZ] = {0}; // pass BUFSIZ - 1 so it's null-terminated
+		char buffer[BUFSIZ]; // pass BUFSIZ - 1 so it's null-terminated
 		int  bytes_read = recv(request, buffer, BUFSIZ - 1, 0);
 		if (bytes_read <= 0)
 		{
 			if (!bytes_read)
-				label_log("Connection closed by the client.", BOLDED("RECEIVE"), YELLOW);
+				label_log("Connection closed by the client.", BOLDED("RECV"), YELLOW);
 			else
-				error("[RECEIVE] recv() failed: closing connection.");
+				error("[RECEIVE] recv() failed due to " + to_string(errno) + " " + strerror(errno));
 			close(request);
 			return (EXIT_SUCCESS);
 		}
-		label_log("Received " + to_string(bytes_read) + " bytes.", BOLDED("RECEIVE"), GREEN);
+		buffer[bytes_read] = '\0';
+		label_log("Received " + to_string(bytes_read) + " bytes from " + to_string(request), BOLDED("RECV"), GREEN, LGREEN);
 		try
 		{
 			if (!(request += buffer))	
 				return (EXIT_FAILURE);	// request wasn't fully received
 			request.parse();
+			label_log("Pushed " + to_string(request) + " to responses", BOLDED("RECV"), GREEN, LGREEN);
 			responses.push_back(response(request));
 		}
 		catch (const protocol_error &e)
@@ -103,11 +105,13 @@ namespace ft
 	int webserv::send_response(response &response)
 	{
 		std::string chunk = response.get_chunk();
-		if (send(response, chunk.c_str(), chunk.size(), 0) == -1)
+		int bytes_written = send(response, chunk.c_str(), chunk.size(), 0);
+		if (bytes_written == -1)
 		{
 			error("[SEND] send() failed.");
 			return (EXIT_SUCCESS);
 		}
+		label_log("Sent successfully " + to_string(bytes_written) + " bytes from " + to_string(response), BOLDED("SEND"), GREEN, GREEN);
 		if (!response.sent())
 			return (EXIT_FAILURE);
 		return (EXIT_SUCCESS);
@@ -136,6 +140,8 @@ namespace ft
 			// select() block
 			while (desc_ready == 0)
 			{
+				// log("Size of Requests is " + to_string(requests.size()), MAGENTA);
+				// log("Size of Responses is " + to_string(responses.size()), MAGENTA);
 				// copy the master set into the reading set so that select() doesn't modify it
 				std::memcpy(&reading_set, &master_set, sizeof(master_set));
 				// initialize the writing set
@@ -144,17 +150,24 @@ namespace ft
 					FD_SET(*it, &writing_set);
 				std::cout << "\rWaiting for a connection... " << bars[(bar_id = (bar_id >= nbars - 1) ? 0 : bar_id + 1)] << std::flush;
 				desc_ready = select(max_sd + 1, &reading_set, &writing_set, NULL, &timeout);
-				label_log("select() returned " + to_string(desc_ready) + " descriptors", BOLDED("SELECT"), YELLOW);
+				if (desc_ready > 0)
+				{
+					std::cout << std::endl;
+					label_log("select() returned " + to_string(desc_ready) + " descriptors", BOLDED("SELECT"), YELLOW);
+				}
 				if (desc_ready == -1)
 				{
 					error("[SELECT] select() call failed: " + std::string(strerror(errno)));
 					desc_ready = 0;
 				}
 			}
-
+			log("Responses: " + to_string(responses.size()) + ", Requests: " + to_string(requests.size()), MAGENTA);
+			bool entered = false;
 			// accept() reading_set block
 			for (server_socket_set::iterator it = sockets.begin(); it != sockets.end(); it++)
 			{
+				entered = true;
+				log("Determining if server socket " + to_string(*it) + " is set...", RED);
 				if (FD_ISSET(*it, &reading_set))
 				{
 					client_socket new_sd(accept_connection(*it));
@@ -166,20 +179,29 @@ namespace ft
 					}
 					else
 					{
+						label_log("Successfully created " + to_string(new_sd) + " from " + to_string(*it), BOLDED("ACCEPT"), GREEN, LGREEN);
 						requests.push_back(new_sd);
 						FD_SET(new_sd, &master_set);
+						FD_SET(new_sd, &reading_set);
 						max_sd = new_sd.get_fd() > max_sd ? new_sd.get_fd() : max_sd;
 					}
 					break ;
 				}
+				else log("Server socket " + to_string(*it) + " wasn't set.", LRED);
 			}
+			if (!entered) log("Server sockets are empty.", RED);
+			entered = false;
+			log("Responses: " + to_string(responses.size()) + ", Requests: " + to_string(requests.size()), MAGENTA);
 
 			// recv() reading_set block 
 			for (request_list::iterator it = requests.begin(); it != requests.end(); it++)
 			{
+				entered = true;
+				log("Determining if request " + to_string(*it) + " is set...", RED);
 				if (FD_ISSET(*it, &reading_set))
 				{
-					if (receive_request(*it, responses))
+					label_log("About to receive from " + to_string(*it), BOLDED("RECV"), GREEN, LGREEN);
+					if (receive_request(*it, responses) == EXIT_SUCCESS)
 					{
 						FD_CLR(*it, &reading_set);
 						FD_CLR(*it, &master_set);
@@ -187,15 +209,23 @@ namespace ft
 					}
 					break ;
 				}
+				else log("Request " + to_string(*it) + " wasn't set.", LRED);
 			}
+			if (!entered) log("Requests are empty.", RED);
+			entered = false;
+			log("Responses: " + to_string(responses.size()) + ", Requests: " + to_string(requests.size()), MAGENTA);
 
 			// send() writing_set block
 			for (response_list::iterator it = responses.begin(); it != responses.end(); it++)
 			{
+				entered = true;
+				log("Determining if response " + to_string(*it) + " is set...", RED);
 				if (FD_ISSET(*it, &writing_set))
 				{
-					if (send_response(*it))
+					label_log("About to send from " + to_string(*it), BOLDED("SEND"), GREEN, YELLOW);
+					if (send_response(*it) == EXIT_SUCCESS)
 					{
+						label_log("Ended connection of " + to_string(*it), BOLDED("SEND"), GREEN, YELLOW);
 						FD_CLR(*it, &writing_set);
 						FD_CLR(*it, &master_set);
 						close(*it);
@@ -203,7 +233,10 @@ namespace ft
 					}
 					break ;
 				}
+				else log("Response " + to_string(*it) + " wasn't set.", LRED);
 			}
+			if (!entered) log("Responses are empty.", RED);
+			log("Responses: " + to_string(responses.size()) + ", Requests: " + to_string(requests.size()), MAGENTA);
 			desc_ready = 0;
 		}
 	}
