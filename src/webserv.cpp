@@ -198,6 +198,7 @@ namespace ft
 					{
 						FD_CLR(*it, &writing_set);
 						FD_CLR(*it, &master_set);
+						close(*it);
 						responses.erase(it);
 					}
 					break ;

@@ -149,6 +149,8 @@ namespace ft
 
 		if (serv.get_names().empty())
 			serv.add_name("");
+		if (serv.get_locations().empty())
+			serv.add_location(location(serv, "/"));
 
 		static_cast<http*>(protocol)->add_server(serv);
 		map_sockets(&static_cast<http*>(protocol)->get_servers().back());

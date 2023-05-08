@@ -8,7 +8,7 @@ namespace ft
 
 	location::location(const location &other) : base_dir_ext(other), _methods(other._methods), _route(other._route), _modifier(other._modifier) {}
 
-	location::location(const base_dir &other) : base_dir_ext(other), _methods(), _route(), _modifier(false)
+	location::location(const base_dir &other, const std::string &route) : base_dir_ext(other), _methods(), _route(route), _modifier(false)
 	{
 		if (dynamic_cast<const location*>(&other))
 		{
@@ -34,6 +34,8 @@ namespace ft
 
 	bool location::is_allowed_method(const std::string &method) const
 	{
+		if (_methods.empty())
+			return (true);
 		if (this->_methods.find(method) != this->_methods.end())
 			return (true);
 		return (false);

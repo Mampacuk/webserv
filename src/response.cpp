@@ -43,15 +43,20 @@ namespace ft
 		}
 		catch (const server::server_error &e)
 		{
+			std::cout << "Path: " << _path << "\n";
+			throw std::exception();
+			std::cout << "In catch block\n";
 			this->_status = e;
 
-			if (e == 400 || e == 505) //bad request or http version not supported
+			if (e == 400 || e == 505 || _location == NULL) //bad request or http version not supported
 				read_error_page(e, false);
-			if (!read_requested_file(_location->get_error_page(e)))
+			else if (!read_requested_file(_location->get_error_page(e)))
 				if (!read_requested_file(_location->get_error_page(404)))
 					read_error_page(e);
 			//add_headers();
 			construct_response();
+			std::cout << "response body is:" << std::endl;
+			std::cout << YELLOW << this->_message << RESET << std::endl;
 		}
 	}
 
@@ -61,18 +66,24 @@ namespace ft
 
 		code << error_code;
 		_body = "<html>\n\t<head>\n\t\t<title>Error " + code.str() + "</title>\n\t</head>"
-				+ "\n\t<body>\n\t\t<h1>Error " + code.str() + " " + reason_phrase(this->_status) +" + </h1>\n\t</body>\n</html>\n";
+				+ "\n\t<body>\n\t\t<h1>Error " + code.str() + " " + reason_phrase(this->_status) + "</h1>\n\t</body>\n</html>\n";
 	}
 
 	void response::read_error_page(int error_code, bool loc) //check how the path is constructed
 	{
 		std::string error_page;
+		
 		if (!loc)
 			error_page = _request.get_server().get_root() + _request.get_server().get_error_page(error_code);	//root?
 		else
 			error_page = _location->get_route() + _location->get_error_page(error_code);
+		// std::cout << "Server root: " << _request.get_server().get_root() << std::endl;
+		// std::cout << "Error page: " << error_page << std::endl;
 		if (!error_page.length() || !read_requested_file(error_page))
+		{
+			std::cout << "Could not open file\n";
 			construct_error_page(error_code);
+		}
 	}
 
 	void response::get_method()
@@ -82,15 +93,23 @@ namespace ft
 		construct_response();
 	}
 
-	bool response::read_requested_file(const std::string &path)
+	bool response::read_requested_file(const std::string &filename)
 	{
 		std::ifstream file;
 
-		file.open(path);
-		if (file.is_open())
+		if (!is_regular_file(filename.c_str()))
+			return (false);
+		file.open(filename);
+		if (file)
 		{
-			_path = path;
-			file >> _body;
+			std::ostringstream ss;
+
+			ss << file.rdbuf();
+			std::cout << "Reading requested file\n";
+			_path = filename;
+			_body = ss.str();
+			std::cout << "File: " << file << std::endl;
+			std::cout << "Body: " << _body << std::endl;
 			if (_body.length() != 0)
 			{
 				std::string ext = get_file_extension(_path);
@@ -139,6 +158,7 @@ namespace ft
 		for (location_set::const_iterator loc = _request.get_server().get_locations().begin(); 
 						loc != _request.get_server().get_locations().end(); loc++)
 		{
+			std::cout << "Finding location\n";
 			if (starts_with(_uri, loc->get_route()))
 			{
 				if (loc->has_modifier() && loc->get_route() == _uri)
@@ -147,16 +167,23 @@ namespace ft
 					break;
 				}
 				if (_location == NULL || _location->get_route().length() < loc->get_route().length())
+				{
+					std::cout << "HMMMMM\n";
 					_location = &(*loc);
+				}
+					
 			}
 		}
 		if (_location == NULL)
+		{
+			std::cout << "Hn?\n";
 			throw server::server_error(not_found, "File not found.");
+		}
 	}
 
 	void response::construct_response()
 	{
-		_headers["Content-Length"] = _body.length();
+		_headers["Content-Length"] = to_string(_body.length());
 		if (!_status)
 			_status = ok;
 		std::stringstream ss;
@@ -167,6 +194,8 @@ namespace ft
 		for (string_map::const_iterator it = this->_headers.begin(); it != this->_headers.end(); it++)
 			this->_message += it->first + ": " + it->second + CRLF;
 		this->_message += CRLF + _body;
+		std::cout << _message << std::endl;
+		// throw std::exception();
 	}
 
 	std::string response::get_chunk()
@@ -189,7 +218,7 @@ namespace ft
 	bool response::rewrite(const std::string &what, const std::string &with_what)
 	{
 		size_t pos = _uri.find(what);
-		if (pos)
+		if (pos != std::string::npos)
 		{
 			_uri.replace(pos, pos + what.length(), with_what);
 			return true;
@@ -203,6 +232,7 @@ namespace ft
 			for (ft::string_mmap::const_iterator it = _request.get_server().get_redirects().begin(); it != _request.get_server().get_redirects().end(); it++)
 				rewrite(it->first, it->second);
 		int i = 0;
+		std::cout << "HERE-_-\n";
 		find_location();
 		while (i != 10)
 		{
@@ -217,7 +247,11 @@ namespace ft
 				break;
 		}
 		if (!_location->is_allowed_method(_request.get_method()))
+		{
+			std::cout << "Method: " << _request.get_method() << std::endl;
+			std::cout << "Shoud be here\n";
 			throw server::server_error(method_not_allowed, "Method not allowed.");
+		}
 		if (this->_location->get_client_max_body_size() < this->_request.get_body().size())
 			throw server::server_error(content_too_large, "Exceeded \"client_max_body_size\".");
 	}

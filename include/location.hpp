@@ -16,7 +16,7 @@ namespace ft
 			location();
 			~location();
 			location(const location &other);
-			location(const base_dir &other);
+			location(const base_dir &other, const std::string &route = "");
 			location &operator=(const location &other);
 			bool operator<(const location &rhs) const;
 			const std::string &get_route() const;
