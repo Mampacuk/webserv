@@ -30,6 +30,7 @@ namespace ft
 	{
 		try
 		{
+			std::cout << MAGENTA BOLDED("HELLO????") RESET << std::endl;
 			if (http::is_error_code(_status))
 				throw server::server_error(_status, "Request error.");
 			find_rewritten_location();
@@ -38,6 +39,7 @@ namespace ft
 				get_method();
 			else if (this->_request.get_method() == "POST")
 				post_method();
+			std::cout << MAGENTA BOLDED("BYE????") RESET << std::endl;
 		}
 		catch (const server::server_error &e)
 		{

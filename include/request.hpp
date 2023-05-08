@@ -37,6 +37,7 @@ namespace ft
 			ssize_t get_content_length() const;
 			const server &get_server() const;
 			operator int() const;
+			// void print() const;
 		private:
 			unsigned int try_strtoul(const std::string &number, int base = 10) const;
 			void	find_header(const std::string &header);

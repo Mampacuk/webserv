@@ -43,9 +43,15 @@ namespace ft
 		return (EXIT_FAILURE);
 	}
 
-	int webserv::log(const std::string &message, const char *color) const
+	int webserv::log(const std::string &msg, const char *color) const
 	{
-		std::cout << "[webserv]: " << color << message << RESET << std::endl;
+		std::cout << "[webserv]: " << color << msg << RESET << std::endl;
+		return (EXIT_SUCCESS);
+	}
+
+	int webserv::label_log(const std::string &msg, const std::string &label, const char *msg_color, const char *label_color) const
+	{
+		std::cout << "[webserv]: " << "[" << label_color << label << RESET << "] " << msg_color << msg << RESET << std::endl;
 		return (EXIT_SUCCESS);
 	}
 
@@ -62,7 +68,7 @@ namespace ft
 			return (client_socket(client_fd, "", "", socket));
 		host = ft::inet_ntoa(client_addr.sin_addr);
 		port = ft::to_string(ntohs(client_addr.sin_port));
-		webserver.log("succesfully accepted", GREEN);
+		label_log("Successfully accepted connection from " + host + ":" + port, BOLDED("ACCEPT"), GREEN);
 		return (client_socket(client_fd, host, port, socket));
 	}
 
@@ -73,12 +79,13 @@ namespace ft
 		if (bytes_read <= 0)
 		{
 			if (!bytes_read)
-				log("Connection closed by the client.", YELLOW);
+				label_log("Connection closed by the client.", BOLDED("RECEIVE"), YELLOW);
 			else
-				error("recv() failed: closing connection.");
+				error("[RECEIVE] recv() failed: closing connection.");
 			close(request);
 			return (EXIT_SUCCESS);
 		}
+		label_log("Received " + to_string(bytes_read) + " bytes.", BOLDED("RECEIVE"), GREEN);
 		try
 		{
 			if (!(request += buffer))	
@@ -98,7 +105,7 @@ namespace ft
 		std::string chunk = response.get_chunk();
 		if (send(response, chunk.c_str(), chunk.size(), 0) == -1)
 		{
-			error("send() failed.");
+			error("[SEND] send() failed.");
 			return (EXIT_SUCCESS);
 		}
 		if (!response.sent())
@@ -135,12 +142,12 @@ namespace ft
 				FD_ZERO(&writing_set);
 				for (response_list::iterator it = responses.begin(); it != responses.end(); it++)
 					FD_SET(*it, &writing_set);
-				std::cout << "\rWaiting for a connection " << bars[(bar_id = (bar_id >= nbars) ? 0 : bar_id + 1)] << std::flush;
+				std::cout << "\rWaiting for a connection... " << bars[(bar_id = (bar_id >= nbars - 1) ? 0 : bar_id + 1)] << std::flush;
 				desc_ready = select(max_sd + 1, &reading_set, &writing_set, NULL, &timeout);
-				webserver.log("select() returned " + to_string(desc_ready) + " descriptors", YELLOW);
+				label_log("select() returned " + to_string(desc_ready) + " descriptors", BOLDED("SELECT"), YELLOW);
 				if (desc_ready == -1)
 				{
-					error("select() call failed: " + std::string(strerror(errno)));
+					error("[SELECT] select() call failed: " + std::string(strerror(errno)));
 					desc_ready = 0;
 				}
 			}
@@ -153,7 +160,7 @@ namespace ft
 					client_socket new_sd(accept_connection(*it));
 					if (new_sd == -1)
 					{
-						error("Couldn't create a socket for accepted connection: " + std::string(strerror(errno)));
+						error("[ACCEPT] Couldn't create a socket for accepted connection: " + std::string(strerror(errno)));
 						// // PLEASE REMOVE THIS vvv
 						// throw std::exception();
 					}

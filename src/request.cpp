@@ -27,17 +27,27 @@ namespace ft
 	// appends chunk to the request. returns whether the request was fully accepted
 	bool request::operator+=(const std::string &chunk)
 	{
+		std::cout << RED "vvvvvvv received chunk of size " << chunk.size() << "vvvvvvv" RESET << std::endl;
+		std::cout << chunk << std::endl;
+		std::cout << RED "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" RESET << std::endl;
 		this->_raw += chunk;
 		if (this->_headers_end == std::string::npos)
 		{
+			std::cout << CYAN "this->_raw.find(CRLF CRLF) returned " << this->_raw.find(CRLF CRLF) << RESET << std::endl;
 			if ((this->_headers_end = this->_raw.find(CRLF CRLF)) == std::string::npos)
+			{
+				std::cout << CYAN "NOT DONE RECEIVING HEADERS" RESET << std::endl; 
 				return (false);
+			}
 			read_header(this->_raw.find("Content-Length: "));
 			read_header(this->_raw.find("Transfer-Encoding: "));
 			if (operator[]("Content-Length").empty())
 			{
 				if (operator[]("Transfer-Encoding").empty())
+				{
+					std::cout << CYAN "CONTENT-LENGTH ABSENT AND TRANSFER-ENCODING ABSENT" RESET << std::endl;
 					return (true);
+				}
 				else if (operator[]("Transfer-Encoding") != "chunked") // the message is ill-formed
 					throw protocol_error(bad_request, "Unsupported Transfer Encoding value.");
 			}
@@ -49,7 +59,12 @@ namespace ft
 			}
 		}
 		if (this->_content_length < 0) // "Transfer-Encoding: chunked" case
+		{
+			std::cout << CYAN BOLDED("TRANSFER ENCODING CASE") RESET << std::endl;
 			return (ends_with(this->_raw, "0" CRLF CRLF));
+		}
+		std::cout << CYAN "COMPELTED RECEIVING REQUEST? " << ((this->_raw.size() == this->_content_length + this->_headers_end + std::strlen(CRLF CRLF CRLF)
+			|| (ends_with(this->_raw, CRLF) && !ends_with(this->_raw, CRLF CRLF))) ? "yes" : "no") << RESET << std::endl;
 		return (this->_raw.size() == this->_content_length + this->_headers_end + std::strlen(CRLF CRLF CRLF)
 			|| (ends_with(this->_raw, CRLF) && !ends_with(this->_raw, CRLF CRLF)));
 	}
@@ -87,12 +102,15 @@ namespace ft
 			pos = read_header(pos);
 		// ... check for validity
 		parse_query();
+		std::cout << CYAN "SELECTED SERVER?" RESET << std::endl;
 		select_server();
+		std::cout << CYAN BOLDED("YES") RESET << std::endl;
 		
-		// for (string_map::iterator it = this->_headers.begin(); it != this->_headers.end(); it++)
-		// 	std::cout << "header: { " << it->first << " : " << it->second << " }" << std::endl;
-		// std::cout << "uri: |" << this->_uri << "|" << std::endl;
-		// std::cout << "query: |" << this->_query << "|" << std::endl;
+		std::cout << BLUE;
+		for (string_map::iterator it = this->_headers.begin(); it != this->_headers.end(); it++)
+			std::cout << "header: { " << it->first << " : " << it->second << " }" << std::endl;
+		std::cout << "uri: |" << this->_uri << "|" << std::endl;
+		std::cout << "query: |" << this->_query << "|" RESET << std::endl;
 		this->_raw.clear();
 	}
 

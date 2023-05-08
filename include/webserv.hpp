@@ -25,6 +25,7 @@ namespace ft
 			void set_environment(char **environment);
 			int error(const std::string &error) const;
 			int log(const std::string &message, const char *color = RESET) const;
+			int label_log(const std::string &msg, const std::string &label, const char *msg_color = RESET, const char *label_color = YELLOW) const;
 			void serve();
 		private:
 			client_socket accept_connection(const server_socket &socket);

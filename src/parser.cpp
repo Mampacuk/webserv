@@ -415,10 +415,7 @@ namespace ft
 			const std::string host = it->first.first;
 			const std::string port = it->first.second;
 
-			std::cout << "Initializing a socket for combination " << host << ":" << port << std::endl;
-
 			int	status;
-			// char on = 1;
 			struct addrinfo hints;
 			struct addrinfo *result, *rit;
 
@@ -428,38 +425,38 @@ namespace ft
 			hints.ai_socktype = SOCK_STREAM;				 // what type of _sockets?
 			hints.ai_flags = AI_ADDRCONFIG;					 // only address families configured on the system
 			if ((status = getaddrinfo(host.c_str(), port.c_str(), &hints, &result)) != 0)
-				throw std::runtime_error("getaddrinfo: " + std::string(gai_strerror(status)));
+				throw std::runtime_error("[GETADDRINFO] " + std::string(gai_strerror(status)));
 			rit = result;
 
 			server_socket socket(::socket(rit->ai_family, rit->ai_socktype, rit->ai_protocol), host, port);
 			if (socket == -1)
-				throw std::runtime_error("Failed to create a socket.");
-			// if (setsockopt(socket, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on)) == -1
-			// 	|| setsockopt(socket, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on)) == -1
-			// 	|| setsockopt(socket, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(on)) == -1)
-			// {
-			// 	close(socket);
-			// 	throw std::runtime_error("Couldn't set socket options.");
-			// }
+				throw std::runtime_error("[SOCKET] Failed to create a socket.");
+			int on = 1;
+			if (setsockopt(socket, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on)) == -1
+				|| setsockopt(socket, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on)) == -1
+				|| setsockopt(socket, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(on)) == -1)
+			{
+				close(socket);
+				throw std::runtime_error("[SETSOCKETOPT] Couldn't set socket options.");
+			}
 			if (fcntl(socket, F_SETFL, O_NONBLOCK) == -1)
 			{
 				close(socket);
-				throw std::runtime_error("Couldn't set the flags of a socket.");
+				throw std::runtime_error("[FCNTL] Couldn't set the flags of a socket.");
 			}
 			if (bind(socket, rit->ai_addr, rit->ai_addrlen) == -1)
 			{
 				close(socket);
-				webserver.error("bind() to " + host + ":" + port + " failed (" + strerror(errno) + ")");
+				webserver.error("[BIND] bind() to " + host + ":" + port + " failed (" + strerror(errno) + ")");
 			}
-			webserver.log("Successfully bound to address " + host + ":" + port, GREEN);
+			webserver.label_log("Successfully bound to address " + host + ":" + port, BOLDED("BIND"), GREEN, GREEN);
 			if (listen(socket, BACKLOG) == -1)
 			{
 				close(socket);
-				throw std::runtime_error("Failed listening on " + host + ":" + port + ".");
+				throw std::runtime_error("[LISTEN] Failed listening on " + host + ":" + port + ".");
 			}
-			webserver.log("Started listening on address " + host + ":" + port, GREEN);
+			webserver.label_log("Started listening on address " + host + ":" + port, BOLDED("LISTEN"), GREEN, GREEN);
 			freeaddrinfo(result);
-
 			while (it != range.second)
 			{
 				socket.add_server(it->second);
