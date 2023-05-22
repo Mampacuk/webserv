@@ -105,13 +105,13 @@ namespace ft
 	int webserv::send_response(response &response)
 	{
 		std::string chunk = response.get_chunk();
-		int bytes_written = send(response, chunk.c_str(), chunk.size(), 0);
+		ssize_t bytes_written = send(response, chunk.c_str(), chunk.size(), 0);
 		if (bytes_written == -1)
 		{
 			error("[SEND] send() failed.");
 			return (EXIT_SUCCESS);
 		}
-		label_log("Sent successfully " + to_string(bytes_written) + " bytes from " + to_string(response), BOLDED("SEND"), GREEN, GREEN);
+		// label_log("Sent successfully " + to_string(bytes_written) + " bytes from " + to_string(response), BOLDED("SEND"), GREEN, GREEN);
 		if (!response.sent())
 			return (EXIT_FAILURE);
 		return (EXIT_SUCCESS);
@@ -125,9 +125,9 @@ namespace ft
 		request_list			requests;
 		response_list			responses;
 		int						desc_ready = 0;
-		int						bar_id = 0;
-		const char				bars[] = {'\\', '|', '/', '-'};
-		const int				nbars = sizeof(bars) / sizeof(bars[0]);
+		// int						bar_id = 0;
+		// const char				bars[] = {'\\', '|', '/', '-'};
+		// const int				nbars = sizeof(bars) / sizeof(bars[0]);
 		struct timeval			timeout = {TIMEOUT_SEC, TIMEOUT_MICROSEC};
 		const server_socket_set	&sockets = this->_protocol->get_sockets();
 		int						max_sd = *(--sockets.end());
@@ -140,20 +140,18 @@ namespace ft
 			// select() block
 			while (desc_ready == 0)
 			{
-				// log("Size of Requests is " + to_string(requests.size()), MAGENTA);
-				// log("Size of Responses is " + to_string(responses.size()), MAGENTA);
 				// copy the master set into the reading set so that select() doesn't modify it
 				std::memcpy(&reading_set, &master_set, sizeof(master_set));
 				// initialize the writing set
 				FD_ZERO(&writing_set);
 				for (response_list::iterator it = responses.begin(); it != responses.end(); it++)
 					FD_SET(*it, &writing_set);
-				std::cout << "\rWaiting for a connection... " << bars[(bar_id = (bar_id >= nbars - 1) ? 0 : bar_id + 1)] << std::flush;
+				// std::cout << "\rWaiting for a connection... " << bars[(bar_id = (bar_id >= nbars - 1) ? 0 : bar_id + 1)] << std::flush;
 				desc_ready = select(max_sd + 1, &reading_set, &writing_set, NULL, &timeout);
 				if (desc_ready > 0)
 				{
 					std::cout << std::endl;
-					label_log("select() returned " + to_string(desc_ready) + " descriptors", BOLDED("SELECT"), YELLOW);
+					// label_log("select() returned " + to_string(desc_ready) + " descriptors", BOLDED("SELECT"), YELLOW);
 				}
 				if (desc_ready == -1)
 				{
@@ -161,25 +159,23 @@ namespace ft
 					desc_ready = 0;
 				}
 			}
-			log("Responses: " + to_string(responses.size()) + ", Requests: " + to_string(requests.size()), MAGENTA);
+			// log("Responses: " + to_string(responses.size()) + ", Requests: " + to_string(requests.size()), MAGENTA);
 			bool entered = false;
 			// accept() reading_set block
 			for (server_socket_set::iterator it = sockets.begin(); it != sockets.end(); it++)
 			{
 				entered = true;
-				log("Determining if server socket " + to_string(*it) + " is set...", RED);
+				// log("Determining if server socket " + to_string(*it) + " is set...", RED);
 				if (FD_ISSET(*it, &reading_set))
 				{
 					client_socket new_sd(accept_connection(*it));
 					if (new_sd == -1)
 					{
 						error("[ACCEPT] Couldn't create a socket for accepted connection: " + std::string(strerror(errno)));
-						// // PLEASE REMOVE THIS vvv
-						// throw std::exception();
 					}
 					else
 					{
-						label_log("Successfully created " + to_string(new_sd) + " from " + to_string(*it), BOLDED("ACCEPT"), GREEN, LGREEN);
+						// label_log("Successfully created " + to_string(new_sd) + " from " + to_string(*it), BOLDED("ACCEPT"), GREEN, LGREEN);
 						requests.push_back(new_sd);
 						FD_SET(new_sd, &master_set);
 						FD_SET(new_sd, &reading_set);
@@ -187,17 +183,17 @@ namespace ft
 					}
 					break ;
 				}
-				else log("Server socket " + to_string(*it) + " wasn't set.", LRED);
+				// else log("Server socket " + to_string(*it) + " wasn't set.", LRED);
 			}
-			if (!entered) log("Server sockets are empty.", RED);
+			// if (!entered) log("Server sockets are empty.", RED);
 			entered = false;
-			log("Responses: " + to_string(responses.size()) + ", Requests: " + to_string(requests.size()), MAGENTA);
+			// log("Responses: " + to_string(responses.size()) + ", Requests: " + to_string(requests.size()), MAGENTA);
 
 			// recv() reading_set block 
 			for (request_list::iterator it = requests.begin(); it != requests.end(); it++)
 			{
 				entered = true;
-				log("Determining if request " + to_string(*it) + " is set...", RED);
+				// log("Determining if request " + to_string(*it) + " is set...", RED);
 				if (FD_ISSET(*it, &reading_set))
 				{
 					label_log("About to receive from " + to_string(*it), BOLDED("RECV"), GREEN, LGREEN);
@@ -209,23 +205,23 @@ namespace ft
 					}
 					break ;
 				}
-				else log("Request " + to_string(*it) + " wasn't set.", LRED);
+				// else log("Request " + to_string(*it) + " wasn't set.", LRED);
 			}
-			if (!entered) log("Requests are empty.", RED);
+			// if (!entered) log("Requests are empty.", RED);
 			entered = false;
-			log("Responses: " + to_string(responses.size()) + ", Requests: " + to_string(requests.size()), MAGENTA);
+			// log("Responses: " + to_string(responses.size()) + ", Requests: " + to_string(requests.size()), MAGENTA);
 
 			// send() writing_set block
 			for (response_list::iterator it = responses.begin(); it != responses.end(); it++)
 			{
 				entered = true;
-				log("Determining if response " + to_string(*it) + " is set...", RED);
+				// log("Determining if response " + to_string(*it) + " is set...", RED);
 				if (FD_ISSET(*it, &writing_set))
 				{
-					label_log("About to send from " + to_string(*it), BOLDED("SEND"), GREEN, YELLOW);
+					// label_log("About to send from " + to_string(*it), BOLDED("SEND"), GREEN, YELLOW);
 					if (send_response(*it) == EXIT_SUCCESS)
 					{
-						label_log("Ended connection of " + to_string(*it), BOLDED("SEND"), GREEN, YELLOW);
+						// label_log("Ended connection of " + to_string(*it), BOLDED("SEND"), GREEN, YELLOW);
 						FD_CLR(*it, &writing_set);
 						FD_CLR(*it, &master_set);
 						close(*it);
@@ -233,10 +229,10 @@ namespace ft
 					}
 					break ;
 				}
-				else log("Response " + to_string(*it) + " wasn't set.", LRED);
+				// else log("Response " + to_string(*it) + " wasn't set.", LRED);
 			}
-			if (!entered) log("Responses are empty.", RED);
-			log("Responses: " + to_string(responses.size()) + ", Requests: " + to_string(requests.size()), MAGENTA);
+			// if (!entered) log("Responses are empty.", RED);
+			// log("Responses: " + to_string(responses.size()) + ", Requests: " + to_string(requests.size()), MAGENTA);
 			desc_ready = 0;
 		}
 	}

@@ -55,8 +55,6 @@ namespace ft
 					read_error_page(e);
 			//add_headers();
 			construct_response();
-			std::cout << "response body is:" << std::endl;
-			std::cout << YELLOW << this->_message << RESET << std::endl;
 		}
 	}
 
@@ -128,6 +126,8 @@ namespace ft
 
 	void response::find_requested_file()
 	{
+		if (!ends_with(_path, "/") && is_directory(_path.c_str()))
+			_path += "/";
 		if (ends_with(_path, "/"))
 		{
 			if (!_location->get_indexes().empty())
@@ -191,13 +191,14 @@ namespace ft
 		for (string_map::const_iterator it = this->_headers.begin(); it != this->_headers.end(); it++)
 			this->_message += it->first + ": " + it->second + CRLF;
 		this->_message += CRLF + _body;
-		// throw std::exception();
+		// std::cout << "response of size " << this->_message.size() << " is:" << std::endl;
+		// std::cout << YELLOW << this->_message.substr(0, 300) << RESET << std::endl;
 	}
 
 	std::string response::get_chunk()
 	{
 		std::string chunk = this->_message.substr(this->_cursor, BUFSIZ);
-		this->_cursor = std::min(this->_cursor + BUFSIZ - 1, this->_message.size());
+		this->_cursor = std::min(this->_cursor + BUFSIZ, this->_message.size());
 		return (chunk);
 	}
 
@@ -441,5 +442,17 @@ namespace ft
 			return (false);
 		}
 		return (errno == ENOTDIR ? true : false);
+	}
+
+	bool response::is_directory(const char *filename) const
+	{
+		DIR *directory = opendir(filename);
+
+		if (directory)
+		{
+			closedir(directory);
+			return (true);
+		}
+		return (false);
 	}
 }

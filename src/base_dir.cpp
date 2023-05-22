@@ -2,7 +2,11 @@
 
 namespace ft
 {
-	base_dir::base_dir() : _autoindex(false), _error_pages(), _root("html"), _indexes(), _client_max_body_size(1000000), _cgi_params() {}
+	base_dir::base_dir() : _autoindex(false), _error_pages(), _root("html"), _indexes(), _client_max_body_size(1000000), _cgi_params()
+	{
+		_indexes.push_back("index");
+		_indexes.push_back("index.html");
+	}
 
 	base_dir::~base_dir() {}
 
@@ -19,14 +23,14 @@ namespace ft
 		return (*this);
 	}
 
-	void base_dir::set_root(const std::string &_root)
+	void base_dir::set_root(const std::string &root)
 	{
-		this->_root = _root;
+		this->_root = (ends_with(root, "/") ? root : root + "/");
 	}
 
-	void base_dir::set_autoindex(bool _autoindex)
+	void base_dir::set_autoindex(bool autoindex)
 	{
-		this->_autoindex = _autoindex;
+		this->_autoindex = autoindex;
 	}
 
 	void base_dir::set_client_max_body_size(unsigned long int size)

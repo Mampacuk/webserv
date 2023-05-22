@@ -49,6 +49,7 @@ namespace ft
 			void read_error_page(int error_code, bool loc = true);
 			void construct_error_page(int error_code);
 			bool is_regular_file(const char *filename) const;
+			bool is_directory(const char *filename) const;
 	};
 }
 
