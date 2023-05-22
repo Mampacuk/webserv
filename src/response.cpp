@@ -1,4 +1,4 @@
-#include "response.hpp"		//change later
+#include "response.hpp"
 
 namespace ft
 {
@@ -74,7 +74,7 @@ namespace ft
 		std::string error_page;
 		
 		if (!loc)
-			error_page = _request.get_server().get_root() + _request.get_server().get_error_page(error_code);	//root?
+			error_page = _request.get_server().get_root() + "/" + _request.get_server().get_error_page(error_code);	//root?
 		else
 			error_page = _location->get_route() + _location->get_error_page(error_code);
 		// std::cout << "Server root: " << _request.get_server().get_root() << std::endl;
@@ -283,18 +283,13 @@ namespace ft
 			this->_status = no_content;
 			return ;
 		}
-		char **serv_env = webserver.get_environ();
-		char *cgi_path;
-		char **cgi_args;
-		char **cgi_env;
-
+		char *cgi_path, **serv_env = webserver.get_environ(), **cgi_args, **cgi_env;
 		malloc_failsafe(cgi_path = strdup(cgi.c_str()));
 		malloc_failsafe(cgi_args = static_cast<char**>(std::calloc(3, sizeof(char*))), cgi_path);
 		malloc_failsafe(cgi_args[0] = strdup(cgi.c_str()), cgi_path, cgi_args);
 		malloc_failsafe(cgi_args[1] = strdup(this->_path.c_str()), cgi_path, cgi_args);
 		{
 			string_vector environment;
-
 			for (size_t i = 0; serv_env[i] != NULL; i++)
 				environment.push_back(serv_env[i]);
 			environment.push_back("SERVER_NAME=" + this->_request[std::string("Host")]);
@@ -411,8 +406,7 @@ namespace ft
 		if (!memory)
 		{
 			std::free(path), std::free(env);
-			if (args)
-				std::free(args[0]), std::free(args[1]), std::free(args);
+			if (args) std::free(args[0]), std::free(args[1]), std::free(args);
 			throw server::server_error(internal_server_error, "Not enough memory to run CGI.");
 		}
 	}

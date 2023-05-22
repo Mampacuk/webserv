@@ -2,7 +2,7 @@
 
 namespace ft
 {
-	base_dir::base_dir() : _autoindex(false), _error_pages(), _root("html/"), _indexes(), _client_max_body_size(1000000), _cgi_params() {}
+	base_dir::base_dir() : _autoindex(false), _error_pages(), _root("html"), _indexes(), _client_max_body_size(1000000), _cgi_params() {}
 
 	base_dir::~base_dir() {}
 

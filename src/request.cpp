@@ -92,6 +92,7 @@ namespace ft
 
 	void request::parse()
 	{
+		std::cout << "received request is" << std::endl << LRED << this->_raw << RESET << std::endl;
 		separate_body();
 		size_t pos = parse_request_line();
 		// std::cout << "method: |" << this->_method << "|" << std::endl;

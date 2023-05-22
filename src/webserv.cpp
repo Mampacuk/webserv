@@ -67,7 +67,7 @@ namespace ft
 		if (client_fd == -1 || fcntl(client_fd, F_SETFL, O_NONBLOCK) == -1)
 			return (client_socket(client_fd, "", "", socket));
 		host = ft::inet_ntoa(client_addr.sin_addr);
-		port = ft::to_string(ntohs(client_addr.sin_port));
+		port = ft::to_string(ntohs(client_addr.sin_port)); // works incorrectly
 		label_log("Successfully accepted connection from " + host + ":" + port, BOLDED("ACCEPT"), GREEN, LGREEN);
 		return (client_socket(client_fd, host, port, socket));
 	}
