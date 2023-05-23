@@ -13,29 +13,29 @@ namespace ft
 	base_dir_ext &base_dir_ext::operator=(const base_dir_ext &other)
 	{
 		base_dir::operator=(other);
-		this->_locations = other._locations;
+		_locations = other._locations;
 		return (*this);
 	}
 
 	const string_mmap &base_dir_ext::get_redirects() const
 	{
-		return (this->_redirects);
+		return (_redirects);
 	}
 
 	const location_set &base_dir_ext::get_locations() const
 	{
-		return (this->_locations);
+		return (_locations);
 	}
 
 	void base_dir_ext::add_redirect(std::string expression, std::string uri)
 	{
-		this->_redirects.insert(std::pair<std::string, std::string>(expression, uri));
+		_redirects.insert(std::pair<std::string, std::string>(expression, uri));
 	}
 
 	void base_dir_ext::add_location(location location)
 	{
-		if (this->_locations.find(location) != this->_locations.end())
+		if (_locations.find(location) != _locations.end())
 			throw ft::parsing_error("Duplicate location.");
-		this->_locations.insert(location);
+		_locations.insert(location);
 	}
 }

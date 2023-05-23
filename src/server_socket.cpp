@@ -11,17 +11,17 @@ namespace ft
 	server_socket &server_socket::operator=(const server_socket &other)
 	{
 		socket::operator=(other);
-		this->_servers = other._servers;
+		_servers = other._servers;
 		return (*this);
 	}
 
 	void server_socket::add_server(const server *server)
 	{
-		this->_servers.push_back(server);
+		_servers.push_back(server);
 	}
 
 	const server_pointer_vector &server_socket::get_servers() const
 	{
-		return (this->_servers);
+		return (_servers);
 	}
 }

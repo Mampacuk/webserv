@@ -6,35 +6,35 @@ namespace ft
 
 	webserv::~webserv()
 	{
-		delete this->_protocol;
+		delete _protocol;
 	}
 
 	webserv::webserv(const webserv &other) : _protocol(new http(*other._protocol)), _environment(other._environment) {}
 
 	webserv &webserv::operator=(const webserv &other)
 	{
-		*this->_protocol = *other._protocol;
+		*_protocol = *other._protocol;
 		return (*this);
 	}
 
 	const http &webserv::get_http() const
 	{
-		return (*this->_protocol);
+		return (*_protocol);
 	}
 
 	char **webserv::get_environ() const
 	{
-		return (this->_environment);
+		return (_environment);
 	}
 
 	void webserv::set_http(base_dir *protocol)
 	{
-		this->_protocol = static_cast<http*>(protocol);
+		_protocol = static_cast<http*>(protocol);
 	}
 
 	void webserv::set_environment(char **environment)
 	{
-		this->_environment = environment;
+		_environment = environment;
 	}
 
 	int webserv::error(const std::string &error) const
@@ -131,7 +131,7 @@ namespace ft
 		// const char				bars[] = {'\\', '|', '/', '-'};
 		// const int				nbars = sizeof(bars) / sizeof(bars[0]);
 		struct timeval			timeout = {TIMEOUT_SEC, TIMEOUT_MICROSEC};
-		const server_socket_set	&sockets = this->_protocol->get_sockets();
+		const server_socket_set	&sockets = _protocol->get_sockets();
 		int						max_sd = *(--sockets.end());
 
 		FD_ZERO(&master_set);

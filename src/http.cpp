@@ -11,34 +11,34 @@ namespace ft
 	http &http::operator=(const http &other)
 	{
 		base_dir::operator=(other);
-		this->_sockets = other._sockets;
-		this->_servers = other._servers;
+		_sockets = other._sockets;
+		_servers = other._servers;
 		return (*this);
 	}
 
 	const server_list &http::get_servers() const
 	{
-		return (this->_servers);
+		return (_servers);
 	}
 
 	const server_socket_set &http::get_sockets() const
 	{
-		return (this->_sockets);
+		return (_sockets);
 	}
 
 	void http::add_server(server server)
 	{
-		this->_servers.push_back(server);
+		_servers.push_back(server);
 	}
 
 	void http::add_socket(const server_socket &socket)
 	{
-		this->_sockets.insert(socket);
+		_sockets.insert(socket);
 	}
 
 	void http::close_sockets()
 	{
-		for (server_socket_set::iterator it = this->_sockets.begin(); it != this->_sockets.end(); it++)
+		for (server_socket_set::iterator it = _sockets.begin(); it != _sockets.end(); it++)
 			close(*it);
 	}
 

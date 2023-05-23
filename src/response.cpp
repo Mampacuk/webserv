@@ -13,17 +13,17 @@ namespace ft
 
 	response &response::operator=(const response &other)
 	{
-		this->_status = other._status;
-		this->_body = other._body;
-		this->_headers = other._headers;
-		this->_message = other._message;
-		this->_location = other._location;
+		_status = other._status;
+		_body = other._body;
+		_headers = other._headers;
+		_message = other._message;
+		_location = other._location;
 		return (*this);
 	}
 
 	response::operator int() const
 	{
-		return (this->_request);
+		return (_request);
 	}
 
 	void response::generate_response()
@@ -33,10 +33,10 @@ namespace ft
 			if (http::is_error_code(_status))
 				throw server::server_error(_status, "Request error.");
 			find_rewritten_location();
-			_path = append_trailing_slash(_location->get_root()) + _uri;
-			if (this->_request.get_method() == "GET")
+			_path = append_trailing_slash(_location->get_root() + _uri);
+			if (_request.get_method() == "GET")
 				get_method();
-			else if (this->_request.get_method() == "POST")
+			else if (_request.get_method() == "POST")
 				post_method();
 		}
 		catch (const server::server_error &e)
@@ -44,7 +44,7 @@ namespace ft
 			// std::cout << "Path: " << _path << "\n";
 			// throw std::exception();
 			// std::cout << "In catch block\n";
-			this->_status = e;
+			_status = e;
 
 			if (e == 400 || e == 505 || _location == NULL) //bad request or http version not supported
 				read_error_page(e, false);
@@ -62,7 +62,7 @@ namespace ft
 
 		code << error_code;
 		_body = "<html>\n\t<head>\n\t\t<title>Error " + code.str() + "</title>\n\t</head>"
-				+ "\n\t<body>\n\t\t<h1>Error " + code.str() + " " + reason_phrase(this->_status) + "</h1>\n\t</body>\n</html>\n";
+				+ "\n\t<body>\n\t\t<h1>Error " + code.str() + " " + reason_phrase(_status) + "</h1>\n\t</body>\n</html>\n";
 	}
 
 	void response::read_error_page(int error_code, bool loc) //check how the path is constructed
@@ -124,22 +124,29 @@ namespace ft
 
 	void response::find_requested_file()
 	{
-		_path = append_trailing_slash(_path);
 		if (ends_with(_path, "/"))
 		{
 			if (!_location->get_indexes().empty())
 			{
-				for (ft::string_vector::const_iterator it = _location->get_indexes().begin(); it != _location->get_indexes().end(); it++)
+				ft::string_vector::const_iterator it = _location->get_indexes().begin();
+				for (; it != _location->get_indexes().end(); it++)
 					if (read_requested_file(_path + *it))
 						break;
+				if (it == _location->get_indexes().end())
+				{
+					if (_location->get_autoindex())
+						generate_autoindex(_path);
+					else throw server::server_error(forbidden, "Forbidden.");
+				}
 			}
-			else
-			{
-				if (_location->get_autoindex())
-					generate_autoindex(_path);
-				else
-					throw server::server_error(not_found, "File not found.");
-			}
+			// else
+			// {
+			// 	std::cout << "MTELLLL EM AYSSS ELSE_i meeejjjj\n";
+			// 	if (_location->get_autoindex())
+			// 		generate_autoindex(_path);
+			// 	else
+			// 		throw server::server_error(not_found, "File not found.");
+			// }
 		}
 		else
 			if (!read_requested_file(_path))
@@ -179,31 +186,31 @@ namespace ft
 			_status = ok;
 		std::stringstream ss;
 
-		this->_message = HTTP_VERSION " ";
-		ss << this->_status;
-		this->_message += ss.str() + " " + reason_phrase(this->_status) + CRLF;
-		for (string_map::const_iterator it = this->_headers.begin(); it != this->_headers.end(); it++)
-			this->_message += it->first + ": " + it->second + CRLF;
-		this->_message += CRLF + _body;
-		std::cout << "response of size " << this->_message.size() << " is:" << std::endl;
-		std::cout << YELLOW << this->_message.substr(0, 300) << RESET << std::endl;
+		_message = HTTP_VERSION " ";
+		ss << _status;
+		_message += ss.str() + " " + reason_phrase(_status) + CRLF;
+		for (string_map::const_iterator it = _headers.begin(); it != _headers.end(); it++)
+			_message += it->first + ": " + it->second + CRLF;
+		_message += CRLF + _body;
+		std::cout << "response of size " << _message.size() << " is:" << std::endl;
+		std::cout << YELLOW << _message.substr(0, 300) + "..." << RESET << std::endl;
 	}
 
 	std::string response::get_chunk()
 	{
-		std::string chunk = this->_message.substr(this->_cursor, BUFSIZ);
-		this->_cursor = std::min(this->_cursor + BUFSIZ, this->_message.size());
+		std::string chunk = _message.substr(_cursor, BUFSIZ);
+		_cursor = std::min(_cursor + BUFSIZ, _message.size());
 		return (chunk);
 	}
 
 	bool response::empty() const
 	{
-		return (this->_message.empty());
+		return (_message.empty());
 	}
 
 	bool response::sent() const
 	{
-		return (this->_cursor == this->_message.size());
+		return (_cursor == _message.size());
 	}
 
 	bool response::rewrite(const std::string &what, const std::string &with_what)
@@ -242,7 +249,7 @@ namespace ft
 			// std::cout << "Shoud be here\n";
 			throw server::server_error(method_not_allowed, "Method not allowed.");
 		}
-		if (this->_location->get_client_max_body_size() < this->_request.get_body().size())
+		if (_location->get_client_max_body_size() < _request.get_body().size())
 			throw server::server_error(content_too_large, "Exceeded \"client_max_body_size\".");
 	}
 
@@ -260,44 +267,49 @@ namespace ft
 				files.push_back(entry->d_name);
 
 		closedir(dir);
-		_body = "<html>\n\t<head>\n\t\t<title>Index of " + path + "</title>\n\t</head>"
-					+ "\n\t<body>\n\t\t<h1>Index of " + path + "</h1>\n\t\t<hr>\n\t\t\t<ul>";
+		_body = "<html>\n\t<head>\n\t\t<title>Index of " + _uri + "</title>\n\t</head>"
+					+ "\n\t<body>\n\t\t<h1>Index of " + _uri + "</h1>\n\t\t<hr>\n\t\t\t<ul>";
 
 		for (size_t i = 0; i < files.size(); i++)
-			_body += "\n\t\t\t\t<li><a href=\"http://" + _request.get_socket().get_host() + ":" + _request.get_socket().get_port() + path + files[i] + "\">" + files[i] + "</a></li>";
+		{
+			std::cout << MAGENTA "path is " << _path << std::endl;
+			std::cout << "uri is " << _uri << RESET << std::endl;
+			_body += "\n\t\t\t\t<li><a href=\"http://" + _request.get_socket().get_server_socket().get_host() + ":" + _request.get_socket().get_server_socket().get_port() + (!ends_with(_uri, "/") && is_directory((_path).c_str()) ? _uri + "/": _uri) + files[i] + "\">" + files[i] + "</a></li>";
+			// std::cout << "Href: http://" << _request.get_socket().get_server_socket().get_host() << ":" << _request.get_socket().get_server_socket().get_port() << (!ends_with(_uri, "/") && is_directory((_path).c_str()) ? _uri + "/": _uri) << files[i] << std::endl;
+		}
 
 		_body += "\n\t\t\t</ul>\n\t\t<hr>\n\t</body>\n</html>\n"; 
 	}
 
 	void response::post_method()
 	{
-		const std::string cgi = this->_location->get_cgi_param("SCRIPT_FILENAME");
+		const std::string cgi = _location->get_cgi_param("SCRIPT_FILENAME");
 		if (cgi.empty())
 		{
-			this->_status = no_content;
+			_status = no_content;
 			return ;
 		}
 		char *cgi_path, **serv_env = webserver.get_environ(), **cgi_args, **cgi_env;
 		malloc_failsafe(cgi_path = strdup(cgi.c_str()));
 		malloc_failsafe(cgi_args = static_cast<char**>(std::calloc(3, sizeof(char*))), cgi_path);
 		malloc_failsafe(cgi_args[0] = strdup(cgi.c_str()), cgi_path, cgi_args);
-		malloc_failsafe(cgi_args[1] = strdup(this->_path.c_str()), cgi_path, cgi_args);
+		malloc_failsafe(cgi_args[1] = strdup(_path.c_str()), cgi_path, cgi_args);
 		{
 			string_vector environment;
 			for (size_t i = 0; serv_env[i] != NULL; i++)
 				environment.push_back(serv_env[i]);
-			environment.push_back("SERVER_NAME=" + this->_request[std::string("Host")]);
+			environment.push_back("SERVER_NAME=" + _request[std::string("Host")]);
 			environment.push_back("SERVER_PROTOCOL=" HTTP_VERSION);
-			environment.push_back("SERVER_PORT=" + this->_request.get_socket().get_server_socket().get_port());
-			environment.push_back("REQUEST_METHOD=" + this->_request.get_method());
-			environment.push_back("SCRIPT_NAME=" + this->_location->get_cgi_param("SCRIPT_NAME"));
-			environment.push_back("DOCUMENT_ROOT=" + this->_location->get_root());
-			if (!this->_request.get_query().empty())
-				environment.push_back("QUERY_STRING=" + this->_request.get_query());
-			environment.push_back("REMOTE_ADDR=" + this->_request.get_socket().get_host());
-			environment.push_back("CONTENT_LENGTH=" + to_string(this->_request.get_content_length()));
-			environment.push_back("PATH_INFO=" + this->_path);
-			environment.push_back("REQUEST_URI=" + this->_request.get_uri() + (this->_request.get_query().empty() ? "" : "?" + this->_request.get_query()));
+			environment.push_back("SERVER_PORT=" + _request.get_socket().get_server_socket().get_port());
+			environment.push_back("REQUEST_METHOD=" + _request.get_method());
+			environment.push_back("SCRIPT_NAME=" + _location->get_cgi_param("SCRIPT_NAME"));
+			environment.push_back("DOCUMENT_ROOT=" + _location->get_root());
+			if (!_request.get_query().empty())
+				environment.push_back("QUERY_STRING=" + _request.get_query());
+			environment.push_back("REMOTE_ADDR=" + _request.get_socket().get_host());
+			environment.push_back("CONTENT_LENGTH=" + to_string(_request.get_content_length()));
+			environment.push_back("PATH_INFO=" + _path);
+			environment.push_back("REQUEST_URI=" + _request.get_uri() + (_request.get_query().empty() ? "" : "?" + _request.get_query()));
 			malloc_failsafe(cgi_env = static_cast<char**>(std::calloc(environment.size() + 1, sizeof(char*))), cgi_path, cgi_args);
 			for (size_t i = 0; i < environment.size(); i++)
 			{
@@ -349,8 +361,8 @@ namespace ft
 		}
 		close(in_pipe[0]);
 		close(out_pipe[1]);
-		bytes_written = write(in_pipe[1], this->_request.get_body().c_str(), this->_request.get_content_length());
-		if (bytes_written != this->_request.get_content_length())
+		bytes_written = write(in_pipe[1], _request.get_body().c_str(), _request.get_content_length());
+		if (bytes_written != _request.get_content_length())
 		{
 			kill(cgi_pid, SIGTERM);
 			close(in_pipe[1]);
@@ -363,13 +375,13 @@ namespace ft
 			char buffer[BUFSIZ] = {0};
 			bytes_read = read(out_pipe[0], buffer, BUFSIZ - 1);
 			if (bytes_read <= 0) break ;
-			this->_body += buffer;
+			_body += buffer;
 		}
 		if (bytes_read == -1)
 		{
 			kill(cgi_pid, SIGTERM);
 			close(out_pipe[0]);
-			this->_body.clear();
+			_body.clear();
 			throw server::server_error(internal_server_error, "Exceptional error while attempting to run CGI.");
 		}
 		close(out_pipe[0]);
@@ -414,10 +426,10 @@ namespace ft
 
 	void response::delete_method()
 	{
-		if (is_regular_file(this->_path.c_str()))
+		if (is_regular_file(_path.c_str()))
 		{
-			if (std::remove(this->_path.c_str()) == 0)
-				this->_status = no_content;
+			if (std::remove(_path.c_str()) == 0)
+				_status = no_content;
 			else
 				throw server::server_error(internal_server_error, "Failed to delete a resource.");
 		}

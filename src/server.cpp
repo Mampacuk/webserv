@@ -15,18 +15,18 @@ namespace ft
 	server &server::operator=(const server &other)
 	{
 		base_dir_ext::operator=(other);
-		this->_names = other._names;
+		_names = other._names;
 		return (*this);
 	}
 
 	const string_vector &server::get_names() const
 	{
-		return (this->_names);
+		return (_names);
 	}
 
 	void server::add_name(const std::string &name)
 	{
-		if (std::find(this->_names.begin(), this->_names.end(), name) == this->_names.end())
-			this->_names.push_back(name);
+		if (std::find(_names.begin(), _names.end(), name) == _names.end())
+			_names.push_back(name);
 	}
 }

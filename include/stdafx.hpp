@@ -232,7 +232,7 @@ namespace ft
 		public:
 			protocol_error(http_code error, const std::string &what) : std::logic_error(what), _error(error) {}
 			protocol_error(http_code error, const char *what) : std::logic_error(what), _error(error) {}
-			operator http_code() const { return (this->_error); }
+			operator http_code() const { return (_error); }
 	};
 }
 

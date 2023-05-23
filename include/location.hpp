@@ -19,6 +19,7 @@ namespace ft
 			location(const base_dir &other, const std::string &route = "");
 			location &operator=(const location &other);
 			bool operator<(const location &rhs) const;
+			bool operator==(const location &rhs) const;
 			const std::string &get_route() const;
 			bool is_allowed_method(const std::string &method) const;
 			bool has_modifier() const;
