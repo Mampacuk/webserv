@@ -50,6 +50,7 @@ namespace ft
 			void construct_error_page(int error_code);
 			bool is_regular_file(const char *filename) const;
 			bool is_directory(const char *filename) const;
+			std::string append_trailing_slash(const std::string &path);
 	};
 }
 

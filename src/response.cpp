@@ -30,16 +30,14 @@ namespace ft
 	{
 		try
 		{
-			// std::cout << MAGENTA BOLDED("HELLO????") RESET << std::endl;
 			if (http::is_error_code(_status))
 				throw server::server_error(_status, "Request error.");
 			find_rewritten_location();
-			_path = _location->get_root() + _uri;
+			_path = append_trailing_slash(_location->get_root()) + _uri;
 			if (this->_request.get_method() == "GET")
 				get_method();
 			else if (this->_request.get_method() == "POST")
 				post_method();
-			// std::cout << MAGENTA BOLDED("BYE????") RESET << std::endl;
 		}
 		catch (const server::server_error &e)
 		{
@@ -126,8 +124,7 @@ namespace ft
 
 	void response::find_requested_file()
 	{
-		if (!ends_with(_path, "/") && is_directory(_path.c_str()))
-			_path += "/";
+		_path = append_trailing_slash(_path);
 		if (ends_with(_path, "/"))
 		{
 			if (!_location->get_indexes().empty())
@@ -155,7 +152,6 @@ namespace ft
 		for (location_set::const_iterator loc = _request.get_server().get_locations().begin(); 
 						loc != _request.get_server().get_locations().end(); loc++)
 		{
-			// std::cout << "Finding location\n";
 			if (starts_with(_uri, loc->get_route()))
 			{
 				if (loc->has_modifier() && loc->get_route() == _uri)
@@ -165,7 +161,6 @@ namespace ft
 				}
 				if (_location == NULL || _location->get_route().length() < loc->get_route().length())
 				{
-					// std::cout << "HMMMMM\n";
 					_location = &(*loc);
 				}
 					
@@ -173,7 +168,6 @@ namespace ft
 		}
 		if (_location == NULL)
 		{
-			// std::cout << "Hn?\n";
 			throw server::server_error(not_found, "File not found.");
 		}
 	}
@@ -191,8 +185,8 @@ namespace ft
 		for (string_map::const_iterator it = this->_headers.begin(); it != this->_headers.end(); it++)
 			this->_message += it->first + ": " + it->second + CRLF;
 		this->_message += CRLF + _body;
-		// std::cout << "response of size " << this->_message.size() << " is:" << std::endl;
-		// std::cout << YELLOW << this->_message.substr(0, 300) << RESET << std::endl;
+		std::cout << "response of size " << this->_message.size() << " is:" << std::endl;
+		std::cout << YELLOW << this->_message.substr(0, 300) << RESET << std::endl;
 	}
 
 	std::string response::get_chunk()
@@ -229,7 +223,6 @@ namespace ft
 			for (ft::string_mmap::const_iterator it = _request.get_server().get_redirects().begin(); it != _request.get_server().get_redirects().end(); it++)
 				rewrite(it->first, it->second);
 		int i = 0;
-		// std::cout << "HERE-_-\n";
 		find_location();
 		while (i != 10)
 		{
@@ -454,5 +447,12 @@ namespace ft
 			return (true);
 		}
 		return (false);
+	}
+
+	std::string response::append_trailing_slash(const std::string &path)
+	{
+		if (!ends_with(path, "/") && is_directory(path.c_str()))
+			return (path + "/");
+		return (path);
 	}
 }

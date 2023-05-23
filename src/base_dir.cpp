@@ -25,7 +25,7 @@ namespace ft
 
 	void base_dir::set_root(const std::string &root)
 	{
-		this->_root = (ends_with(root, "/") ? root : root + "/");
+		this->_root = root;
 	}
 
 	void base_dir::set_autoindex(bool autoindex)
