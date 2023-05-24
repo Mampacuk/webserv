@@ -106,9 +106,12 @@ namespace ft
 	{
 		std::string chunk = response.get_chunk();
 		ssize_t bytes_written = send(response, chunk.c_str(), chunk.size(), 0);
-		if (bytes_written == -1)
+		if (bytes_written <= 0)
 		{
-			error("[SEND] send() failed.");
+			if (!bytes_written)
+				label_log("Connection closed by the client.", BOLDED("RECV"), YELLOW);
+			else
+				error("[SEND] send() failed due to " + to_string(errno) + " " + strerror(errno));
 			return (EXIT_SUCCESS);
 		}
 		#ifdef DEBUG

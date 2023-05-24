@@ -1,7 +1,7 @@
 #ifndef STDAFX_HPP
 # define STDAFX_HPP
 
-# define DEBUG
+// # define DEBUG
 
 # if defined(_WIN32) || defined(__CYGWIN__) // defined on windows
 #  undef UNICODE

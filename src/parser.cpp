@@ -95,12 +95,17 @@ namespace ft
 			std::stringstream buffer(line);
 			while (buffer >> chunk)
 			{
-				if (chunk.find('#') != std::string::npos)
+				const size_t hash = chunk.find('#');
+				if (hash != std::string::npos)
 				{
 					_chunks.push_front(chunk);
 					erase_chunk_middle("#", true);
-					front().empty() ? (void)pop_front() : _chunks.push_back(pop_front());
-					pop_front();
+					if (front().empty())
+						pop_front();
+					else
+						_chunks.push_back(pop_front());
+					if (hash + 1 != chunk.length())
+						pop_front();
 					buffer.str(""); // clear buffer
 				}
 				else
