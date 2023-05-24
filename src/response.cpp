@@ -69,13 +69,22 @@ namespace ft
 	{
 		std::string error_page;
 		
+		std::cout << "BAAAREEEEEEVVVVVVVVVVVVV\n";
 		if (!loc)
 			error_page = _request.get_server().get_root() + "/" + _request.get_server().get_error_page(error_code);	//root?
 		else
-			error_page = _location->get_route() + _location->get_error_page(error_code);
+		{
+			std::cout << "I am here\n";
+			// std::cout << _location->get_route() + _location->get_error_page(error_code) << std::endl;
+			error_page = _location->get_root() + _location->get_route() + _location->get_error_page(error_code);
+			std::cout << CYAN "get_error_page: " << _location->get_error_page(error_code) << RESET << std::endl;
+			std::cout << RED "error_code: " << error_code << RESET << std::endl;
+			std::cout << RED "location route: " << _location->get_route() << RESET << std::endl;
+			std::cout << "error page to be requested: " << error_page << std::endl;
+		}
 		// std::cout << "Server root: " << _request.get_server().get_root() << std::endl;
 		// std::cout << "Error page: " << error_page << std::endl;
-		if (!error_page.length() || !read_requested_file(error_page))
+		if (error_page.empty() || !read_requested_file(error_page))
 		{
 			// std::cout << "Could not open file\n";
 			construct_error_page(error_code);
@@ -93,6 +102,7 @@ namespace ft
 	{
 		std::ifstream file;
 
+		std::cout << "Read requested file: " << filename << std::endl;
 		if (!is_regular_file(filename.c_str()))
 			return (false);
 		file.open(filename);
@@ -154,10 +164,10 @@ namespace ft
 	}
 
 
-	void response::find_location()
+	void response::find_location(const base_dir_ext &level)
 	{
-		for (location_set::const_iterator loc = _request.get_server().get_locations().begin(); 
-						loc != _request.get_server().get_locations().end(); loc++)
+		location_set::const_iterator loc = level.get_locations().begin();
+		for (; loc != level.get_locations().end(); loc++)
 		{
 			if (starts_with(_uri, loc->get_route()))
 			{
@@ -166,11 +176,11 @@ namespace ft
 					_location = &(*loc);
 					break;
 				}
-				if (_location == NULL || _location->get_route().length() < loc->get_route().length())
+				if ((_location == NULL || _location->get_route().length() < loc->get_route().length()) && !loc->has_modifier())
 				{
 					_location = &(*loc);
+					find_location(*_location);
 				}
-					
 			}
 		}
 		if (_location == NULL)
@@ -230,14 +240,14 @@ namespace ft
 			for (ft::string_mmap::const_iterator it = _request.get_server().get_redirects().begin(); it != _request.get_server().get_redirects().end(); it++)
 				rewrite(it->first, it->second);
 		int i = 0;
-		find_location();
+		find_location(_request.get_server());
 		while (i != 10)
 		{
 			if (!_location->get_redirects().empty())
 			{
 				for (ft::string_mmap::const_iterator it = _location->get_redirects().begin(); it != _location->get_redirects().end(); it++)
 					rewrite(it->first, it->second);
-				find_location();
+				find_location(_request.get_server());
 				i++;
 			}
 			else

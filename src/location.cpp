@@ -13,7 +13,7 @@ namespace ft
 		if (dynamic_cast<const location*>(&other))
 		{
 			_methods = static_cast<const location&>(other)._methods;
-			_route = static_cast<const location&>(other)._route;
+			set_route(static_cast<const location&>(other)._route);
 			_modifier = static_cast<const location&>(other)._modifier;
 		}
 	}
@@ -51,7 +51,7 @@ namespace ft
 		if (parent)
 			if (route.compare(0, parent->get_route().length(), parent->get_route()))
 				throw std::invalid_argument("location \"" + route + "\" is outside location \"" + parent->get_route() + "\"");
-		_route = route;
+		_route = (ends_with(route, "/") ? route.substr(0, route.size() - 1) : route);;
 	}
 
 	void location::add_method(const std::string &method) // what if there are 2 GET _methods

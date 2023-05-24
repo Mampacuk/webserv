@@ -231,7 +231,7 @@ namespace ft
 	{
 		std::vector<unsigned int> response_codes;
 		bool semicolon_erased = true;
-		parent->flush_error_pages();
+		// parent->flush_error_pages();
 		while (!erase_chunk_middle(";"))
 		{
 			const http_code status = static_cast<http_code>(ft::strtoul(front()));

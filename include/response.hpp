@@ -30,7 +30,7 @@ namespace ft
 			bool empty() const;
 			bool sent() const;
 		private:
-			void find_location();
+			void find_location(const base_dir_ext &level);
 			void construct_response();
 			void generate_response();
 			void get_method();
