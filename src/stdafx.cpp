@@ -69,8 +69,8 @@ namespace ft
 			case see_other:				return ("See Other");
 			case not_modified:			return ("Not Modified");
 			case use_proxy:				return ("Use Proxy");
-			case temporary_redirect:	return ("Temporary Redirect");
-			case permanent_redirect:	return ("Permanent Redirect");
+			case temporary_rewrite:	return ("Temporary Redirect");
+			case permanent_rewrite:	return ("Permanent Redirect");
 
 			//####### 4xx - Client Error #######
 			case bad_request:					return ("Bad Request");

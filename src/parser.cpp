@@ -19,7 +19,7 @@ namespace ft
 		_directives.insert(directive("index", dir_functor(&parser::read_index, false)));
 		_directives.insert(directive("listen", dir_functor(&parser::read_listen, false)));
 		_directives.insert(directive("server_name", dir_functor(&parser::read_server_name, false)));
-		_directives.insert(directive("rewrite", dir_functor(&parser::read_redirect, false)));
+		_directives.insert(directive("rewrite", dir_functor(&parser::read_rewrite, false)));
 		_directives.insert(directive("cgi_param", dir_functor(&parser::read_cgi_param, false)));
 		_directives.insert(directive("limit_except", dir_functor(&parser::read_limit_except, false)));
 		parse_chunks();
@@ -174,6 +174,7 @@ namespace ft
 		_directives["cgi_param"].second = true;
 		_directives["limit_except"].second = true;
 
+		loc.flush_rewrites();
 		loc.set_route(pop_front(), dynamic_cast<location*>(parent));
 		loc.set_modifier((front() == "=" ? pop_front() == "=" : false));
 		while (front().at(0) != '}')
@@ -235,7 +236,7 @@ namespace ft
 		while (!erase_chunk_middle(";"))
 		{
 			const http_code status = static_cast<http_code>(ft::strtoul(front()));
-			if (!(http::is_redirection_code(status) || http::is_error_code(status)))
+			if (!(http::is_rewriteion_code(status) || http::is_error_code(status)))
 			{
 				semicolon_erased = false;
 				break ;
@@ -281,7 +282,7 @@ namespace ft
 		return (true);
 	}
 
-	bool parser::read_redirect(base_dir *parent)
+	bool parser::read_rewrite(base_dir *parent)
 	{
 		bool semicolon_erased;
 		std::string expr;
@@ -289,7 +290,7 @@ namespace ft
 			throw parsing_error("Invalid number of arguments for `rewrite`.");
 		expr = pop_front();
 		semicolon_erased = erase_chunk_middle(";");
-		static_cast<base_dir_ext*>(parent)->add_redirect(expr, pop_front());
+		static_cast<base_dir_ext*>(parent)->add_rewrite(expr, pop_front());
 		return (semicolon_erased);
 	}
 

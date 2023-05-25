@@ -202,6 +202,7 @@ namespace ft
 		for (string_map::const_iterator it = _headers.begin(); it != _headers.end(); it++)
 			_message += it->first + ": " + it->second + CRLF;
 		_message += CRLF + _body;
+
 		std::cout << "response of size " << _message.size() << " is:" << std::endl;
 		std::cout << YELLOW << _message.substr(0, 300) + "..." << RESET << std::endl;
 	}
@@ -225,6 +226,7 @@ namespace ft
 
 	bool response::rewrite(const std::string &what, const std::string &with_what)
 	{
+		std::cout << MAGENTA "tryna replace " << what << " with " << with_what << RESET << std::endl;
 		size_t pos = _uri.find(what);
 		if (pos != std::string::npos)
 		{
@@ -237,16 +239,18 @@ namespace ft
 
 	void response::find_rewritten_location()
 	{
-		if (!_request.get_server().get_redirects().empty())
-			for (ft::string_mmap::const_iterator it = _request.get_server().get_redirects().begin(); it != _request.get_server().get_redirects().end(); it++)
-				rewrite(it->first, it->second);
+		std::cout << BLUE << "are redirects of serv empty?" << (_request.get_server().get_rewrites().empty() ? "yes" : "no") << RESET << std::endl;
+		std::cout << LGREEN "uri before rewrite: " << _uri << RESET << std::endl;
+		for (ft::string_mmap::const_iterator it = _request.get_server().get_rewrites().begin(); it != _request.get_server().get_rewrites().end(); it++)
+			rewrite(it->first, it->second);
+		std::cout << LGREEN "uri after rewrite: " << _uri << RESET << std::endl;
 		int i = 0;
 		find_location(_request.get_server());
 		while (i != 10)
 		{
-			if (!_location->get_redirects().empty())
+			if (!_location->get_rewrites().empty())
 			{
-				for (ft::string_mmap::const_iterator it = _location->get_redirects().begin(); it != _location->get_redirects().end(); it++)
+				for (ft::string_mmap::const_iterator it = _location->get_rewrites().begin(); it != _location->get_rewrites().end(); it++)
 					rewrite(it->first, it->second);
 				find_location(_request.get_server());
 				i++;

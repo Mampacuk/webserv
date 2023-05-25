@@ -57,7 +57,7 @@ namespace ft
 			bool	read_error_page(base_dir *parent);
 			bool	read_client_max_body_size(base_dir *parent);
 			bool	read_index(base_dir *parent);
-			bool	read_redirect(base_dir *parent);
+			bool	read_rewrite(base_dir *parent);
 			bool	read_listen(base_dir*);
 			bool	read_server_name(base_dir *server);
 			bool	read_cgi_param(base_dir *parent);
