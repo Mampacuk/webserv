@@ -168,13 +168,13 @@ namespace ft
 			}
 			#ifdef DEBUG
 			log("Responses: " + to_string(responses.size()) + ", Requests: " + to_string(requests.size()), MAGENTA);
-			#endif
 			bool entered = false;
+			#endif
 			// accept() reading_set block
 			for (server_socket_set::iterator it = sockets.begin(); it != sockets.end(); it++)
 			{
-				entered = true;
 				#ifdef DEBUG
+				entered = true;
 				log("Determining if server socket " + to_string(*it) + " is set...", LRED);
 				#endif
 				if (FD_ISSET(*it, &reading_set))
@@ -202,8 +202,8 @@ namespace ft
 			}
 			#ifdef DEBUG
 			if (!entered) log("Server sockets are empty.", RED);
-			#endif
 			entered = false;
+			#endif
 			#ifdef DEBUG
 			log("Responses: " + to_string(responses.size()) + ", Requests: " + to_string(requests.size()), MAGENTA);
 			#endif
@@ -211,8 +211,8 @@ namespace ft
 			// recv() reading_set block 
 			for (request_list::iterator it = requests.begin(); it != requests.end(); it++)
 			{
-				entered = true;
 				#ifdef DEBUG
+				entered = true;
 				log("Determining if request " + to_string(*it) + " is set...", LRED);
 				#endif
 				if (FD_ISSET(*it, &reading_set))
@@ -232,17 +232,15 @@ namespace ft
 			}
 			#ifdef DEBUG
 			if (!entered) log("Requests are empty.", RED);
-			#endif
 			entered = false;
-			#ifdef DEBUG
 			log("Responses: " + to_string(responses.size()) + ", Requests: " + to_string(requests.size()), MAGENTA);
 			#endif
 
 			// send() writing_set block
 			for (response_list::iterator it = responses.begin(); it != responses.end(); it++)
 			{
-				entered = true;
 				#ifdef DEBUG
+				entered = true;
 				log("Determining if response " + to_string(*it) + " is set...", LRED);
 				#endif
 				if (FD_ISSET(*it, &writing_set))

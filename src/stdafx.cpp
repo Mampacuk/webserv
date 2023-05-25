@@ -31,6 +31,8 @@ namespace ft
 		return (ss.str());
 	}
 
+	// doesn't tolerate leading or trailing whitespaces,
+	// or characters in the middle of the number.
 	unsigned int strtoul(const std::string &number, int base)
 	{
 		if (number.empty() || number[0] == '-' || std::isspace(number[0]) || base < 2)

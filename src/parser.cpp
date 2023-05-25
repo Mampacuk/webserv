@@ -349,8 +349,6 @@ namespace ft
 		return (true);
 	}
 
-	// doesn't tolerate leading or trailing whitespaces,
-	// or characters in the middle of the number.
 	std::string &parser::front()
 	{
 		if (_chunks.empty())
@@ -455,7 +453,7 @@ namespace ft
 			if (bind(socket, rit->ai_addr, rit->ai_addrlen) == -1)
 			{
 				close(socket);
-				webserver.error("[BIND] bind() to " + host + ":" + port + " failed (" + strerror(errno) + ")");
+				throw std::runtime_error("[BIND] bind() to " + host + ":" + port + " failed (" + strerror(errno) + ")");
 			}
 			webserver.label_log("Successfully bound to address " + host + ":" + port, BOLDED("BIND"), GREEN, GREEN);
 			if (listen(socket, BACKLOG) == -1)

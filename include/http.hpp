@@ -19,7 +19,7 @@ namespace ft
 			http(const http &other);
 			http &operator=(const http &other);
 			const server_list &get_servers() const;
-			void add_server(server server);
+			void add_server(const server &server);
 			const server_socket_set &get_sockets() const;
 			void add_socket(const server_socket &socket);
 			void close_sockets();

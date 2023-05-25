@@ -229,6 +229,7 @@ namespace ft
 		if (pos != std::string::npos)
 		{
 			_uri.replace(pos, pos + what.length(), with_what);
+			_status = found;
 			return true;
 		}
 		return false;

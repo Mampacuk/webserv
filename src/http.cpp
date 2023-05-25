@@ -26,7 +26,7 @@ namespace ft
 		return (_sockets);
 	}
 
-	void http::add_server(server server)
+	void http::add_server(const server &server)
 	{
 		_servers.push_back(server);
 	}
