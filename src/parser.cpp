@@ -275,7 +275,7 @@ namespace ft
 	bool parser::read_index(base_dir *parent)
 	{
 		std::vector<std::string> arguments = get_argument_list();
-		parent->flush_indexes();
+		parent->flush_indices();
 		for (size_t i = 0; i < arguments.size(); i++)
 			parent->add_index(arguments[i]);
 		return (true);

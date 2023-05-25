@@ -2,13 +2,13 @@
 
 namespace ft
 {
-	location::location() : base_dir_ext(), _methods(), _route(), _modifier(false) {}
+	location::location() : base_dir_ext(), _route(), _modifier(false), _methods(), _flush_methods(false) {}
 
 	location::~location() {}
 
-	location::location(const location &other) : base_dir_ext(other), _methods(other._methods), _route(other._route), _modifier(other._modifier) {}
+	location::location(const location &other) : base_dir_ext(other), _route(other._route), _modifier(other._modifier), _methods(other._methods), _flush_methods(false) {}
 
-	location::location(const base_dir &other, const std::string &route) : base_dir_ext(other), _methods(), _route(route), _modifier(false)
+	location::location(const base_dir &other, const std::string &route) : base_dir_ext(other), _route(route), _modifier(false), _methods(), _flush_methods(false)
 	{
 		if (dynamic_cast<const location*>(&other))
 		{
@@ -74,7 +74,11 @@ namespace ft
 
 	void location::flush_methods()
 	{
-		_methods.clear();
+		if (!_flush_methods)
+		{
+			_methods.clear();
+			_flush_methods = true;
+		}
 	}
 
 	bool location::operator<(const location &rhs) const

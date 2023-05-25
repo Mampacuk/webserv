@@ -9,9 +9,10 @@ namespace ft
 	class location : public base_dir_ext
 	{
 		private:
-			string_set	_methods; // if empty, everything is allowed
 			std::string	_route;
 			bool		_modifier;
+			string_set	_methods; // if empty, everything is allowed
+			bool		_flush_methods;
 		public:
 			location();
 			~location();

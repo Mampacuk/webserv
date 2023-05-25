@@ -25,8 +25,7 @@ namespace ft
 				private:
 					http_code _error;
 				public:
-					explicit server_error(http_code error, const std::string &what) : std::logic_error(what), _error(error) {}
-					explicit server_error(http_code error, const char *what) : std::logic_error(what), _error(error) {}
+					explicit server_error(http_code error) : std::logic_error(reason_phrase(error)), _error(error) {}
 					operator http_code() const { return (_error); }
 			};
 	};

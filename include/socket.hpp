@@ -13,7 +13,7 @@ namespace ft
 			const std::string _port;
 		public:
 			socket();
-			~socket();
+			virtual ~socket();
 			socket(const socket &other);
 			socket(int fd, const std::string &host, const std::string &port);
 			socket &operator=(const socket&);

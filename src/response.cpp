@@ -31,7 +31,7 @@ namespace ft
 		try
 		{
 			if (http::is_error_code(_status))
-				throw server::server_error(_status, "Request error.");
+				throw server::server_error(_status);
 			find_rewritten_location();
 			_path = append_trailing_slash(_location->get_root() + _uri);
 			if (_request.get_method() == "GET")
@@ -136,17 +136,17 @@ namespace ft
 	{
 		if (ends_with(_path, "/"))
 		{
-			if (!_location->get_indexes().empty())
+			if (!_location->get_indices().empty())
 			{
-				ft::string_vector::const_iterator it = _location->get_indexes().begin();
-				for (; it != _location->get_indexes().end(); it++)
+				ft::string_vector::const_iterator it = _location->get_indices().begin();
+				for (; it != _location->get_indices().end(); it++)
 					if (read_requested_file(_path + *it))
 						break;
-				if (it == _location->get_indexes().end())
+				if (it == _location->get_indices().end())
 				{
 					if (_location->get_autoindex())
 						generate_autoindex(_path);
-					else throw server::server_error(forbidden, "Forbidden.");
+					else throw server::server_error(forbidden);
 				}
 			}
 			// else
@@ -155,12 +155,12 @@ namespace ft
 			// 	if (_location->get_autoindex())
 			// 		generate_autoindex(_path);
 			// 	else
-			// 		throw server::server_error(not_found, "File not found.");
+			// 		throw server::server_error(not_found);
 			// }
 		}
 		else
 			if (!read_requested_file(_path))
-				throw server::server_error(not_found, "File not found.");
+				throw server::server_error(not_found);
 	}
 
 
@@ -185,7 +185,7 @@ namespace ft
 		}
 		if (_location == NULL)
 		{
-			throw server::server_error(not_found, "File not found.");
+			throw server::server_error(not_found);
 		}
 	}
 
@@ -257,10 +257,10 @@ namespace ft
 		{
 			// std::cout << "Method: " << _request.get_method() << std::endl;
 			// std::cout << "Shoud be here\n";
-			throw server::server_error(method_not_allowed, "Method not allowed.");
+			throw server::server_error(method_not_allowed);
 		}
 		if (_location->get_client_max_body_size() < _request.get_body().size())
-			throw server::server_error(content_too_large, "Exceeded \"client_max_body_size\".");
+			throw server::server_error(content_too_large);
 	}
 
 	void response::generate_autoindex(const std::string &path) 
@@ -269,7 +269,7 @@ namespace ft
 		std::vector<std::string> files;
 
 		if (dir == nullptr)
-			throw server::server_error(not_found, "File not found."); //does autoindex have it's own error code??
+			throw server::server_error(not_found); //does autoindex have it's own error code??
 
 		struct dirent *entry;
 		while ((entry = readdir(dir)) != nullptr)
@@ -353,7 +353,7 @@ namespace ft
 		int in_pipe[2], out_pipe[2];
 
 		if (pipe(in_pipe) == -1)
-			throw server::server_error(internal_server_error, "Exceptional error while attempting to run CGI.");
+			throw server::server_error(internal_server_error);
 		pipe_failsafe(pipe(out_pipe), in_pipe);
 		cgi_pid = fork();
 		if (cgi_pid == -1)
@@ -363,11 +363,11 @@ namespace ft
 			close(in_pipe[1]);
 			close(out_pipe[0]);
 			if (dup2(in_pipe[0], STDIN_FILENO) == -1 || dup2(out_pipe[1], STDOUT_FILENO) == -1)
-				throw server::server_error(internal_server_error, "Exceptional error while attempting to run CGI.");
+				throw server::server_error(internal_server_error);
 			close(in_pipe[0]);
 			close(out_pipe[1]);
 			execve(cgi_path, cgi_args, cgi_env);
-			throw server::server_error(internal_server_error, "CGI file not found.");
+			throw server::server_error(internal_server_error);
 		}
 		close(in_pipe[0]);
 		close(out_pipe[1]);
@@ -377,7 +377,7 @@ namespace ft
 			kill(cgi_pid, SIGTERM);
 			close(in_pipe[1]);
 			close(out_pipe[0]);
-			throw server::server_error(internal_server_error, "Exceptional error while attempting to run CGI.");
+			throw server::server_error(internal_server_error);
 		}
 		close(in_pipe[1]);
 		while (bytes_read > 0)
@@ -392,11 +392,11 @@ namespace ft
 			kill(cgi_pid, SIGTERM);
 			close(out_pipe[0]);
 			_body.clear();
-			throw server::server_error(internal_server_error, "Exceptional error while attempting to run CGI.");
+			throw server::server_error(internal_server_error);
 		}
 		close(out_pipe[0]);
 		if (waitpid(cgi_pid, &term_status, 0) == -1 || !WIFEXITED(term_status) || WEXITSTATUS(term_status) != 0)
-			throw server::server_error(internal_server_error, "Exceptional error while attempting to run CGI.");
+			throw server::server_error(internal_server_error);
 	}
 
 	void response::pipe_failsafe(int status, int in_pipe[2], int out_pipe[2])
@@ -413,7 +413,7 @@ namespace ft
 				close(out_pipe[0]);
 				close(out_pipe[1]);
 			}
-			throw server::server_error(internal_server_error, "Exceptional error while attempting to run CGI.");
+			throw server::server_error(internal_server_error);
 		}
 	}
 
@@ -423,7 +423,7 @@ namespace ft
 		{
 			std::free(path), std::free(env);
 			if (args) std::free(args[0]), std::free(args[1]), std::free(args);
-			throw server::server_error(internal_server_error, "Not enough memory to run CGI.");
+			throw server::server_error(internal_server_error);
 		}
 	}
 
@@ -441,10 +441,10 @@ namespace ft
 			if (std::remove(_path.c_str()) == 0)
 				_status = no_content;
 			else
-				throw server::server_error(internal_server_error, "Failed to delete a resource.");
+				throw server::server_error(internal_server_error);
 		}
 		else
-			throw server::server_error(forbidden, "Deleting non-regular files is not allowed.");
+			throw server::server_error(forbidden);
 	}
 
 	bool response::is_regular_file(const char *filename) const

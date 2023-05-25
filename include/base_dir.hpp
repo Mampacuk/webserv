@@ -9,11 +9,14 @@ namespace ft
 	{
 		protected:
 			bool				_autoindex;
-			error_map			_error_pages;
 			std::string			_root;
-			string_vector		_indexes;
 			unsigned long int	_client_max_body_size; // in bytes
+			error_map			_error_pages;
+			string_vector		_indices;
 			string_map			_cgi_params;
+			bool				_flush_error_pages;
+			bool				_flush_indices;
+			bool				_flush_cgi_params;
 		public:
 			base_dir();
 			virtual ~base_dir();
@@ -30,10 +33,10 @@ namespace ft
 			void add_cgi_param(const std::string &key, const std::string &value);
 			std::string get_error_page(unsigned int error_code) const;
 			std::string get_cgi_param(const std::string &key) const;
-			const string_vector &get_indexes() const;
+			const string_vector &get_indices() const;
 			const string_map &get_cgi_params() const;
 			void flush_error_pages();
-			void flush_indexes();
+			void flush_indices();
 			void flush_cgi_params();
 	};
 }
