@@ -58,12 +58,13 @@ namespace ft
 
 	void base_dir::add_error_page(unsigned int error_code, const std::string &page)
 	{
-		_error_pages[error_code] = starts_with(page, "/") ? page : "/" + page;
+		_error_pages[error_code] = starts_with(page, "/") ? page.substr(1, page.size()) : page;
 	}
 
 	void base_dir::add_index(const std::string &index_file)
 	{
-		_indices.push_back(starts_with(index_file, "/") ? index_file : "/" + index_file);
+		_indices.push_back(starts_with(index_file, "/") ? index_file.substr(1, index_file.size()) : index_file);
+	
 	}
 
 	void base_dir::add_cgi_param(const std::string &key, const std::string &value)

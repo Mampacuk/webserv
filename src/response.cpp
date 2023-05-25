@@ -34,6 +34,7 @@ namespace ft
 				throw server::server_error(_status);
 			find_rewritten_location();
 			_path = append_trailing_slash(_location->get_root() + _uri);
+			std::cout << "Path in the beginning: " << _path << std::endl; 
 			if (_request.get_method() == "GET")
 				get_method();
 			else if (_request.get_method() == "POST")
@@ -71,7 +72,7 @@ namespace ft
 		
 		std::cout << "BAAAREEEEEEVVVVVVVVVVVVV\n";
 		if (!loc)
-			error_page = _request.get_server().get_root() + "/" + _request.get_server().get_error_page(error_code);	//root?
+			error_page = _request.get_server().get_root() + _request.get_server().get_error_page(error_code);	//root?
 		else
 		{
 			std::cout << "I am here\n";
@@ -140,8 +141,11 @@ namespace ft
 			{
 				ft::string_vector::const_iterator it = _location->get_indices().begin();
 				for (; it != _location->get_indices().end(); it++)
+				{
+					std::cout << "Index file: " << *it << std::endl;
 					if (read_requested_file(_path + *it))
 						break;
+				}
 				if (it == _location->get_indices().end())
 				{
 					if (_location->get_autoindex())

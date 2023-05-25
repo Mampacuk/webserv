@@ -191,7 +191,7 @@ namespace ft
 						#endif
 						requests.push_back(new_sd);
 						FD_SET(new_sd, &master_set);
-						FD_SET(new_sd, &reading_set);
+						// FD_SET(new_sd, &reading_set);
 						max_sd = new_sd.get_fd() > max_sd ? new_sd.get_fd() : max_sd;
 					}
 					break ;
