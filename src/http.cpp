@@ -65,7 +65,7 @@ namespace ft
 		return (status >= 200 && status < 300);
 	}
 
-	bool http::is_rewriteion_code(http_code status)
+	bool http::is_redirection_code(http_code status)
 	{
 		return (status >= 300 && status < 400);
 	}

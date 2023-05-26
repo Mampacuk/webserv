@@ -2,27 +2,39 @@
 
 namespace ft
 {
-	base_dir::base_dir() : _autoindex(false), _root("html"), _client_max_body_size(1000000), _error_pages(), _indices(), _cgi_params(), _flush_error_pages(false), _flush_indices(false), _flush_cgi_params(false)
+	base_dir::base_dir() : _autoindex(false), _root("html"), _cgi_executable(), _cgi_extension(), _client_max_body_size(1000000), _error_pages(), _indices(), _flush_error_pages(false), _flush_indices(false)
 	{
 		_indices.push_back("index");
+		std::cout << LGREEN "pushed str " YELLOW << _indices.back() << LGREEN " under address " MAGENTA << &_indices.back() << RESET << std::endl;
 		_indices.push_back("index.html");
+		std::cout << LGREEN "pushed str " YELLOW << _indices.back() << LGREEN " under address " MAGENTA << &_indices.back() << RESET << std::endl;
 	}
 
 	base_dir::~base_dir() {}
 
-	base_dir::base_dir(const base_dir &other) : _autoindex(other._autoindex), _root(other._root), _client_max_body_size(other._client_max_body_size), _error_pages(other._error_pages), _indices(other._indices), _cgi_params(other._cgi_params), _flush_error_pages(false), _flush_indices(false), _flush_cgi_params(false) {}
+	base_dir::base_dir(const base_dir &other) : _autoindex(other._autoindex), _root(other._root), _cgi_executable(other._cgi_executable), _cgi_extension(other._cgi_extension), _client_max_body_size(other._client_max_body_size), _error_pages(other._error_pages), _indices(other._indices), _flush_error_pages(false), _flush_indices(false)
+	{
+		std::cout << "other under " << &other << std::endl;
+		std::cout << "other's indices size is " << other._indices.size() << std::endl;
+		std::cout << "other's indices are under " << &other._indices << std::endl;
+		std::cout << "this indices size is " << _indices.size() << std::endl;
+		std::cout << "this indices are under " << &_indices << std::endl;
+		std::cout << "this is under " << this << std::endl;
+	}
 
 	base_dir &base_dir::operator=(const base_dir &other)
 	{
 		_autoindex = other._autoindex;
 		_root = other._root;
+		_cgi_executable = other._cgi_executable;
+		_cgi_extension = other._cgi_extension;
 		_client_max_body_size = other._client_max_body_size;
 		_error_pages = other._error_pages;
+		std::cout << MAGENTA "other under address " << &other << RESET << std::endl;
+		std::cout << MAGENTA "its indices are " << other._indices.size() << RESET << std::endl;
 		_indices = other._indices;
-		_cgi_params = other._cgi_params;
 		_flush_error_pages = other._flush_error_pages;
 		_flush_indices = other._flush_indices;
-		_flush_cgi_params = other._flush_cgi_params;
 		return (*this);
 	}
 
@@ -41,6 +53,16 @@ namespace ft
 		_client_max_body_size = size;
 	}
 
+	void base_dir::set_cgi_executable(const std::string &cgi_executable)
+	{
+		_cgi_executable = cgi_executable;
+	}
+
+	void base_dir::set_cgi_extension(const std::string &cgi_extension)
+	{
+		_cgi_extension = cgi_extension;
+	}
+
 	const std::string &base_dir::get_root() const
 	{
 		return (_root);
@@ -56,6 +78,16 @@ namespace ft
 		return (_client_max_body_size);
 	}
 
+	const std::string &base_dir::get_cgi_executable() const
+	{
+		return (_cgi_executable);
+	}
+
+	const std::string &base_dir::get_cgi_extension() const
+	{
+		return (_cgi_extension);
+	}
+
 	void base_dir::add_error_page(unsigned int error_code, const std::string &page)
 	{
 		_error_pages[error_code] = starts_with(page, "/") ? page.substr(1, page.size()) : page;
@@ -67,11 +99,6 @@ namespace ft
 	
 	}
 
-	void base_dir::add_cgi_param(const std::string &key, const std::string &value)
-	{
-		_cgi_params.insert(string_pair(key, value));
-	}
-
 	std::string base_dir::get_error_page(unsigned int error_code) const
 	{
 		error_map::const_iterator it;
@@ -80,22 +107,9 @@ namespace ft
 		return (it != _error_pages.end() ? it->second : "");
 	}
 
-	std::string base_dir::get_cgi_param(const std::string &key) const
-	{
-		string_map::const_iterator it;
-
-		it = _cgi_params.find(key);
-		return (it != _cgi_params.end() ? it->second : "");
-	}
-
 	const string_vector &base_dir::get_indices() const
 	{
 		return (_indices);
-	}
-
-	const string_map &base_dir::get_cgi_params() const
-	{
-		return (_cgi_params);
 	}
 
 	void base_dir::flush_error_pages()
@@ -111,17 +125,13 @@ namespace ft
 	{
 		if (!_flush_indices)
 		{
-			_indices.clear();
-			_flush_indices = true;
-		}
-	}
+			std::cout << CYAN "ABOUT TO FLUSH INDICES OF SIZE " << _indices.size() << RESET << std::endl;
+			// for (size_t i = 0; i < _indices.size(); i++)
+			// 	std::cout << MAGENTA "index " << i << ": " << _indices[i] << RESET << std::endl;
 
-	void base_dir::flush_cgi_params()
-	{
-		if (!_flush_cgi_params)
-		{
-			_cgi_params.clear();
-			_flush_cgi_params = true;
+			_indices.clear();
+			std::cout << CYAN "FLUSHED INDICES" RESET << std::endl;
+			_flush_indices = true;
 		}
 	}
 }

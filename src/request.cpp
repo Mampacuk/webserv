@@ -27,10 +27,6 @@ namespace ft
 	// appends chunk to the request. returns whether the request was fully accepted
 	bool request::operator+=(const std::string &chunk)
 	{
-		// std::cout << RED "vvvvvvv received chunk of size " << chunk.size() << "vvvvvvv" RESET << std::endl;
-		// std::cout << chunk << std::endl;
-		// std::cout << RED "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" RESET << std::endl;
-		
 		_raw += chunk;
 		if (_headers_end == std::string::npos)
 		{
@@ -63,9 +59,18 @@ namespace ft
 			std::cout << CYAN BOLDED("TRANSFER ENCODING CASE") RESET << std::endl;
 			return (ends_with(_raw, "0" CRLF CRLF));
 		}
-		std::cout << CYAN "COMPELTED RECEIVING REQUEST? " << ((_raw.size() == _content_length + _headers_end + std::strlen(CRLF CRLF CRLF)
-			|| (ends_with(_raw, CRLF) && !ends_with(_raw, CRLF CRLF))) ? "yes" : "no") << RESET << std::endl;
-		return (_raw.size() == _content_length + _headers_end + std::strlen(CRLF CRLF CRLF)
+		// std::cout << CYAN "COMPELTED RECEIVING REQUEST? " << ((_raw.size() == _content_length + _headers_end + std::strlen(CRLF CRLF CRLF)
+		// 	|| (ends_with(_raw, CRLF) && !ends_with(_raw, CRLF CRLF))) ? "yes" : "no") << RESET << std::endl;
+		// std::cout << RED "vvvvvvv received chunk of size " << chunk.size() << "vvvvvvv" RESET << std::endl;
+		// std::cout << chunk << std::endl;
+		// std::cout << RED "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" RESET << std::endl;
+		// std::cout << LGREEN "raw size: " << _raw.size() << std::endl;
+		// std::cout << "_content_length: " << _content_length << std::endl;
+		// std::cout << "_headers_end: " << _headers_end << std::endl;
+		// std::cout << "_content_length + _headers_end + std::strlen(CRLF CRLF CRLF): " << (_content_length + _headers_end + std::strlen(CRLF CRLF CRLF)) << std::endl;
+		// std::cout << "(ends_with(_raw, CRLF): " << (ends_with(_raw, CRLF)) << std::endl;
+		// std::cout << "!ends_with(_raw, CRLF CRLF)): " << !ends_with(_raw, CRLF CRLF) << RESET << std::endl;
+		return (_raw.size() >= _content_length + _headers_end + std::strlen(CRLF CRLF)
 			|| (ends_with(_raw, CRLF) && !ends_with(_raw, CRLF CRLF)));
 	}
 
@@ -136,14 +141,14 @@ namespace ft
 			_content_length = 0;
 			while (chunk_size > 0)
 			{
-				pos = end_of_line + std::strlen(CRLF);		// now points to the beginning of chunk
-				end_of_line = _raw.find(CRLF, pos);	// now points to the end of chunk
+				pos = end_of_line + std::strlen(CRLF);	// now points to the beginning of chunk
+				end_of_line = _raw.find(CRLF, pos);		// now points to the end of chunk
 				if (end_of_line - pos != chunk_size)
 					throw protocol_error(bad_request, "Chunk Size Mismatch.");
 				_body += _raw.substr(pos, chunk_size);	// append the chunk to the body
 				_content_length += chunk_size;
-				pos = end_of_line + std::strlen(CRLF);		// now points to the beginning of chunk-size
-				end_of_line = _raw.find(CRLF, pos);	// now points to the end of chunk-size
+				pos = end_of_line + std::strlen(CRLF);	// now points to the beginning of chunk-size
+				end_of_line = _raw.find(CRLF, pos);		// now points to the end of chunk-size
 				chunk_size = try_strtoul(_raw.substr(pos, end_of_line - pos), 16);
 			}
 		}
@@ -172,7 +177,7 @@ namespace ft
 		if (question_mark != std::string::npos)
 		{
 			_query = _uri.substr(question_mark + 1);
-			_uri = _uri.substr(question_mark);
+			_uri = _uri.substr(0, question_mark);
 		}
 	}
 

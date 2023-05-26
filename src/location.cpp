@@ -13,7 +13,7 @@ namespace ft
 		if (dynamic_cast<const location*>(&other))
 		{
 			_methods = static_cast<const location&>(other)._methods;
-			set_route(static_cast<const location&>(other)._route);
+			_route = static_cast<const location&>(other)._route;
 			_modifier = static_cast<const location&>(other)._modifier;
 		}
 	}

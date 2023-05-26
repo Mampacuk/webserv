@@ -13,6 +13,7 @@ namespace ft
 			http_code		_status;
 			std::string		_body;
 			string_map		_headers;
+			string_map		_cgi_env;
 			std::string		_message;
 			std::string		_uri;
 			request			_request;
@@ -42,10 +43,8 @@ namespace ft
 			bool rewrite(const std::string &what, const std::string &with_what);
 			// void find_path();
 			void generate_autoindex(const std::string &path);
-			void execute_cgi(char *cgi_path, char **cgi_args, char **cgi_env);
+			void execute_cgi(const char *cgi_path, char *const cgi_args[], char **cgi_env);
 			void pipe_failsafe(int status, int in_pipe[2] = NULL, int out_pipe[2] = NULL);
-			void malloc_failsafe(void *memory, void *path = NULL, char **args = NULL, void *env = NULL);
-			void free_cgi_args(char *cgi_path, char **cgi_args, char **cgi_env);
 			void read_error_page(int error_code, bool loc = true);
 			void construct_error_page(int error_code);
 			bool is_regular_file(const char *filename) const;

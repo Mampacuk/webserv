@@ -29,6 +29,7 @@ namespace ft
 
 	void webserv::set_http(base_dir *protocol)
 	{
+		std::cout << RED "reached end of parsing" RESET << std::endl;
 		_protocol = static_cast<http*>(protocol);
 	}
 

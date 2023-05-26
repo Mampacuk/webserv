@@ -1,13 +1,8 @@
 #ifndef PARSER_HPP
 # define PARSER_HPP
 
-// # include "stdafx.hpp"
 # include "base_dir.hpp"
 # include "webserv.hpp"
-// # include "http.hpp"
-// # include "location.hpp"
-// # include "server.hpp"
-// # include "server_socket.hpp"	//included from webserv
 
 namespace ft
 {
@@ -61,16 +56,11 @@ namespace ft
 			bool	read_listen(base_dir*);
 			bool	read_server_name(base_dir *server);
 			bool	read_cgi_param(base_dir *parent);
+			bool	read_cgi_executable(base_dir *parent);
+			bool	read_cgi_extension(base_dir *parent);
 			bool	read_limit_except(base_dir *location);
 			void	load_base_dir();
 			void	unload_base_dir();
-		// public:
-		// 	class parsing_error : public std::logic_error
-		// 	{
-		// 		public:
-		// 			explicit parsing_error(const std::string &what) : std::logic_error(what) {}
-		// 			explicit parsing_error(const char *what) : std::logic_error(what) {}
-		// 	};
 	};
 }
 

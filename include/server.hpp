@@ -16,6 +16,7 @@ namespace ft
 			~server();
 			server(const server &other);
 			server(const base_dir &other);
+			server(const base_dir_ext &other);
 			server &operator=(const server &other);
 			const string_vector &get_names() const;
 			void add_name(const std::string &name);

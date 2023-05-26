@@ -26,7 +26,7 @@ namespace ft
 			static bool is_port_number(const std::string &port_string);
 			static bool is_informational_code(http_code status);
 			static bool is_successful_code(http_code status);
-			static bool is_rewriteion_code(http_code status);
+			static bool is_redirection_code(http_code status);
 			static bool is_client_error_code(http_code status);
 			static bool is_server_error_code(http_code status);
 			static bool is_error_code(http_code status);

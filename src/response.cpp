@@ -34,11 +34,18 @@ namespace ft
 				throw server::server_error(_status);
 			find_rewritten_location();
 			_path = append_trailing_slash(_location->get_root() + _uri);
-			std::cout << "Path in the beginning: " << _path << std::endl; 
+			// std::cout << "Path in the beginning: " << _path << std::endl; 
 			if (_request.get_method() == "GET")
-				get_method();
+			{
+				if (ends_with(_uri, _location->get_cgi_extension()) && !_request.get_query().empty())
+					post_method();
+				else get_method();
+			}
 			else if (_request.get_method() == "POST")
 				post_method();
+			else if (_request.get_method() == "DELETE")
+				delete_method();
+			else throw server::server_error(not_implemented);
 		}
 		catch (const server::server_error &e)
 		{
@@ -53,8 +60,8 @@ namespace ft
 				if (!read_requested_file(_location->get_error_page(404)))
 					read_error_page(e);
 			//add_headers();
-			construct_response();
 		}
+		construct_response();
 	}
 
 	void response::construct_error_page(int error_code)
@@ -70,7 +77,6 @@ namespace ft
 	{
 		std::string error_page;
 		
-		std::cout << "BAAAREEEEEEVVVVVVVVVVVVV\n";
 		if (!loc)
 			error_page = _request.get_server().get_root() + _request.get_server().get_error_page(error_code);	//root?
 		else
@@ -95,8 +101,6 @@ namespace ft
 	void response::get_method()
 	{
 		find_requested_file();
-		//add_headers();
-		construct_response();
 	}
 
 	bool response::read_requested_file(const std::string &filename)
@@ -206,9 +210,8 @@ namespace ft
 		for (string_map::const_iterator it = _headers.begin(); it != _headers.end(); it++)
 			_message += it->first + ": " + it->second + CRLF;
 		_message += CRLF + _body;
-
-		std::cout << "response of size " << _message.size() << " is:" << std::endl;
-		std::cout << YELLOW << _message.substr(0, 300) + "..." << RESET << std::endl;
+		// std::cout << "response of size " << _message.size() << " is:" << std::endl;
+		// std::cout << YELLOW << _message.substr(0, 300) + "..." << RESET << std::endl;
 	}
 
 	std::string response::get_chunk()
@@ -302,17 +305,9 @@ namespace ft
 
 	void response::post_method()
 	{
-		const std::string cgi = _location->get_cgi_param("SCRIPT_FILENAME");
-		if (cgi.empty())
-		{
-			_status = no_content;
-			return ;
-		}
-		char *cgi_path, **serv_env = webserver.get_environ(), **cgi_args, **cgi_env;
-		malloc_failsafe(cgi_path = strdup(cgi.c_str()));
-		malloc_failsafe(cgi_args = static_cast<char**>(std::calloc(3, sizeof(char*))), cgi_path);
-		malloc_failsafe(cgi_args[0] = strdup(cgi.c_str()), cgi_path, cgi_args);
-		malloc_failsafe(cgi_args[1] = strdup(_path.c_str()), cgi_path, cgi_args);
+		char **serv_env = webserver.get_environ(), **cgi_env;
+		const char *cgi_path = _location->get_cgi_executable().empty() ? _path.c_str() : _location->get_cgi_executable().c_str();
+		char *const cgi_args[] = {const_cast<char*>(_location->get_cgi_executable().empty() ? _path.c_str() : _location->get_cgi_executable().c_str()), const_cast<char*>(_location->get_cgi_executable().empty() ? NULL : _path.c_str()), NULL};
 		{
 			string_vector environment;
 			for (size_t i = 0; serv_env[i] != NULL; i++)
@@ -321,39 +316,38 @@ namespace ft
 			environment.push_back("SERVER_PROTOCOL=" HTTP_VERSION);
 			environment.push_back("SERVER_PORT=" + _request.get_socket().get_server_socket().get_port());
 			environment.push_back("REQUEST_METHOD=" + _request.get_method());
-			environment.push_back("SCRIPT_NAME=" + _location->get_cgi_param("SCRIPT_NAME"));
+			environment.push_back("SCRIPT_NAME=" + _uri);
 			environment.push_back("DOCUMENT_ROOT=" + _location->get_root());
-			if (!_request.get_query().empty())
-				environment.push_back("QUERY_STRING=" + _request.get_query());
+			environment.push_back("QUERY_STRING=" + _request.get_query());
 			environment.push_back("REMOTE_ADDR=" + _request.get_socket().get_host());
 			environment.push_back("CONTENT_LENGTH=" + to_string(_request.get_content_length()));
-			environment.push_back("PATH_INFO=" + _path);
 			environment.push_back("REQUEST_URI=" + _request.get_uri() + (_request.get_query().empty() ? "" : "?" + _request.get_query()));
-			malloc_failsafe(cgi_env = static_cast<char**>(std::calloc(environment.size() + 1, sizeof(char*))), cgi_path, cgi_args);
+			if (!(cgi_env = static_cast<char**>(std::calloc(environment.size() + 1, sizeof(char*)))))
+				throw server::server_error(internal_server_error);
 			for (size_t i = 0; i < environment.size(); i++)
-			{
-				cgi_env[i] = strdup(environment[i].c_str());
-				if (!cgi_env[i])
+				if (!(cgi_env[i] = strdup(environment[i].c_str())))
 				{
 					for (size_t j = 0; j < i; j++)
 						std::free(cgi_env[j]);
-					malloc_failsafe(NULL, cgi_path, cgi_args, cgi_env);
+					std::free(cgi_env);
+					break ;
 				}
-			}
 		}
 		try
 		{
+			std::cout << MAGENTA "running execve() on " << cgi_args[0] << ", " << cgi_args[1] << RESET << std::endl;
 			execute_cgi(cgi_path, cgi_args, cgi_env);
 		}
 		catch (...)
 		{
-			free_cgi_args(cgi_path, cgi_args, cgi_env);
+			for (size_t i = 0; cgi_env[i] != NULL; i++)
+				std::free(cgi_env[i]);
+			std::free(cgi_env);
 			throw ;
 		}
-		free_cgi_args(cgi_path, cgi_args, cgi_env);
 	}
 
-	void response::execute_cgi(char *cgi_path, char **cgi_args, char **cgi_env)
+	void response::execute_cgi(const char *cgi_path, char *const cgi_args[], char **cgi_env)
 	{
 		pid_t cgi_pid;
 		int term_status;
@@ -394,6 +388,7 @@ namespace ft
 			char buffer[BUFSIZ] = {0};
 			bytes_read = read(out_pipe[0], buffer, BUFSIZ - 1);
 			if (bytes_read <= 0) break ;
+			std::cerr << MAGENTA "BUFFER ATTACHED TO BODY IS |" << buffer << "|" RESET << std::endl;
 			_body += buffer;
 		}
 		if (bytes_read == -1)
@@ -424,23 +419,6 @@ namespace ft
 			}
 			throw server::server_error(internal_server_error);
 		}
-	}
-
-	void response::malloc_failsafe(void *memory, void *path, char **args, void *env)
-	{
-		if (!memory)
-		{
-			std::free(path), std::free(env);
-			if (args) std::free(args[0]), std::free(args[1]), std::free(args);
-			throw server::server_error(internal_server_error);
-		}
-	}
-
-	void response::free_cgi_args(char *cgi_path, char **cgi_args, char **cgi_env)
-	{
-		for (size_t i = 0; cgi_env[i] != NULL; i++)
-			std::free(cgi_env[i]);
-		std::free(cgi_env), std::free(cgi_args[0]), std::free(cgi_args[1]), std::free(cgi_args), std::free(cgi_path);
 	}
 
 	void response::delete_method()
