@@ -35,7 +35,7 @@ namespace ft
 			void construct_response();
 			void generate_response();
 			void get_method();
-			void post_method();
+			void post_method(const std::string &cgi_executable);
 			void delete_method();
 			void find_requested_file();
 			bool read_requested_file(const std::string &file);

@@ -10,11 +10,15 @@ namespace ft
 		protected:
 			bool				_autoindex;
 			std::string			_root;
-			std::string			_cgi_executable;
-			std::string			_cgi_extension;
+			// std::string			_cgi_executable;
+			// std::string			_cgi_extension;
 			unsigned long int	_client_max_body_size; // in bytes
+		public:	
+			string_map			_cgi;
+		protected:	
 			error_map			_error_pages;
 			string_vector		_indices;
+			bool				_flush_cgi;
 			bool				_flush_error_pages;
 			bool				_flush_indices;
 		public:
@@ -25,20 +29,21 @@ namespace ft
 			void set_root(const std::string &root);
 			void set_autoindex(bool autoindex);
 			void set_client_max_body_size(unsigned long int size);
-			void set_cgi_executable(const std::string &cgi_executable);
-			void set_cgi_extension(const std::string &cgi_extension);
+			void add_cgi(const std::string &cgi_extension, const std::string &cgi_executable);
+			// void set_cgi_executable(const std::string &cgi_executable);
+			// void set_cgi_extension(const std::string &cgi_extension);
 			const std::string &get_root() const;
 			bool get_autoindex() const;
 			unsigned int get_client_max_body_size() const;
-			const std::string &get_cgi_executable() const;
-			const std::string &get_cgi_extension() const;
+			std::string get_cgi_executable(const std::string &cgi_extension) const;
+			// const std::string &get_cgi_extension() const;
 			void add_error_page(unsigned int error_code, const std::string &page);
 			void add_index(const std::string &index_file);
 			std::string get_error_page(unsigned int error_code) const;
 			const string_vector &get_indices() const;
+			void flush_cgi();
 			void flush_error_pages();
 			void flush_indices();
-			void flush_cgi_params();
 	};
 }
 

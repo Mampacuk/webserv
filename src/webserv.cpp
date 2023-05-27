@@ -29,7 +29,6 @@ namespace ft
 
 	void webserv::set_http(base_dir *protocol)
 	{
-		std::cout << RED "reached end of parsing" RESET << std::endl;
 		_protocol = static_cast<http*>(protocol);
 	}
 
@@ -90,7 +89,7 @@ namespace ft
 		label_log("Received " + to_string(bytes_read) + " bytes from " + to_string(request), BOLDED("RECV"), GREEN, LGREEN);
 		try
 		{
-			if (!(request += buffer))	
+			if (!(request.append_chunk(buffer, bytes_read)))	
 				return (EXIT_FAILURE);	// request wasn't fully received
 			request.parse();
 			label_log("Pushed " + to_string(request) + " to responses", BOLDED("RECV"), GREEN, LGREEN);
@@ -204,8 +203,6 @@ namespace ft
 			#ifdef DEBUG
 			if (!entered) log("Server sockets are empty.", RED);
 			entered = false;
-			#endif
-			#ifdef DEBUG
 			log("Responses: " + to_string(responses.size()) + ", Requests: " + to_string(requests.size()), MAGENTA);
 			#endif
 

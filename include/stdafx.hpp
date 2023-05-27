@@ -118,6 +118,7 @@ namespace ft
 	typedef std::multimap<string_pair, const server*> string_pair_server_pointer_mmap;
 	
 	typedef std::vector<int>			int_vector;
+	typedef std::vector<char>			char_vector;
 	typedef std::vector<socket>			socket_vector;
 	typedef std::vector<std::string>	string_vector;
 	typedef std::vector<const server*>	server_pointer_vector;
@@ -130,6 +131,7 @@ namespace ft
 	typedef std::set<location> location_set;
 
 	bool ends_with(const std::string &str, const std::string &suffix);
+	bool ends_with(const char_vector &char_vec, const std::string &suffix);
 	bool starts_with(const std::string &str, const std::string &prefix);
 	std::string get_file_extension(const std::string &filename);
 	std::string inet_ntoa(struct in_addr addr);
@@ -230,8 +232,7 @@ namespace ft
 		private:
 			http_code _error;
 		public:
-			protocol_error(http_code error, const std::string &what) : std::logic_error(what), _error(error) {}
-			protocol_error(http_code error, const char *what) : std::logic_error(what), _error(error) {}
+			protocol_error(http_code error) : std::logic_error(reason_phrase(error)), _error(error) {}
 			operator http_code() const { return (_error); }
 	};
 }

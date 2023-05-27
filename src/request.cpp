@@ -25,18 +25,18 @@ namespace ft
 		_socket(other._socket), _content_length(other._content_length), _headers_end(other._headers_end), _server(other._server) {}
 
 	// appends chunk to the request. returns whether the request was fully accepted
-	bool request::operator+=(const std::string &chunk)
+	bool request::append_chunk(const char *chunk, size_t chunk_size)
 	{
-		_raw += chunk;
+		_raw.insert(_raw.end(), chunk, chunk + chunk_size);
 		if (_headers_end == std::string::npos)
 		{
-			if ((_headers_end = _raw.find(CRLF CRLF)) == std::string::npos)
+			if ((_headers_end = search_raw(CRLF CRLF)) == std::string::npos)
 			{
 				std::cout << CYAN "NOT DONE RECEIVING HEADERS" RESET << std::endl; 
 				return (false);
 			}
-			read_header(_raw.find("Content-Length: "));
-			read_header(_raw.find("Transfer-Encoding: "));
+			read_header(search_raw("Content-Length: "));
+			read_header(search_raw("Transfer-Encoding: "));
 			if (operator[]("Content-Length").empty())
 			{
 				if (operator[]("Transfer-Encoding").empty())
@@ -45,12 +45,13 @@ namespace ft
 					return (true);
 				}
 				else if (operator[]("Transfer-Encoding") != "chunked") // the message is ill-formed
-					throw protocol_error(bad_request, "Unsupported Transfer Encoding value.");
+					throw protocol_error(bad_request);
+				std::cout << CYAN "TRANSFER-ENCODING CASE" RESET << std::endl;
 			}
 			else
 			{
 				if (!operator[]("Transfer-Encoding").empty())
-					throw protocol_error(bad_request, "Content Length and Transfer Encoding conflict.");
+					throw protocol_error(bad_request);
 				_content_length = try_strtoul(operator[]("Content-Length"));
 			}
 		}
@@ -61,7 +62,7 @@ namespace ft
 		}
 		// std::cout << CYAN "COMPELTED RECEIVING REQUEST? " << ((_raw.size() == _content_length + _headers_end + std::strlen(CRLF CRLF CRLF)
 		// 	|| (ends_with(_raw, CRLF) && !ends_with(_raw, CRLF CRLF))) ? "yes" : "no") << RESET << std::endl;
-		// std::cout << RED "vvvvvvv received chunk of size " << chunk.size() << "vvvvvvv" RESET << std::endl;
+		// std::cout << RED "vvvvvvv received chunk of size " << chunk_size << "vvvvvvv" RESET << std::endl;
 		// std::cout << chunk << std::endl;
 		// std::cout << RED "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" RESET << std::endl;
 		// std::cout << LGREEN "raw size: " << _raw.size() << std::endl;
@@ -78,17 +79,19 @@ namespace ft
 	size_t request::read_header(size_t pos)
 	{
 		// verify the headers is present, it's not in the body, and it's preceded by a CRLF
-		if (pos != std::string::npos && pos < _headers_end && !_raw.compare(pos - std::strlen(CRLF), std::strlen(CRLF), CRLF))
+		if (pos != std::string::npos && pos < _headers_end && std::equal(_raw.begin() + pos - std::strlen(CRLF), _raw.begin() + pos, CRLF))
 		{
-			size_t line_end = _raw.find(CRLF, pos);
-			size_t colon = _raw.find(':', pos);
+			size_t line_end = search_raw(CRLF, pos);
+			std::string line = std::string(_raw.begin() + pos, _raw.begin() + line_end);
+
+			size_t colon = line.find(':');
 			// check if there's a key, colon is present, there's no spaces in header and it's followed by one space
-			if (colon == pos || colon > line_end || colon != _raw.find(' ', pos) - 1)
-				throw protocol_error(bad_request, "Invalid Header.");
-			std::string key = _raw.substr(pos, colon - pos);
-			size_t val_start = _raw.find_first_not_of(' ', colon + 2);		// val start; 2 is to skip ": "
-			std::string value = _raw.substr(val_start, line_end - val_start);	// val separated (with tail spaces)
-			value = value.substr(0, value.find_last_not_of(' ') + 1);				// discard tail spaces
+			if (colon == 0 || colon == std::string::npos || colon != line.find(' ') - 1)
+				throw protocol_error(bad_request);
+			std::string key = std::string(_raw.begin() + pos, _raw.begin() + pos + colon);
+			size_t val_start = line.find_first_not_of(' ', colon + 2);	// val start; 2 is to skip ": "
+			std::string value = line.substr(val_start);					// val separated (with tail spaces)
+			value = value.substr(0, value.find_last_not_of(' ') + 1);	// discard tail spaces
 			_headers[key] = value;
 			pos = line_end + std::strlen(CRLF);
 		}
@@ -97,26 +100,32 @@ namespace ft
 
 	void request::parse()
 	{
-		std::cout << "received request is" << std::endl << LRED << _raw << RESET << std::endl;
+		// std::cout << "received request is" << std::endl << LRED;
+		// for (size_t i = 0; i < _raw.size(); i++) std::cout << _raw[i];
+		// std::cout << RESET << std::endl;
+		// std::cout << CYAN "parse() before separate_body()" RESET << std::endl;
+
 		separate_body();
+		// std::cout << CYAN "parse() after separate_body()" RESET << std::endl;
 		size_t pos = parse_request_line();
 		// std::cout << "method: |" << _method << "|" << std::endl;
 		// std::cout << "content length: " << _content_length << std::endl;
 		// std::cout << "headers end: " << _headers_end << std::endl;
-		// std::cout << "body: |" << _body << "|, empty? " << (_body.empty() ? "yes" : "no") << std::endl;
+		// std::cout << "body: |";
+		// for (size_t i = 0; i < _body.size(); i++) std::cout << _body[i];
+		// std::cout << "|, empty? " << (_body.empty() ? "yes" : "no") << std::endl;
+		// std::cout << CYAN "about to inspect headers" RESET << std::endl;
 		while (pos != _headers_end + std::strlen(CRLF))
 			pos = read_header(pos);
-		// ... check for validity
 		parse_query();
-		// std::cout << CYAN "SELECTED SERVER?" RESET << std::endl;
 		select_server();
-		// std::cout << CYAN BOLDED("YES") RESET << std::endl;
 		
 		// std::cout << BLUE;
 		// for (string_map::iterator it = _headers.begin(); it != _headers.end(); it++)
 		// 	std::cout << "header: { " << it->first << " : " << it->second << " }" << std::endl;
 		// std::cout << "uri: |" << _uri << "|" << std::endl;
 		// std::cout << "query: |" << _query << "|" RESET << std::endl;
+
 		_raw.clear();
 	}
 
@@ -125,49 +134,56 @@ namespace ft
 		if (operator[]("Transfer-Encoding").empty())
 		{
 			const size_t read_body_start = _headers_end + std::strlen(CRLF CRLF);
-			const size_t read_body_end = _raw.size() - (ends_with(_raw, CRLF) && !ends_with(_raw, CRLF CRLF) ? std::strlen(CRLF) : 0);
-			_body += _raw.substr(read_body_start, read_body_end - read_body_start);
+			const size_t read_body_end = _raw.size();
+			_body.assign(_raw.begin() + read_body_start, _raw.begin() + read_body_end);
 			if (_content_length == -1)
 				_content_length = _body.size();
 			else if (static_cast<size_t>(_content_length) != read_body_end - read_body_start)
-				throw protocol_error(bad_request, "Content-Length mismatch.");
+			{
+				std::cout << "_content_length = " << static_cast<size_t>(_content_length) << std::endl;
+				std::cout << "read_body_end = " << read_body_end << std::endl;
+				std::cout << "read_body_start = " << read_body_start << std::endl;
+				std::cout << "read_body_end - read_body_start = " << (read_body_end - read_body_start) << std::endl;
+				std::cout << CYAN "throwing from separate_body()" RESET << std::endl;
+				throw protocol_error(bad_request);
+			}
 		}
 		else
 		{
 			size_t	chunk_size;
 			size_t	pos = _headers_end + std::strlen(CRLF CRLF);
-			size_t	end_of_line = _raw.find(CRLF, pos);
-			chunk_size = try_strtoul(_raw.substr(pos, end_of_line - pos), 16);
+			size_t	end_of_line = search_raw(CRLF, pos);
+			chunk_size = try_strtoul(std::string(_raw.begin() + pos, _raw.begin() + end_of_line), 16);
 			_content_length = 0;
 			while (chunk_size > 0)
 			{
 				pos = end_of_line + std::strlen(CRLF);	// now points to the beginning of chunk
-				end_of_line = _raw.find(CRLF, pos);		// now points to the end of chunk
+				end_of_line = search_raw(CRLF, pos);	// now points to the end of chunk
 				if (end_of_line - pos != chunk_size)
-					throw protocol_error(bad_request, "Chunk Size Mismatch.");
-				_body += _raw.substr(pos, chunk_size);	// append the chunk to the body
+					throw protocol_error(bad_request);
+				_body.insert(_body.end(), _raw.begin() + pos, _raw.begin() + pos + chunk_size);	// append the chunk to the body
 				_content_length += chunk_size;
 				pos = end_of_line + std::strlen(CRLF);	// now points to the beginning of chunk-size
-				end_of_line = _raw.find(CRLF, pos);		// now points to the end of chunk-size
-				chunk_size = try_strtoul(_raw.substr(pos, end_of_line - pos), 16);
+				end_of_line = search_raw(CRLF, pos);	// now points to the end of chunk-size
+				chunk_size = try_strtoul(std::string(_raw.begin() + pos, _raw.begin() + end_of_line), 16);
 			}
 		}
-		_raw.erase(_headers_end + std::strlen(CRLF CRLF));
+		_raw.erase(_raw.begin() + _headers_end + std::strlen(CRLF CRLF), _raw.end());
 	}
 
 	size_t request::parse_request_line()
 	{
-		size_t line_end = _raw.find(CRLF);
-		size_t space = _raw.find(' ');
+		size_t line_end = search_raw(CRLF);
+		size_t space = search_raw(" ");
 		if (!space || space > line_end)
-			throw protocol_error(bad_request, "Method unspecified.");
-		_method = _raw.substr(0, space);
-		space = _raw.find(' ', space + 1);
+			throw protocol_error(bad_request);
+		_method = std::string(_raw.begin(), _raw.begin() + space);
+		space = search_raw(" ", space + 1);
 		if (space > line_end)
-			throw protocol_error(bad_request, "URI unspecified.");
-		_uri = _raw.substr(_method.length() + 1, space - _method.length() - 1);
-		if (_raw.compare(space + 1, line_end - space - 1, HTTP_VERSION))
-			throw protocol_error(http_version_not_supported, "Invalid Protocol Version.");
+			throw protocol_error(bad_request);
+		_uri = std::string(_raw.begin() + _method.length() + 1, _raw.begin() + space);
+		if (!std::equal(_raw.begin() + space + 1, _raw.begin() + line_end, HTTP_VERSION))
+			throw protocol_error(http_version_not_supported);
 		return (line_end + std::strlen(CRLF));
 	}
 
@@ -185,7 +201,7 @@ namespace ft
 	{
 		const std::string hostname = operator[]("Host");
 		if (hostname.empty())
-			throw protocol_error(bad_request, "Host unspecified.");
+			throw protocol_error(bad_request);
 		for (server_pointer_vector::const_iterator server = _socket.get_server_socket().get_servers().begin(); server != _socket.get_server_socket().get_servers().end(); server++)
 			for (string_vector::const_iterator name = (*server)->get_names().begin(); name != (*server)->get_names().end(); name++)
 			{
@@ -226,7 +242,7 @@ namespace ft
 		return (_query);
 	}
 
-	const std::string &request::get_body() const
+	const char_vector &request::get_body() const
 	{
 		return (_body);
 	}
@@ -256,7 +272,13 @@ namespace ft
 		}
 		catch (const std::exception &e)
 		{
-			throw protocol_error(bad_request, "Unsigned integer parsing failed.");
+			throw protocol_error(bad_request);
 		}
+	}
+
+	size_t request::search_raw(const std::string &needle, size_t pos) const
+	{
+		char_vector::const_iterator result = std::search(_raw.begin() + pos, _raw.end(), needle.begin(), needle.end());
+		return (result != _raw.end() ? std::distance(_raw.begin(), result) : std::string::npos);
 	}
 }

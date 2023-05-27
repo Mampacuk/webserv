@@ -18,7 +18,7 @@ namespace ft
 		return (*this);
 	}
 
-	const string_mmap &base_dir_ext::get_rewrites() const
+	const string_map &base_dir_ext::get_rewrites() const
 	{
 		return (_rewrites);
 	}
@@ -30,7 +30,7 @@ namespace ft
 
 	void base_dir_ext::add_rewrite(std::string expression, std::string uri)
 	{
-		_rewrites.insert(std::pair<std::string, std::string>(expression, uri));
+		_rewrites.insert(string_pair(expression, uri));
 	}
 
 	void base_dir_ext::add_location(location location)

@@ -20,10 +20,8 @@ namespace ft
 		_directives.insert(directive("listen", dir_functor(&parser::read_listen, false)));
 		_directives.insert(directive("server_name", dir_functor(&parser::read_server_name, false)));
 		_directives.insert(directive("rewrite", dir_functor(&parser::read_rewrite, false)));
-		_directives.insert(directive("cgi_executable", dir_functor(&parser::read_cgi_executable, false)));
-		_directives.insert(directive("cgi_extension", dir_functor(&parser::read_cgi_extension, false)));
+		_directives.insert(directive("cgi", dir_functor(&parser::read_cgi, false)));
 		_directives.insert(directive("limit_except", dir_functor(&parser::read_limit_except, false)));
-		std::cout << CYAN "SET MAP" RESET << std::endl;
 		parse_chunks();
 	}
 
@@ -120,8 +118,6 @@ namespace ft
 	{	
 		http *protocol = new http();
 		
-		std::cout << CYAN "http INDICES OF SIZE " << protocol->get_indices().size() << RESET << std::endl;
-
 		try
 		{
 			_contexts["http"].second = false;
@@ -145,15 +141,7 @@ namespace ft
 
 	base_dir *parser::process_server(base_dir *protocol)
 	{
-		std::cout << YELLOW "before construction" RESET << std::endl;
 		server serv(*protocol);
-		std::cout << YELLOW "after construction" RESET << std::endl;
-		std::cout << CYAN "http at " MAGENTA << protocol << RESET << std::endl;
-		std::cout << CYAN "server at " MAGENTA << &serv << RESET << std::endl;
-		std::cout << CYAN "http INDICES OF SIZE " << protocol->get_indices().size() << RESET << std::endl;
-		std::cout << CYAN "http INDICES UNDER " << &protocol->get_indices() << RESET << std::endl;
-		std::cout << CYAN "server INDICES OF SIZE " << serv.get_indices().size() << RESET << std::endl;
-		std::cout << CYAN "server INDICES UNDER " << &serv.get_indices() << RESET << std::endl;
 		_contexts["server"].second = false;
 		_contexts["location"].second = true;
 		_directives["listen"].second = true;
@@ -161,11 +149,7 @@ namespace ft
 		_directives["rewrite"].second = true;
 
 		while (front().at(0) != '}')
-		{
-			std::cout << CYAN "about to parse " << front() << RESET << std::endl;
-			
 			parse(&serv);
-		}
 		erase_chunk_front("}");
 
 		if (serv.get_names().empty())
@@ -209,14 +193,12 @@ namespace ft
 		_directives["error_page"].second = true;
 		_directives["client_max_body_size"].second = true;
 		_directives["index"].second = true;
-		_directives["cgi_executable"].second = true;
-		_directives["cgi_extension"].second = true;
+		_directives["cgi"].second = true;
 	}
 
 	void parser::unload_base_dir()
 	{
-		_directives["cgi_extension"].second = false;
-		_directives["cgi_executable"].second = false;
+		_directives["cgi"].second = false;
 		_directives["index"].second = false;
 		_directives["client_max_body_size"].second = false;
 		_directives["error_page"].second = false;
@@ -261,6 +243,7 @@ namespace ft
 		}
 		if (response_codes.empty())
 			throw parsing_error("Error page syntax error.");
+		parent->flush_error_pages();
 		for (size_t i = 0; i < response_codes.size(); i++)
 			parent->add_error_page(response_codes[i], front());
 		pop_front();
@@ -291,12 +274,9 @@ namespace ft
 	bool parser::read_index(base_dir *parent)
 	{
 		std::vector<std::string> arguments = get_argument_list();
-		std::cout << CYAN "parent in index is " RED << parent << RESET << std::endl;
 		parent->flush_indices();
-		std::cout << CYAN "STARTING ITERATION" RESET << std::endl;
 		for (size_t i = 0; i < arguments.size(); i++)
 			parent->add_index(arguments[i]);
-		std::cout << CYAN "LEAVING INDEX" RESET << std::endl;
 		return (true);
 	}
 
@@ -341,17 +321,16 @@ namespace ft
 		return (true);
 	}
 
-	bool parser::read_cgi_executable(base_dir *parent)
+	bool parser::read_cgi(base_dir *parent)
 	{
-		bool semicolon_erased = erase_chunk_middle(";");
-		parent->set_cgi_executable(pop_front());
-		return (semicolon_erased);
-	}
-
-	bool parser::read_cgi_extension(base_dir *parent)
-	{
-		bool semicolon_erased = erase_chunk_middle(";");
-		parent->set_cgi_extension(pop_front());
+		bool semicolon_erased;
+		std::string expr;
+		if (erase_chunk_middle(";"))
+			throw parsing_error("Invalid number of arguments for `rewrite`.");
+		expr = pop_front();
+		semicolon_erased = erase_chunk_middle(";");
+		parent->flush_cgi();
+		static_cast<base_dir_ext*>(parent)->add_cgi(pop_front(), expr);
 		return (semicolon_erased);
 	}
 

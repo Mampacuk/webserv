@@ -15,8 +15,8 @@ namespace ft
 			std::string		_uri;
 			std::string 	_query;
 			string_map		_headers;
-			std::string		_raw;
-			std::string 	_body;
+			char_vector		_raw;
+			char_vector 	_body;
 			client_socket	_socket;
 			ssize_t			_content_length;
 			size_t			_headers_end;
@@ -26,26 +26,25 @@ namespace ft
 			~request();
 			request(const request &other);
 			request &operator=(const request &other);
-			bool operator+=(const std::string &chunk);
+			bool append_chunk(const char *chunk, size_t chunk_size);
 			std::string operator[](const std::string &header) const;
 			void parse();
 			const client_socket &get_socket() const;
 			const std::string &get_method() const;
 			const std::string &get_uri() const;
 			const std::string &get_query() const;
-			const std::string &get_body() const;
+			const char_vector &get_body() const;
 			ssize_t get_content_length() const;
 			const server &get_server() const;
 			operator int() const;
-			// void print() const;
 		private:
 			unsigned int try_strtoul(const std::string &number, int base = 10) const;
-			void	find_header(const std::string &header);
 			size_t	read_header(size_t pos);
 			void	separate_body();
 			size_t	parse_request_line();
 			void	parse_query();
 			void	select_server();
+			size_t	search_raw(const std::string &needle, size_t pos = 0) const;
 	};
 }
 

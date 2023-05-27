@@ -34,15 +34,19 @@ namespace ft
 				throw server::server_error(_status);
 			find_rewritten_location();
 			_path = append_trailing_slash(_location->get_root() + _uri);
-			// std::cout << "Path in the beginning: " << _path << std::endl; 
+			const std::string cgi = _location->get_cgi_executable(get_file_extension(_uri));
 			if (_request.get_method() == "GET")
 			{
-				if (ends_with(_uri, _location->get_cgi_extension()) && !_request.get_query().empty())
-					post_method();
+				std::cout << "GET METHOD: \n";
+				if (!cgi.empty())
+				{
+					std::cout << "Post case\n";
+					post_method(cgi);
+				}
 				else get_method();
 			}
 			else if (_request.get_method() == "POST")
-				post_method();
+				post_method(cgi);
 			else if (_request.get_method() == "DELETE")
 				delete_method();
 			else throw server::server_error(not_implemented);
@@ -246,7 +250,6 @@ namespace ft
 
 	void response::find_rewritten_location()
 	{
-		std::cout << BLUE << "are redirects of serv empty?" << (_request.get_server().get_rewrites().empty() ? "yes" : "no") << RESET << std::endl;
 		std::cout << LGREEN "uri before rewrite: " << _uri << RESET << std::endl;
 		for (ft::string_mmap::const_iterator it = _request.get_server().get_rewrites().begin(); it != _request.get_server().get_rewrites().end(); it++)
 			rewrite(it->first, it->second);
@@ -303,11 +306,16 @@ namespace ft
 		_body += "\n\t\t\t</ul>\n\t\t<hr>\n\t</body>\n</html>\n"; 
 	}
 
-	void response::post_method()
+	void response::post_method(const std::string &cgi_executable)
 	{
+		if (cgi_executable.empty())
+		{
+			_status = no_content;
+			return ;
+		}
 		char **serv_env = webserver.get_environ(), **cgi_env;
-		const char *cgi_path = _location->get_cgi_executable().empty() ? _path.c_str() : _location->get_cgi_executable().c_str();
-		char *const cgi_args[] = {const_cast<char*>(_location->get_cgi_executable().empty() ? _path.c_str() : _location->get_cgi_executable().c_str()), const_cast<char*>(_location->get_cgi_executable().empty() ? NULL : _path.c_str()), NULL};
+		const char *cgi_path = cgi_executable.c_str();
+		char *const cgi_args[] = {const_cast<char*>(cgi_executable.c_str()), const_cast<char*>(_path.c_str()), NULL};
 		{
 			string_vector environment;
 			for (size_t i = 0; serv_env[i] != NULL; i++)
@@ -374,7 +382,7 @@ namespace ft
 		}
 		close(in_pipe[0]);
 		close(out_pipe[1]);
-		bytes_written = write(in_pipe[1], _request.get_body().c_str(), _request.get_content_length());
+		bytes_written = write(in_pipe[1], &_request.get_body().front(), _request.get_content_length());
 		if (bytes_written != _request.get_content_length())
 		{
 			kill(cgi_pid, SIGTERM);
