@@ -37,9 +37,9 @@ namespace ft
 			unsigned int get_client_max_body_size() const;
 			std::string get_cgi_executable(const std::string &cgi_extension) const;
 			// const std::string &get_cgi_extension() const;
-			void add_error_page(unsigned int error_code, const std::string &page);
+			void add_error_page(http_code error, const std::string &page);
 			void add_index(const std::string &index_file);
-			std::string get_error_page(unsigned int error_code) const;
+			std::string get_error_page(http_code error) const;
 			const string_vector &get_indices() const;
 			void flush_cgi();
 			void flush_error_pages();

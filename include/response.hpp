@@ -40,7 +40,7 @@ namespace ft
 			void find_rewritten_location();
 			bool rewrite(const std::string &what, const std::string &with_what);
 			void generate_autoindex(const std::string &path);
-			void cgi_process(const std::string &cgi_executable, const std::string &tmp_in, const std::string &tmp_out);
+			void cgi_process(const std::string &cgi_executable, int fds[2]);
 			void read_error_page(http_code error, bool loc = true);
 			void construct_error_page(http_code error);
 			bool is_regular_file(const char *filename) const;

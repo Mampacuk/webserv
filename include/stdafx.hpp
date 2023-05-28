@@ -172,6 +172,7 @@ namespace ft
 
 		xxx_max = 1023
 	};
+
 	typedef std::vector<int>			int_vector;
 	typedef std::vector<char>			char_vector;
 	typedef std::vector<socket>			socket_vector;
@@ -195,8 +196,6 @@ namespace ft
 	
 	typedef std::multimap<std::string, std::string> string_mmap;
 	typedef std::multimap<string_pair, const server*> string_pair_server_pointer_mmap;
-	
-
 	
 	typedef std::list<std::string>	string_list;
 	typedef std::list<request>		request_list;
@@ -234,6 +233,15 @@ namespace ft
 			http_code _error;
 		public:
 			protocol_error(http_code error) : std::logic_error(reason_phrase(error)), _error(error) {}
+			operator http_code() const { return (_error); }
+	};
+
+	class server_error : public std::logic_error
+	{
+		private:
+			http_code _error;
+		public:
+			explicit server_error(http_code error) : std::logic_error(reason_phrase(error)), _error(error) {}
 			operator http_code() const { return (_error); }
 	};
 }

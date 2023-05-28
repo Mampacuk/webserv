@@ -71,9 +71,9 @@ namespace ft
 		return (it != _cgi.end() ? it->second : "");
 	}
 
-	void base_dir::add_error_page(unsigned int error_code, const std::string &page)
+	void base_dir::add_error_page(http_code error, const std::string &page)
 	{
-		_error_pages[error_code] = starts_with(page, "/") ? page.substr(1, page.size()) : page;
+		_error_pages[error] = starts_with(page, "/") ? page.substr(1, page.size()) : page;
 	}
 
 	void base_dir::add_index(const std::string &index_file)
@@ -82,11 +82,11 @@ namespace ft
 	
 	}
 
-	std::string base_dir::get_error_page(unsigned int error_code) const
+	std::string base_dir::get_error_page(http_code error) const
 	{
 		error_map::const_iterator it;
 		
-		it = _error_pages.find(error_code);
+		it = _error_pages.find(error);
 		return (it != _error_pages.end() ? it->second : "");
 	}
 

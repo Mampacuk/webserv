@@ -20,15 +20,6 @@ namespace ft
 			server &operator=(const server &other);
 			const string_vector &get_names() const;
 			void add_name(const std::string &name);
-
-			class server_error : public std::logic_error
-			{
-				private:
-					http_code _error;
-				public:
-					explicit server_error(http_code error) : std::logic_error(reason_phrase(error)), _error(error) {}
-					operator http_code() const { return (_error); }
-			};
 	};
 }
 

@@ -2,14 +2,14 @@
 
 namespace ft
 {
-	webserv::webserv(): _protocol(), _environment() {}
+	webserv::webserv(): _protocol() {}
 
 	webserv::~webserv()
 	{
 		delete _protocol;
 	}
 
-	webserv::webserv(const webserv &other) : _protocol(new http(*other._protocol)), _environment(other._environment) {}
+	webserv::webserv(const webserv &other) : _protocol(new http(*other._protocol)) {}
 
 	webserv &webserv::operator=(const webserv &other)
 	{
@@ -22,19 +22,9 @@ namespace ft
 		return (*_protocol);
 	}
 
-	char **webserv::get_environ() const
-	{
-		return (_environment);
-	}
-
 	void webserv::set_http(base_dir *protocol)
 	{
 		_protocol = static_cast<http*>(protocol);
-	}
-
-	void webserv::set_environment(char **environment)
-	{
-		_environment = environment;
 	}
 
 	int webserv::error(const std::string &error) const

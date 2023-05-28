@@ -100,10 +100,9 @@ namespace ft
 
 	void request::parse()
 	{
-		// std::cout << "received request is" << std::endl << LRED;
-		// for (size_t i = 0; i < _raw.size(); i++) std::cout << _raw[i];
-		// std::cout << RESET << std::endl;
-		// std::cout << CYAN "parse() before separate_body()" RESET << std::endl;
+		std::cout << "received request is" << std::endl << LRED;
+		for (size_t i = 0; i < _raw.size(); i++) std::cout << _raw[i];
+		std::cout << RESET << std::endl;
 
 		separate_body();
 		// std::cout << CYAN "parse() after separate_body()" RESET << std::endl;
@@ -120,9 +119,10 @@ namespace ft
 		parse_query();
 		select_server();
 		
-		// std::cout << BLUE;
-		// for (string_map::iterator it = _headers.begin(); it != _headers.end(); it++)
-		// 	std::cout << "header: { " << it->first << " : " << it->second << " }" << std::endl;
+		std::cout << BLUE;
+		for (string_map::iterator it = _headers.begin(); it != _headers.end(); it++)
+			std::cout << "header: { " << it->first << " : " << it->second << " }" << std::endl;
+		std::cout << RESET;
 		// std::cout << "uri: |" << _uri << "|" << std::endl;
 		// std::cout << "query: |" << _query << "|" RESET << std::endl;
 
@@ -139,14 +139,7 @@ namespace ft
 			if (_content_length == -1)
 				_content_length = _body.size();
 			else if (static_cast<size_t>(_content_length) != read_body_end - read_body_start)
-			{
-				std::cout << "_content_length = " << static_cast<size_t>(_content_length) << std::endl;
-				std::cout << "read_body_end = " << read_body_end << std::endl;
-				std::cout << "read_body_start = " << read_body_start << std::endl;
-				std::cout << "read_body_end - read_body_start = " << (read_body_end - read_body_start) << std::endl;
-				std::cout << CYAN "throwing from separate_body()" RESET << std::endl;
 				throw protocol_error(bad_request);
-			}
 		}
 		else
 		{

@@ -31,7 +31,7 @@ namespace ft
 		try
 		{
 			if (http::is_error_code(_status))
-				throw server::server_error(_status);
+				throw server_error(_status);
 			find_rewritten_location();
 			_path = append_trailing_slash(_location->get_root() + _uri);
 			const std::string cgi = _location->get_cgi_executable(get_file_extension(_uri));
@@ -49,9 +49,9 @@ namespace ft
 				post_method(cgi);
 			else if (_request.get_method() == "DELETE")
 				delete_method();
-			else throw server::server_error(not_implemented);
+			else throw server_error(not_implemented);
 		}
-		catch (const server::server_error &e)
+		catch (const server_error &e)
 		{
 			// std::cout << "Path: " << _path << "\n";
 			// throw std::exception();
@@ -61,7 +61,7 @@ namespace ft
 			if (e == 400 || e == 505 || _location == NULL) //bad request or http version not supported
 				read_error_page(e, false);
 			else if (!read_requested_file(_location->get_error_page(e)))
-				if (!read_requested_file(_location->get_error_page(404)))
+				if (!read_requested_file(_location->get_error_page(not_found)))
 					read_error_page(e);
 			//add_headers();
 		}
@@ -109,9 +109,12 @@ namespace ft
 	{
 		std::ifstream file;
 
-		// std::cout << "Read requested file: " << filename << std::endl;
+		std::cout << "Read requested file: " << filename << std::endl;
 		if (!is_regular_file(filename.c_str()))
+		{
+			std::cout << "not regular" << std::endl;
 			return (false);
+		}
 		file.open(filename);
 		if (file)
 		{
@@ -126,8 +129,6 @@ namespace ft
 			ss << file.rdbuf();
 			std::string buffer(ss.str().c_str(), file_len);
 			_body.insert(_body.end(), buffer.begin(), buffer.end());
-			std::copy(std::istream_iterator<char>(file), std::istream_iterator<char>(), std::back_inserter(_body));
-			std::cout << "body size after read: " << _body.size() << " while file_len is " << file_len << std::endl;
 			if (_body.size() != 0)
 			{
 				std::string ext = get_file_extension(_path);
@@ -164,7 +165,7 @@ namespace ft
 				{
 					if (_location->get_autoindex())
 						generate_autoindex(_path);
-					else throw server::server_error(forbidden);
+					else throw server_error(forbidden);
 				}
 			}
 			// else
@@ -173,12 +174,12 @@ namespace ft
 			// 	if (_location->get_autoindex())
 			// 		generate_autoindex(_path);
 			// 	else
-			// 		throw server::server_error(not_found);
+			// 		throw server_error(not_found);
 			// }
 		}
 		else
 			if (!read_requested_file(_path))
-				throw server::server_error(not_found);
+				throw server_error(not_found);
 	}
 
 
@@ -203,7 +204,7 @@ namespace ft
 		}
 		if (_location == NULL)
 		{
-			throw server::server_error(not_found);
+			throw server_error(not_found);
 		}
 	}
 
@@ -223,8 +224,8 @@ namespace ft
 		_message.insert(_message.end(), buffer.begin(), buffer.end());
 		_message.insert(_message.end(), _body.begin(), _body.end());
 		_body.clear();
-		// std::cout << "response of size " << _message.size() << " is:" << std::endl;
-		// for (size_t i = 0; i < _message.size(); i++) std::cout << YELLOW << _message[i] << RESET;
+		std::cout << "response of size " << _message.size() << " is:" << std::endl;
+		for (size_t i = 0; i < _message.size(); i++) std::cout << YELLOW << _message[i] << RESET;
 		std::cout << std::endl;
 	}
 
@@ -280,13 +281,9 @@ namespace ft
 				break;
 		}
 		if (!_location->is_allowed_method(_request.get_method()))
-		{
-			// std::cout << "Method: " << _request.get_method() << std::endl;
-			// std::cout << "Shoud be here\n";
-			throw server::server_error(method_not_allowed);
-		}
+			throw server_error(method_not_allowed);
 		if (_location->get_client_max_body_size() < _request.get_body().size())
-			throw server::server_error(content_too_large);
+			throw server_error(content_too_large);
 	}
 
 	void response::generate_autoindex(const std::string &path) 
@@ -296,7 +293,7 @@ namespace ft
 		std::string buffer;
 
 		if (dir == NULL)
-			throw server::server_error(not_found);
+			throw server_error(not_found);
 		struct dirent *entry;
 		while ((entry = readdir(dir)) != nullptr)
 			if (entry->d_name[0] != '.')
@@ -315,88 +312,77 @@ namespace ft
 		_body.insert(_body.end(), buffer.begin(), buffer.end());
 	}
 
-	void response::cgi_process(const std::string &cgi_executable, const std::string &tmp_in, const std::string &tmp_out)
+	void response::cgi_process(const std::string &cgi_executable, int fds[2])
 	{
-		int	fd_in, fd_out;
 		char *const cgi_argv[] = {const_cast<char*>(cgi_executable.c_str()), const_cast<char*>(_path.c_str()), NULL};
-		char **serv_env = webserver.get_environ(), **cgi_env;
+		char **cgi_envp;
 		{
-			char *pwd = getenv("PWD");
 			string_vector environment;
-			if (pwd) environment.push_back("PATH_TRANSLATED=" + std::string(pwd) + "/" + _uri);
-			for (size_t i = 0; serv_env[i] != NULL; i++)
-				environment.push_back(serv_env[i]);
 			environment.push_back("SERVER_NAME=" + _request[std::string("Host")]);
 			environment.push_back("SERVER_PROTOCOL=" HTTP_VERSION);
 			environment.push_back("SERVER_PORT=" + _request.get_socket().get_server_socket().get_port());
 			environment.push_back("REQUEST_METHOD=" + _request.get_method());
 			environment.push_back("SCRIPT_NAME=" + _uri);
 			environment.push_back("DOCUMENT_ROOT=" + _location->get_root());
-			environment.push_back("QUERY_STRING=" + _request.get_query());
+			if (!_request.get_query().empty())
+				environment.push_back("QUERY_STRING=" + _request.get_query());
 			environment.push_back("REMOTE_ADDR=" + _request.get_socket().get_host());
 			environment.push_back("CONTENT_LENGTH=" + to_string(_request.get_content_length()));
-			environment.push_back("CONTENT_TYPE=" + _request[std::string("Content-Type")]);
+			if (!_request[std::string("Content-Type")].empty())
+				environment.push_back("CONTENT_TYPE=" + _request[std::string("Content-Type")]);
 			environment.push_back("GATEWAY_INTERFACE=CGI/1.1");
 			environment.push_back("SERVER_SOFTWARE=webserv/1.0");
 			environment.push_back("REQUEST_URI=" + _request.get_uri() + (_request.get_query().empty() ? "" : "?" + _request.get_query()));
-			if (!(cgi_env = static_cast<char**>(std::calloc(environment.size() + 1, sizeof(char*)))))
-			{
-				webserver.error("Bad memory allocation for CGI environ.");
-				throw server::server_error(internal_server_error);
-			}
+			if (!(cgi_envp = static_cast<char**>(std::calloc(environment.size() + 1, sizeof(char*)))))
+				throw std::runtime_error("[CGI] std::calloc() failed.");
 			for (size_t i = 0; i < environment.size(); i++)
-				cgi_env[i] = const_cast<char*>(environment[i].c_str());
+				cgi_envp[i] = const_cast<char*>(environment[i].c_str());
+			for (size_t i = 0; cgi_envp[i]; i++)
+				std::cout << CYAN << "cgi_envp[" << i << "] : " << cgi_envp[i] << RESET << std::endl;
 		}
-		std::remove(tmp_in.c_str());
-		std::remove(tmp_out.c_str());
-		{
-			std::ofstream file(tmp_in);
-			if (file.is_open())
-			{
-				file.write(&_request.get_body().front(), _request.get_content_length());
-				if (!file.good())
-					throw server::server_error(internal_server_error);
-			}
-			else throw server::server_error(internal_server_error);
-		}
-		if ((fd_in = open(tmp_in.c_str(), O_RDWR | O_CREAT | O_TRUNC, 00755)) == -1 ||
-			(fd_out = open(tmp_out.c_str(), O_RDWR | O_CREAT | O_TRUNC, 00755)) == -1)
-		{
-			webserver.error("Bad temporary file open()ing.");
-			throw server::server_error(internal_server_error);
-		}
-		if (dup2(fd_in, STDIN_FILENO) == -1 || dup2(fd_out, STDOUT_FILENO) == -1)
-		{
-			webserver.error("Bad dup2()ing.");
-			throw server::server_error(internal_server_error);
-		}
-		execve(cgi_argv[0], cgi_argv, cgi_env);
-		webserver.error("Bad CGI execve().");
-		throw server::server_error(internal_server_error);
+		if (dup2(fds[0], STDIN_FILENO) == -1 || dup2(fds[1], STDOUT_FILENO) == -1)
+			throw std::runtime_error("[CGI] dup2() failed.");
+		close(fds[0]);
+		execve(cgi_argv[0], cgi_argv, cgi_envp);
+		throw std::runtime_error("[CGI] execve() failed: " + std::string(cgi_argv[0]) + " inaccessible.");
 	}
 
 	void response::post_method(const std::string &cgi_executable)
 	{
-		pid_t cgi_pid, wait_ret;
-		int term_status;
-		const std::string tmp_in = "/tmp/webserv_in" + to_string(_request);
-		const std::string tmp_out = "/tmp/webserv_out" + to_string(_request);
-
+		pid_t cgi_pid;
+		int term_status, fds[2];
+		
+		if (pipe(fds) == -1)
+			throw server_error(internal_server_error);
 		cgi_pid = fork();
 		if (cgi_pid == -1)
-			throw server::server_error(internal_server_error);
-		else if (cgi_pid == 0) // CGI child process code
-			cgi_process(cgi_executable, tmp_in, tmp_out);
-		// std::cout << "Request content length: " << _request.get_content_length() << std::endl;
-		wait_ret = waitpid(cgi_pid, &term_status, 0);
-		std::remove(tmp_in.c_str());
-		if (wait_ret == -1 || !WIFEXITED(term_status))
 		{
-			std::remove(tmp_out.c_str());
-			throw server::server_error(internal_server_error);
+			close(fds[0]), close(fds[1]);
+			throw server_error(internal_server_error);
 		}
-		// ... attach tmp_out to response body
-		// std::cout << MAGENTA "good wait" RESET << std::endl;
+		else if (cgi_pid == 0)
+			cgi_process(cgi_executable, fds);
+		if (fcntl(fds[1], F_SETFL, O_NONBLOCK) == -1 || fcntl(fds[0], F_SETFL, O_NONBLOCK) == -1)
+		{
+			close(fds[0]), close(fds[1]);
+			throw server_error(internal_server_error);
+		}
+		ssize_t total_bytes_written = 0;
+		while (ssize_t bytes_written = write(fds[1], &(_request.get_body()[0]) + total_bytes_written, _request.get_content_length() - total_bytes_written))
+			if (bytes_written > 0)
+				total_bytes_written += bytes_written;
+		std::cout << LGREEN "total_bytes_written: " << total_bytes_written << " against content_length=" << _request.get_content_length() << RESET << std::endl; 
+		close(fds[1]);
+		if (waitpid(cgi_pid, &term_status, 0) == -1 || !WIFEXITED(term_status) || WEXITSTATUS(term_status) != EXIT_SUCCESS)
+		{
+			close(fds[0]);
+			throw server_error(internal_server_error);
+		}
+		char buffer[BUFSIZ];
+		while (ssize_t bytes_read = read(fds[0], buffer, BUFSIZ))
+			if (bytes_read > 0)
+				_body.insert(_body.end(), buffer, buffer + bytes_read);
+		close(fds[0]);
 	}
 
 	void response::delete_method()
@@ -406,10 +392,10 @@ namespace ft
 			if (std::remove(_path.c_str()) == 0)
 				_status = no_content;
 			else
-				throw server::server_error(internal_server_error);
+				throw server_error(internal_server_error);
 		}
 		else
-			throw server::server_error(forbidden);
+			throw server_error(forbidden);
 	}
 
 	bool response::is_regular_file(const char *filename) const

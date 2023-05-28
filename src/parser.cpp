@@ -228,7 +228,7 @@ namespace ft
 
 	bool parser::read_error_page(base_dir *parent)
 	{
-		std::vector<unsigned int> response_codes;
+		std::vector<http_code> response_codes;
 		bool semicolon_erased = true;
 		while (!erase_chunk_middle(";"))
 		{

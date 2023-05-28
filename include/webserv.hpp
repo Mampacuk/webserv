@@ -13,14 +13,12 @@ namespace ft
 	{
 		private:
 			http	*_protocol;
-			char	**_environment;
 		public:
 			webserv();
 			~webserv();
 			webserv(const webserv &other);
 			webserv &operator=(const webserv &other);
 			const http &get_http() const;
-			char **get_environ() const;
 			void set_http(base_dir *protocol);
 			void set_environment(char **environment);
 			int error(const std::string &error) const;

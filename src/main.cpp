@@ -3,7 +3,7 @@
 
 ft::webserv webserver;
 
-int main(int argc, char **argv, char **environ)
+int main(int argc, char **argv)
 // int main()
 {
 	// try {
@@ -81,7 +81,6 @@ int main(int argc, char **argv, char **environ)
 	{
 		ft::parser config(filename);
 		webserver.set_http(config.parse());
-		webserver.set_environment(environ);
 		webserver.serve();
 		return (EXIT_SUCCESS);
 	}
