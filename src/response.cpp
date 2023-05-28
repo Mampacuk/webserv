@@ -2,9 +2,9 @@
 
 namespace ft
 {
-	response::response(const response &other) : _status(other._status), _body(other._body), _headers(other._headers), _message(other._message), _uri(other._uri), _request(other._request), _location(other._location), _cursor(other._cursor), _path(other._path) {}
+	response::response(const response &other) : _request(other._request), _status(other._status), _headers(other._headers), _uri(other._uri), _path(other._path), _body(other._body), _message(other._message), _cursor(other._cursor), _location(other._location) {}
 
-	response::response(const request &request, http_code status) : _status(status), _body(), _headers(), _message(), _uri(request.get_uri()), _request(request), _location(), _cursor(), _path()
+	response::response(const request &request, http_code status) : _request(request), _status(status), _headers(), _uri(request.get_uri()), _path(), _body(), _message(), _cursor(), _location()
 	{
 		generate_response();
 	}
@@ -68,28 +68,26 @@ namespace ft
 		construct_response();
 	}
 
-	void response::construct_error_page(int error_code)
+	void response::construct_error_page(http_code error)
 	{
-		std::stringstream code;
-
-		code << error_code;
-		_body = "<html>\n\t<head>\n\t\t<title>Error " + code.str() + "</title>\n\t</head>"
-				+ "\n\t<body>\n\t\t<h1>Error " + code.str() + " " + reason_phrase(_status) + "</h1>\n\t</body>\n</html>\n";
+		std::string content = "<html>\n\t<head>\n\t\t<title>Error " + to_string(error) + "</title>\n\t</head>"
+				+ "\n\t<body>\n\t\t<h1>Error " + to_string(error) + " " + reason_phrase(_status) + "</h1>\n\t</body>\n</html>\n";
+		_body.insert(_body.end(), content.begin(), content.end());
 	}
 
-	void response::read_error_page(int error_code, bool loc) //check how the path is constructed
+	void response::read_error_page(http_code error, bool loc) //check how the path is constructed
 	{
 		std::string error_page;
 		
 		if (!loc)
-			error_page = _request.get_server().get_root() + _request.get_server().get_error_page(error_code);	//root?
+			error_page = _request.get_server().get_root() + _request.get_server().get_error_page(error);	//root?
 		else
 		{
 			std::cout << "I am here\n";
 			// std::cout << _location->get_route() + _location->get_error_page(error_code) << std::endl;
-			error_page = _location->get_root() + _location->get_route() + _location->get_error_page(error_code);
-			std::cout << CYAN "get_error_page: " << _location->get_error_page(error_code) << RESET << std::endl;
-			std::cout << RED "error_code: " << error_code << RESET << std::endl;
+			error_page = _location->get_root() + _location->get_route() + _location->get_error_page(error);
+			std::cout << CYAN "get_error_page: " << _location->get_error_page(error) << RESET << std::endl;
+			std::cout << RED "error_code: " << error << RESET << std::endl;
 			std::cout << RED "location route: " << _location->get_route() << RESET << std::endl;
 			std::cout << "error page to be requested: " << error_page << std::endl;
 		}
@@ -98,7 +96,7 @@ namespace ft
 		if (error_page.empty() || !read_requested_file(error_page))
 		{
 			// std::cout << "Could not open file\n";
-			construct_error_page(error_code);
+			construct_error_page(error);
 		}
 	}
 
@@ -111,18 +109,26 @@ namespace ft
 	{
 		std::ifstream file;
 
-		std::cout << "Read requested file: " << filename << std::endl;
+		// std::cout << "Read requested file: " << filename << std::endl;
 		if (!is_regular_file(filename.c_str()))
 			return (false);
 		file.open(filename);
 		if (file)
 		{
+			std::streampos file_len;
 			std::ostringstream ss;
 
 			_path = filename;
+			file.seekg(0, std::ios::end);
+			file_len = file.tellg();
+			file.seekg(0, std::ios::beg);
+			_body.reserve(file_len);
 			ss << file.rdbuf();
-			_body = ss.str();
-			if (_body.length() != 0)
+			std::string buffer(ss.str().c_str(), file_len);
+			_body.insert(_body.end(), buffer.begin(), buffer.end());
+			std::copy(std::istream_iterator<char>(file), std::istream_iterator<char>(), std::back_inserter(_body));
+			std::cout << "body size after read: " << _body.size() << " while file_len is " << file_len << std::endl;
+			if (_body.size() != 0)
 			{
 				std::string ext = get_file_extension(_path);
 				if (ext == "html")
@@ -152,7 +158,7 @@ namespace ft
 				{
 					std::cout << "Index file: " << *it << std::endl;
 					if (read_requested_file(_path + *it))
-						break;
+						break ;
 				}
 				if (it == _location->get_indices().end())
 				{
@@ -203,26 +209,31 @@ namespace ft
 
 	void response::construct_response()
 	{
-		_headers["Content-Length"] = to_string(_body.length());
+		_headers["Content-Length"] = to_string(_body.size());
 		if (!_status)
 			_status = ok;
-		std::stringstream ss;
-
-		_message = HTTP_VERSION " ";
-		ss << _status;
-		_message += ss.str() + " " + reason_phrase(_status) + CRLF;
+		std::string buffer = HTTP_VERSION " " + to_string(_status) + " " + reason_phrase(_status) + CRLF;
+		_message.insert(_message.end(), buffer.begin(), buffer.end());
 		for (string_map::const_iterator it = _headers.begin(); it != _headers.end(); it++)
-			_message += it->first + ": " + it->second + CRLF;
-		_message += CRLF + _body;
+		{
+			buffer = it->first + ": " + it->second + CRLF;
+			_message.insert(_message.end(), buffer.begin(), buffer.end());
+		}
+		buffer = CRLF;
+		_message.insert(_message.end(), buffer.begin(), buffer.end());
+		_message.insert(_message.end(), _body.begin(), _body.end());
+		_body.clear();
 		// std::cout << "response of size " << _message.size() << " is:" << std::endl;
-		// std::cout << YELLOW << _message.substr(0, 300) + "..." << RESET << std::endl;
+		// for (size_t i = 0; i < _message.size(); i++) std::cout << YELLOW << _message[i] << RESET;
+		std::cout << std::endl;
 	}
 
-	std::string response::get_chunk()
+	char_vector_iterator_pair response::get_chunk()
 	{
-		std::string chunk = _message.substr(_cursor, BUFSIZ);
+		char_vector::iterator begin = _message.begin() + _cursor;
 		_cursor = std::min(_cursor + BUFSIZ, _message.size());
-		return (chunk);
+		char_vector::iterator end = _message.begin() + _cursor;
+		return (std::make_pair(begin, end));
 	}
 
 	bool response::empty() const
@@ -281,43 +292,38 @@ namespace ft
 	void response::generate_autoindex(const std::string &path) 
 	{
 		DIR *dir = opendir(path.c_str());
-		std::vector<std::string> files;
+		string_vector files;
+		std::string buffer;
 
-		if (dir == nullptr)
-			throw server::server_error(not_found); //does autoindex have it's own error code??
-
+		if (dir == NULL)
+			throw server::server_error(not_found);
 		struct dirent *entry;
 		while ((entry = readdir(dir)) != nullptr)
 			if (entry->d_name[0] != '.')
 				files.push_back(entry->d_name);
-
 		closedir(dir);
-		_body = "<html>\n\t<head>\n\t\t<title>Index of " + _uri + "</title>\n\t</head>"
-					+ "\n\t<body>\n\t\t<h1>Index of " + _uri + "</h1>\n\t\t<hr>\n\t\t\t<ul>";
-
+		buffer = "<html>\n\t<head>\n\t\t<title>Index of " + _uri + "</title>\n\t</head>" + "\n\t<body>\n\t\t<h1>Index of " + _uri + "</h1>\n\t\t<hr>\n\t\t\t<ul>";
+		_body.insert(_body.end(), buffer.begin(), buffer.end());
 		for (size_t i = 0; i < files.size(); i++)
 		{
 			std::cout << MAGENTA "path is " << _path << std::endl;
 			std::cout << "uri is " << _uri << RESET << std::endl;
-			_body += "\n\t\t\t\t<li><a href=\"http://" + _request.get_socket().get_server_socket().get_host() + ":" + _request.get_socket().get_server_socket().get_port() + (!ends_with(_uri, "/") && is_directory((_path).c_str()) ? _uri + "/": _uri) + files[i] + "\">" + files[i] + "</a></li>";
-			// std::cout << "Href: http://" << _request.get_socket().get_server_socket().get_host() << ":" << _request.get_socket().get_server_socket().get_port() << (!ends_with(_uri, "/") && is_directory((_path).c_str()) ? _uri + "/": _uri) << files[i] << std::endl;
+			buffer = "\n\t\t\t\t<li><a href=\"http://" + _request.get_socket().get_server_socket().get_host() + ":" + _request.get_socket().get_server_socket().get_port() + (!ends_with(_uri, "/") && is_directory((_path).c_str()) ? _uri + "/": _uri) + files[i] + "\">" + files[i] + "</a></li>";
+			_body.insert(_body.end(), buffer.begin(), buffer.end());
 		}
-
-		_body += "\n\t\t\t</ul>\n\t\t<hr>\n\t</body>\n</html>\n"; 
+		buffer = "\n\t\t\t</ul>\n\t\t<hr>\n\t</body>\n</html>\n"; 
+		_body.insert(_body.end(), buffer.begin(), buffer.end());
 	}
 
-	void response::post_method(const std::string &cgi_executable)
+	void response::cgi_process(const std::string &cgi_executable, const std::string &tmp_in, const std::string &tmp_out)
 	{
-		if (cgi_executable.empty())
-		{
-			_status = no_content;
-			return ;
-		}
+		int	fd_in, fd_out;
+		char *const cgi_argv[] = {const_cast<char*>(cgi_executable.c_str()), const_cast<char*>(_path.c_str()), NULL};
 		char **serv_env = webserver.get_environ(), **cgi_env;
-		const char *cgi_path = cgi_executable.c_str();
-		char *const cgi_args[] = {const_cast<char*>(cgi_executable.c_str()), const_cast<char*>(_path.c_str()), NULL};
 		{
+			char *pwd = getenv("PWD");
 			string_vector environment;
+			if (pwd) environment.push_back("PATH_TRANSLATED=" + std::string(pwd) + "/" + _uri);
 			for (size_t i = 0; serv_env[i] != NULL; i++)
 				environment.push_back(serv_env[i]);
 			environment.push_back("SERVER_NAME=" + _request[std::string("Host")]);
@@ -329,104 +335,68 @@ namespace ft
 			environment.push_back("QUERY_STRING=" + _request.get_query());
 			environment.push_back("REMOTE_ADDR=" + _request.get_socket().get_host());
 			environment.push_back("CONTENT_LENGTH=" + to_string(_request.get_content_length()));
+			environment.push_back("CONTENT_TYPE=" + _request[std::string("Content-Type")]);
+			environment.push_back("GATEWAY_INTERFACE=CGI/1.1");
+			environment.push_back("SERVER_SOFTWARE=webserv/1.0");
 			environment.push_back("REQUEST_URI=" + _request.get_uri() + (_request.get_query().empty() ? "" : "?" + _request.get_query()));
 			if (!(cgi_env = static_cast<char**>(std::calloc(environment.size() + 1, sizeof(char*)))))
+			{
+				webserver.error("Bad memory allocation for CGI environ.");
 				throw server::server_error(internal_server_error);
+			}
 			for (size_t i = 0; i < environment.size(); i++)
-				if (!(cgi_env[i] = strdup(environment[i].c_str())))
-				{
-					for (size_t j = 0; j < i; j++)
-						std::free(cgi_env[j]);
-					std::free(cgi_env);
-					break ;
-				}
+				cgi_env[i] = const_cast<char*>(environment[i].c_str());
 		}
-		try
+		std::remove(tmp_in.c_str());
+		std::remove(tmp_out.c_str());
 		{
-			std::cout << MAGENTA "running execve() on " << cgi_args[0] << ", " << cgi_args[1] << RESET << std::endl;
-			execute_cgi(cgi_path, cgi_args, cgi_env);
+			std::ofstream file(tmp_in);
+			if (file.is_open())
+			{
+				file.write(&_request.get_body().front(), _request.get_content_length());
+				if (!file.good())
+					throw server::server_error(internal_server_error);
+			}
+			else throw server::server_error(internal_server_error);
 		}
-		catch (...)
+		if ((fd_in = open(tmp_in.c_str(), O_RDWR | O_CREAT | O_TRUNC, 00755)) == -1 ||
+			(fd_out = open(tmp_out.c_str(), O_RDWR | O_CREAT | O_TRUNC, 00755)) == -1)
 		{
-			for (size_t i = 0; cgi_env[i] != NULL; i++)
-				std::free(cgi_env[i]);
-			std::free(cgi_env);
-			throw ;
+			webserver.error("Bad temporary file open()ing.");
+			throw server::server_error(internal_server_error);
 		}
+		if (dup2(fd_in, STDIN_FILENO) == -1 || dup2(fd_out, STDOUT_FILENO) == -1)
+		{
+			webserver.error("Bad dup2()ing.");
+			throw server::server_error(internal_server_error);
+		}
+		execve(cgi_argv[0], cgi_argv, cgi_env);
+		webserver.error("Bad CGI execve().");
+		throw server::server_error(internal_server_error);
 	}
 
-	void response::execute_cgi(const char *cgi_path, char *const cgi_args[], char **cgi_env)
+	void response::post_method(const std::string &cgi_executable)
 	{
-		pid_t cgi_pid;
+		pid_t cgi_pid, wait_ret;
 		int term_status;
-		ssize_t bytes_written;
-		ssize_t bytes_read = 1; // to activate the loop
-		int in_pipe[2], out_pipe[2];
+		const std::string tmp_in = "/tmp/webserv_in" + to_string(_request);
+		const std::string tmp_out = "/tmp/webserv_out" + to_string(_request);
 
-		if (pipe(in_pipe) == -1)
-			throw server::server_error(internal_server_error);
-		pipe_failsafe(pipe(out_pipe), in_pipe);
 		cgi_pid = fork();
 		if (cgi_pid == -1)
-			pipe_failsafe(cgi_pid, in_pipe, out_pipe);
+			throw server::server_error(internal_server_error);
 		else if (cgi_pid == 0) // CGI child process code
+			cgi_process(cgi_executable, tmp_in, tmp_out);
+		// std::cout << "Request content length: " << _request.get_content_length() << std::endl;
+		wait_ret = waitpid(cgi_pid, &term_status, 0);
+		std::remove(tmp_in.c_str());
+		if (wait_ret == -1 || !WIFEXITED(term_status))
 		{
-			close(in_pipe[1]);
-			close(out_pipe[0]);
-			if (dup2(in_pipe[0], STDIN_FILENO) == -1 || dup2(out_pipe[1], STDOUT_FILENO) == -1)
-				throw server::server_error(internal_server_error);
-			close(in_pipe[0]);
-			close(out_pipe[1]);
-			execve(cgi_path, cgi_args, cgi_env);
+			std::remove(tmp_out.c_str());
 			throw server::server_error(internal_server_error);
 		}
-		close(in_pipe[0]);
-		close(out_pipe[1]);
-		bytes_written = write(in_pipe[1], &_request.get_body().front(), _request.get_content_length());
-		if (bytes_written != _request.get_content_length())
-		{
-			kill(cgi_pid, SIGTERM);
-			close(in_pipe[1]);
-			close(out_pipe[0]);
-			throw server::server_error(internal_server_error);
-		}
-		close(in_pipe[1]);
-		while (bytes_read > 0)
-		{
-			char buffer[BUFSIZ] = {0};
-			bytes_read = read(out_pipe[0], buffer, BUFSIZ - 1);
-			if (bytes_read <= 0) break ;
-			std::cerr << MAGENTA "BUFFER ATTACHED TO BODY IS |" << buffer << "|" RESET << std::endl;
-			_body += buffer;
-		}
-		if (bytes_read == -1)
-		{
-			kill(cgi_pid, SIGTERM);
-			close(out_pipe[0]);
-			_body.clear();
-			throw server::server_error(internal_server_error);
-		}
-		close(out_pipe[0]);
-		if (waitpid(cgi_pid, &term_status, 0) == -1 || !WIFEXITED(term_status) || WEXITSTATUS(term_status) != 0)
-			throw server::server_error(internal_server_error);
-	}
-
-	void response::pipe_failsafe(int status, int in_pipe[2], int out_pipe[2])
-	{
-		if (status == -1)
-		{
-			if (in_pipe)
-			{
-				close(in_pipe[0]);
-				close(in_pipe[1]);
-			}
-			if (out_pipe)
-			{
-				close(out_pipe[0]);
-				close(out_pipe[1]);
-			}
-			throw server::server_error(internal_server_error);
-		}
+		// ... attach tmp_out to response body
+		// std::cout << MAGENTA "good wait" RESET << std::endl;
 	}
 
 	void response::delete_method()

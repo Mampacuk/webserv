@@ -104,8 +104,8 @@ namespace ft
 
 	int webserv::send_response(response &response)
 	{
-		std::string chunk = response.get_chunk();
-		ssize_t bytes_written = send(response, chunk.c_str(), chunk.size(), 0);
+		char_vector_iterator_pair range = response.get_chunk();
+		ssize_t bytes_written = send(response, &(*range.first), range.second - range.first, 0);
 		if (bytes_written <= 0)
 		{
 			if (!bytes_written)

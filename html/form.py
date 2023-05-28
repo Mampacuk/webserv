@@ -2,6 +2,11 @@
 
 import cgi
 
+import os
+
+# printing environment variables
+print(os.environ)
+
 # HTML form
 print("<html><body>")
 

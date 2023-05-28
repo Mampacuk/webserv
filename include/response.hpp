@@ -1,25 +1,23 @@
 #ifndef RESPONSE_HPP
 # define RESPONSE_HPP
 
-// # include "stdafx.hpp" // included in request
 # include "request.hpp"
-# include "webserv.hpp" //?
+# include "webserv.hpp"
 
 namespace ft
 {
 	class response
 	{
 		private:
-			http_code		_status;
-			std::string		_body;
-			string_map		_headers;
-			string_map		_cgi_env;
-			std::string		_message;
-			std::string		_uri;
 			request			_request;
-			const location	*_location;
-			size_t			_cursor; // indicates bytes already sent
+			http_code		_status;
+			string_map		_headers;
+			std::string		_uri;
 			std::string		_path;
+			char_vector		_body;
+			char_vector		_message;
+			size_t			_cursor; // indicates bytes already sent
+			const location	*_location;
 			response &operator=(const response &other);
 		public:
 			~response();
@@ -27,7 +25,7 @@ namespace ft
 			response(const request &request, http_code status = ok);
 			int get_socket() const;
 			operator int() const;
-			std::string get_chunk();
+			char_vector_iterator_pair get_chunk();
 			bool empty() const;
 			bool sent() const;
 		private:
@@ -41,12 +39,10 @@ namespace ft
 			bool read_requested_file(const std::string &file);
 			void find_rewritten_location();
 			bool rewrite(const std::string &what, const std::string &with_what);
-			// void find_path();
 			void generate_autoindex(const std::string &path);
-			void execute_cgi(const char *cgi_path, char *const cgi_args[], char **cgi_env);
-			void pipe_failsafe(int status, int in_pipe[2] = NULL, int out_pipe[2] = NULL);
-			void read_error_page(int error_code, bool loc = true);
-			void construct_error_page(int error_code);
+			void cgi_process(const std::string &cgi_executable, const std::string &tmp_in, const std::string &tmp_out);
+			void read_error_page(http_code error, bool loc = true);
+			void construct_error_page(http_code error);
 			bool is_regular_file(const char *filename) const;
 			bool is_directory(const char *filename) const;
 			std::string append_trailing_slash(const std::string &path);

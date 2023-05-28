@@ -91,66 +91,14 @@
 
 namespace ft
 {
-	class http;
-	class webserv;
-	class server;
-	class location;
-	class request;
-	class response;
-	class socket;
-	class server_socket;
-
-	typedef std::pair<int, std::string>				int_string;
-	typedef std::pair<std::string, std::string>		string_pair;
-	typedef std::pair<unsigned int, std::string>	error_page;
-	
-	typedef std::map<int, std::string>			int_string_map;
-	typedef std::map<std::string, std::string>	string_map;
-	typedef std::map<unsigned int, std::string>	error_map;
-
-	typedef std::set<int>			int_set;
-	typedef std::set<socket>		socket_set;
-	typedef std::set<server_socket>	server_socket_set;
-	typedef std::set<string_pair>	string_pair_set;
-	typedef std::set<std::string>	string_set;
-	
-	typedef std::multimap<std::string, std::string> string_mmap;
-	typedef std::multimap<string_pair, const server*> string_pair_server_pointer_mmap;
-	
-	typedef std::vector<int>			int_vector;
-	typedef std::vector<char>			char_vector;
-	typedef std::vector<socket>			socket_vector;
-	typedef std::vector<std::string>	string_vector;
-	typedef std::vector<const server*>	server_pointer_vector;
-	
-	typedef std::list<std::string>	string_list;
-	typedef std::list<request>		request_list;
-	typedef std::list<response>		response_list;
-	typedef std::list<server>		server_list;
-
-	typedef std::set<location> location_set;
-
-	bool ends_with(const std::string &str, const std::string &suffix);
-	bool ends_with(const char_vector &char_vec, const std::string &suffix);
-	bool starts_with(const std::string &str, const std::string &prefix);
-	std::string get_file_extension(const std::string &filename);
-	std::string inet_ntoa(struct in_addr addr);
-	unsigned int strtoul(const std::string &number, int base = 10);
-
-	template <typename Integral>
-	std::string to_string(Integral val)
-	{
-		std::stringstream ss;
-		ss << val;
-		return (ss.str());
-	}
-
-	class parsing_error : public std::logic_error
-	{
-		public:
-			explicit parsing_error(const std::string &what) : std::logic_error(what) {}
-			explicit parsing_error(const char *what) : std::logic_error(what) {}
-	};
+	class	http;
+	class	webserv;
+	class	server;
+	class	location;
+	class	request;
+	class	response;
+	class	socket;
+	class	server_socket;
 
 	enum http_code
 	{
@@ -224,8 +172,61 @@ namespace ft
 
 		xxx_max = 1023
 	};
+	typedef std::vector<int>			int_vector;
+	typedef std::vector<char>			char_vector;
+	typedef std::vector<socket>			socket_vector;
+	typedef std::vector<std::string>	string_vector;
+	typedef std::vector<const server*>	server_pointer_vector;
 
+	typedef std::pair<int, std::string>								int_string;
+	typedef std::pair<std::string, std::string>						string_pair;
+	typedef std::pair<unsigned int, std::string>					error_page;
+	typedef std::pair<char_vector::iterator, char_vector::iterator>	char_vector_iterator_pair;
+	
+	typedef std::map<int, std::string>			int_string_map;
+	typedef std::map<std::string, std::string>	string_map;
+	typedef std::map<http_code, std::string>	error_map;
+
+	typedef std::set<int>			int_set;
+	typedef std::set<socket>		socket_set;
+	typedef std::set<server_socket>	server_socket_set;
+	typedef std::set<string_pair>	string_pair_set;
+	typedef std::set<std::string>	string_set;
+	
+	typedef std::multimap<std::string, std::string> string_mmap;
+	typedef std::multimap<string_pair, const server*> string_pair_server_pointer_mmap;
+	
+
+	
+	typedef std::list<std::string>	string_list;
+	typedef std::list<request>		request_list;
+	typedef std::list<response>		response_list;
+	typedef std::list<server>		server_list;
+
+	typedef std::set<location> location_set;
+
+	bool ends_with(const std::string &str, const std::string &suffix);
+	bool ends_with(const char_vector &char_vec, const std::string &suffix);
+	bool starts_with(const std::string &str, const std::string &prefix);
+	std::string get_file_extension(const std::string &filename);
+	std::string inet_ntoa(struct in_addr addr);
+	unsigned int strtoul(const std::string &number, int base = 10);
 	std::string reason_phrase(http_code status);
+
+	template <typename Integral>
+	std::string to_string(Integral val)
+	{
+		std::stringstream ss;
+		ss << val;
+		return (ss.str());
+	}
+
+	class parsing_error : public std::logic_error
+	{
+		public:
+			explicit parsing_error(const std::string &what) : std::logic_error(what) {}
+			explicit parsing_error(const char *what) : std::logic_error(what) {}
+	};
 
 	class protocol_error : public std::logic_error
 	{
