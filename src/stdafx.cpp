@@ -50,6 +50,12 @@ namespace ft
 		return (ul);
 	}
 
+	size_t search(const char_vector &haystack, const std::string &needle, size_t pos)
+	{
+		char_vector::const_iterator result = std::search(haystack.begin() + pos, haystack.end(), needle.begin(), needle.end());
+		return (result != haystack.end() ? std::distance(haystack.begin(), result) : std::string::npos);
+	}
+
 	std::string reason_phrase(http_code status)
 	{
 		switch (status)

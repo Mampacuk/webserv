@@ -44,7 +44,6 @@ namespace ft
 			size_t	parse_request_line();
 			void	parse_query();
 			void	select_server();
-			size_t	search_raw(const std::string &needle, size_t pos = 0) const;
 	};
 }
 

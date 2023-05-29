@@ -30,13 +30,13 @@ namespace ft
 		_raw.insert(_raw.end(), chunk, chunk + chunk_size);
 		if (_headers_end == std::string::npos)
 		{
-			if ((_headers_end = search_raw(CRLF CRLF)) == std::string::npos)
+			if ((_headers_end = search(_raw, CRLF CRLF)) == std::string::npos)
 			{
 				std::cout << CYAN "NOT DONE RECEIVING HEADERS" RESET << std::endl; 
 				return (false);
 			}
-			read_header(search_raw("Content-Length: "));
-			read_header(search_raw("Transfer-Encoding: "));
+			read_header(search(_raw, "Content-Length: "));
+			read_header(search(_raw, "Transfer-Encoding: "));
 			if (operator[]("Content-Length").empty())
 			{
 				if (operator[]("Transfer-Encoding").empty())
@@ -81,7 +81,7 @@ namespace ft
 		// verify the headers is present, it's not in the body, and it's preceded by a CRLF
 		if (pos != std::string::npos && pos < _headers_end && std::equal(_raw.begin() + pos - std::strlen(CRLF), _raw.begin() + pos, CRLF))
 		{
-			size_t line_end = search_raw(CRLF, pos);
+			size_t line_end = search(_raw, CRLF, pos);
 			std::string line = std::string(_raw.begin() + pos, _raw.begin() + line_end);
 
 			size_t colon = line.find(':');
@@ -119,10 +119,10 @@ namespace ft
 		parse_query();
 		select_server();
 		
-		std::cout << BLUE;
-		for (string_map::iterator it = _headers.begin(); it != _headers.end(); it++)
-			std::cout << "header: { " << it->first << " : " << it->second << " }" << std::endl;
-		std::cout << RESET;
+		// std::cout << BLUE;
+		// for (string_map::iterator it = _headers.begin(); it != _headers.end(); it++)
+		// 	std::cout << "header: { " << it->first << " : " << it->second << " }" << std::endl;
+		// std::cout << RESET;
 		// std::cout << "uri: |" << _uri << "|" << std::endl;
 		// std::cout << "query: |" << _query << "|" RESET << std::endl;
 
@@ -145,19 +145,19 @@ namespace ft
 		{
 			size_t	chunk_size;
 			size_t	pos = _headers_end + std::strlen(CRLF CRLF);
-			size_t	end_of_line = search_raw(CRLF, pos);
+			size_t	end_of_line = search(_raw, CRLF, pos);
 			chunk_size = try_strtoul(std::string(_raw.begin() + pos, _raw.begin() + end_of_line), 16);
 			_content_length = 0;
 			while (chunk_size > 0)
 			{
 				pos = end_of_line + std::strlen(CRLF);	// now points to the beginning of chunk
-				end_of_line = search_raw(CRLF, pos);	// now points to the end of chunk
+				end_of_line = search(_raw, CRLF, pos);	// now points to the end of chunk
 				if (end_of_line - pos != chunk_size)
 					throw protocol_error(bad_request);
 				_body.insert(_body.end(), _raw.begin() + pos, _raw.begin() + pos + chunk_size);	// append the chunk to the body
 				_content_length += chunk_size;
 				pos = end_of_line + std::strlen(CRLF);	// now points to the beginning of chunk-size
-				end_of_line = search_raw(CRLF, pos);	// now points to the end of chunk-size
+				end_of_line = search(_raw, CRLF, pos);	// now points to the end of chunk-size
 				chunk_size = try_strtoul(std::string(_raw.begin() + pos, _raw.begin() + end_of_line), 16);
 			}
 		}
@@ -166,12 +166,12 @@ namespace ft
 
 	size_t request::parse_request_line()
 	{
-		size_t line_end = search_raw(CRLF);
-		size_t space = search_raw(" ");
+		size_t line_end = search(_raw, CRLF);
+		size_t space = search(_raw, " ");
 		if (!space || space > line_end)
 			throw protocol_error(bad_request);
 		_method = std::string(_raw.begin(), _raw.begin() + space);
-		space = search_raw(" ", space + 1);
+		space = search(_raw, " ", space + 1);
 		if (space > line_end)
 			throw protocol_error(bad_request);
 		_uri = std::string(_raw.begin() + _method.length() + 1, _raw.begin() + space);
@@ -267,11 +267,5 @@ namespace ft
 		{
 			throw protocol_error(bad_request);
 		}
-	}
-
-	size_t request::search_raw(const std::string &needle, size_t pos) const
-	{
-		char_vector::const_iterator result = std::search(_raw.begin() + pos, _raw.end(), needle.begin(), needle.end());
-		return (result != _raw.end() ? std::distance(_raw.begin(), result) : std::string::npos);
 	}
 }

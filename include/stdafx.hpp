@@ -210,6 +210,7 @@ namespace ft
 	std::string get_file_extension(const std::string &filename);
 	std::string inet_ntoa(struct in_addr addr);
 	unsigned int strtoul(const std::string &number, int base = 10);
+	size_t search(const char_vector &haystack, const std::string &needle, size_t pos = 0);
 	std::string reason_phrase(http_code status);
 
 	template <typename Integral>
