@@ -9,6 +9,7 @@ namespace ft
 		_method = other._method;
 		_uri = other._uri;
 		_query = other._query;
+		_pathinfo = other._pathinfo;
 		_headers = other._headers;
 		_raw = other._raw;
 		_body = other._body;
@@ -19,9 +20,9 @@ namespace ft
 		return (*this);
 	}
 
-	request::request(client_socket socket) : _method(), _uri(), _query(), _headers(), _raw(), _body(), _socket(socket), _content_length(-1), _headers_end(std::string::npos), _server() {}
+	request::request(client_socket socket) : _method(), _uri(), _query(), _pathinfo(), _headers(), _raw(), _body(), _socket(socket), _content_length(-1), _headers_end(std::string::npos), _server() {}
 
-	request::request(const request &other) : _method(other._method), _uri(other._uri), _query(other._query), _headers(other._headers), _raw(other._raw), _body(other._body),
+	request::request(const request &other) : _method(other._method), _uri(other._uri), _query(other._query), _pathinfo(other._pathinfo), _headers(other._headers), _raw(other._raw), _body(other._body),
 		_socket(other._socket), _content_length(other._content_length), _headers_end(other._headers_end), _server(other._server) {}
 
 	// appends chunk to the request. returns whether the request was fully accepted
@@ -116,7 +117,7 @@ namespace ft
 		// std::cout << CYAN "about to inspect headers" RESET << std::endl;
 		while (pos != _headers_end + std::strlen(CRLF))
 			pos = read_header(pos);
-		parse_query();
+		parse_uri();
 		select_server();
 		
 		// std::cout << BLUE;
@@ -180,14 +181,19 @@ namespace ft
 		return (line_end + std::strlen(CRLF));
 	}
 
-	void request::parse_query()
+	void request::parse_uri()
 	{
+		size_t ext = std::string::npos;
 		size_t question_mark = _uri.find('?');
+		for (string_map::const_iterator it = _server->get_cgi().begin(); it != _server->get_cgi().end(); it++)
+			if (ext = _uri.find(("." + it->first).c_str(), 0, question_mark) <= ext && ext != std::string::npos)
+				if (ext + it->first.size() + 1 == _uri.size() || _uri[ext + it->first.size() + 1] == '/')
+					ext = ext + it->first.size() + 1;
+		if (ext != std::string::npos)
+			_pathinfo = _uri.substr(ext, question_mark);
 		if (question_mark != std::string::npos)
-		{
 			_query = _uri.substr(question_mark + 1);
-			_uri = _uri.substr(0, question_mark);
-		}
+		_uri = _uri.substr(0, (ext < question_mark) ? ext : question_mark);
 	}
 
 	void request::select_server()

@@ -121,4 +121,9 @@ namespace ft
 			_flush_indices = true;
 		}
 	}
+
+	const string_map &base_dir::get_cgi() const
+	{
+		return (_cgi);
+	}
 }

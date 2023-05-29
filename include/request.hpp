@@ -1,9 +1,6 @@
 #ifndef REQUEST_HPP
 # define REQUEST_HPP
 
-// # include "stdafx.hpp"
-// # include "http.hpp"
-// # include "parser.hpp"	//?
 # include "client_socket.hpp"
 
 namespace ft
@@ -14,6 +11,7 @@ namespace ft
 			std::string		_method;
 			std::string		_uri;
 			std::string 	_query;
+			std::string		_pathinfo;
 			string_map		_headers;
 			char_vector		_raw;
 			char_vector 	_body;
@@ -33,6 +31,7 @@ namespace ft
 			const std::string &get_method() const;
 			const std::string &get_uri() const;
 			const std::string &get_query() const;
+			const std::string &get_pathinfo() const;
 			const char_vector &get_body() const;
 			ssize_t get_content_length() const;
 			const server &get_server() const;
@@ -42,7 +41,7 @@ namespace ft
 			size_t	read_header(size_t pos);
 			void	separate_body();
 			size_t	parse_request_line();
-			void	parse_query();
+			void	parse_uri();
 			void	select_server();
 	};
 }
