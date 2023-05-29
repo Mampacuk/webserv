@@ -224,9 +224,9 @@ namespace ft
 		_message.insert(_message.end(), buffer.begin(), buffer.end());
 		_message.insert(_message.end(), _body.begin(), _body.end());
 		_body.clear();
-		std::cout << "response of size " << _message.size() << " is:" << std::endl;
-		for (size_t i = 0; i < _message.size(); i++) std::cout << YELLOW << _message[i] << RESET;
-		std::cout << std::endl;
+		// std::cout << "response of size " << _message.size() << " is:" << std::endl;
+		// for (size_t i = 0; i < _message.size(); i++) std::cout << YELLOW << _message[i] << RESET;
+		// std::cout << std::endl;
 	}
 
 	char_vector_iterator_pair response::get_chunk()
@@ -262,10 +262,10 @@ namespace ft
 
 	void response::find_rewritten_location()
 	{
-		std::cout << LGREEN "uri before rewrite: " << _uri << RESET << std::endl;
+		// std::cout << LGREEN "uri before rewrite: " << _uri << RESET << std::endl;
 		for (ft::string_mmap::const_iterator it = _request.get_server().get_rewrites().begin(); it != _request.get_server().get_rewrites().end(); it++)
 			rewrite(it->first, it->second);
-		std::cout << LGREEN "uri after rewrite: " << _uri << RESET << std::endl;
+		// std::cout << LGREEN "uri after rewrite: " << _uri << RESET << std::endl;
 		int i = 0;
 		find_location(_request.get_server());
 		while (i != 10)
@@ -316,32 +316,30 @@ namespace ft
 	{
 		char *const cgi_argv[] = {const_cast<char*>(cgi_executable.c_str()), const_cast<char*>(_path.c_str()), NULL};
 		char **cgi_envp;
-		{
-			string_vector environment;
-			environment.push_back("SERVER_NAME=" + _request[std::string("Host")]);
-			environment.push_back("SERVER_PROTOCOL=" HTTP_VERSION);
-			environment.push_back("SERVER_PORT=" + _request.get_socket().get_server_socket().get_port());
-			environment.push_back("REQUEST_METHOD=" + _request.get_method());
-			environment.push_back("SCRIPT_NAME=" + _uri);
-			environment.push_back("DOCUMENT_ROOT=" + _location->get_root());
-			environment.push_back("QUERY_STRING=" + _request.get_query());
-			environment.push_back("REMOTE_ADDR=" + _request.get_socket().get_host());
-			environment.push_back("CONTENT_LENGTH=" + to_string(_request.get_content_length()));
-			if (!_request[std::string("Content-Type")].empty())
-				environment.push_back("CONTENT_TYPE=" + _request[std::string("Content-Type")]);
-			environment.push_back("GATEWAY_INTERFACE=CGI/1.1");
-			environment.push_back("SERVER_SOFTWARE=webserv/1.0");
-			environment.push_back("REQUEST_URI=" + _request.get_uri() + (_request.get_query().empty() ? "" : "?" + _request.get_query()));
-			if (!(cgi_envp = static_cast<char**>(std::calloc(environment.size() + 1, sizeof(char*)))))
-				throw std::runtime_error("[CGI] std::calloc() failed.");
-			for (size_t i = 0; i < environment.size(); i++)
-				cgi_envp[i] = const_cast<char*>(environment[i].c_str());
-			for (size_t i = 0; cgi_envp[i]; i++)
-				std::cout << CYAN << "cgi_envp[" << i << "] : " << cgi_envp[i] << RESET << std::endl;
-		}
+		string_vector environment;
+		environment.push_back("SERVER_NAME=" + _request[std::string("Host")]);
+		environment.push_back("SERVER_PROTOCOL=" HTTP_VERSION);
+		environment.push_back("SERVER_PORT=" + _request.get_socket().get_server_socket().get_port());
+		environment.push_back("REQUEST_METHOD=" + _request.get_method());
+		environment.push_back("SCRIPT_NAME=" + _uri);
+		environment.push_back("DOCUMENT_ROOT=" + _location->get_root());
+		environment.push_back("QUERY_STRING=" + _request.get_query());
+		environment.push_back("REMOTE_ADDR=" + _request.get_socket().get_host());
+		environment.push_back("CONTENT_LENGTH=" + to_string(_request.get_content_length()));
+		if (!_request[std::string("Content-Type")].empty())
+			environment.push_back("CONTENT_TYPE=" + _request[std::string("Content-Type")]);
+		environment.push_back("GATEWAY_INTERFACE=CGI/1.1");
+		environment.push_back("SERVER_SOFTWARE=webserv/1.0");
+		environment.push_back("REQUEST_URI=" + _request.get_uri() + (_request.get_query().empty() ? "" : "?" + _request.get_query()));
+		if (!(cgi_envp = static_cast<char**>(std::calloc(environment.size() + 1, sizeof(char*)))))
+			throw std::runtime_error("[CGI] std::calloc() failed.");
+		for (size_t i = 0; i < environment.size(); i++)
+			cgi_envp[i] = const_cast<char*>(environment[i].c_str());
 		if (dup2(in[0], STDIN_FILENO) == -1 || dup2(out[1], STDOUT_FILENO) == -1)
 			throw std::runtime_error("[CGI] dup2() failed.");
 		close(in[0]), close(in[1]), close(out[0]), close(out[1]);
+		for (size_t i = 0; cgi_envp[i]; i++)
+			std::cerr << CYAN << "cgi_envp[" << i << "] : " << cgi_envp[i] << RESET << std::endl;
 		execve(cgi_argv[0], cgi_argv, cgi_envp);
 		throw std::runtime_error("[CGI] execve() failed: " + std::string(cgi_argv[0]) + " inaccessible.");
 	}
@@ -376,7 +374,7 @@ namespace ft
 		while (ssize_t bytes_written = write(in[1], &(_request.get_body()[0]) + total_bytes_written, _request.get_content_length() - total_bytes_written))
 			if (bytes_written > 0)
 				total_bytes_written += bytes_written;
-		std::cout << LGREEN "total_bytes_written: " << total_bytes_written << " against content_length=" << _request.get_content_length() << RESET << std::endl; 
+		// std::cout << LGREEN "total_bytes_written: " << total_bytes_written << " against content_length=" << _request.get_content_length() << RESET << std::endl; 
 		close(in[1]);
 		if (waitpid(cgi_pid, &term_status, 0) == -1 || !WIFEXITED(term_status) || WEXITSTATUS(term_status) != EXIT_SUCCESS)
 		{

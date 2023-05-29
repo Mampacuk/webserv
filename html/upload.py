@@ -1,30 +1,24 @@
 #!/usr/bin/python3
 
-import sys
 import cgi, os
 
 form = cgi.FieldStorage()
 
-stdout_copy = sys.stdout
-
-sys.stdout = sys.stderr
-
-cgi.print_environ()
-cgi.print_directory()
-cgi.print_arguments()
-cgi.print_form(form)
-cgi.print_exception()
-cgi.print_environ_usage()
-
-sys.stdout = stdout_copy
-
 # Get filename here
 fileitem = form['fileToUpload']
+whereto = form['whereToUpload'].value
+
+# Remove leading slash if present
+if whereto.startswith('/'):
+    whereto = whereto[1:]
+
+if not whereto.endswith('/'):
+   whereto += '/'
 
 # Test if the file was uploaded
 if fileitem.filename:
-   open(os.getcwd() + '/cgi-bin/tmp/' + os.path.basename(fileitem.filename), 'wb').write(fileitem.file.read())
-   message = 'The file "' + os.path.basename(fileitem.filename) + '" was uploaded to ' + os.getcwd() + '/cgi-bin/tmp'
+   open(os.getcwd() + "/" + os.getenv('DOCUMENT_ROOT') + "/" + whereto + os.path.basename(fileitem.filename), 'wb').write(fileitem.file.read())
+   message = 'The file "' + os.path.basename(fileitem.filename) + '" was uploaded to ' + os.getcwd() + "/" + os.getenv('DOCUMENT_ROOT') + "/" + whereto
 else:
    message = 'Uploading Failed'
 
