@@ -1,8 +1,9 @@
 #!/usr/local/bin/python3
 
+import sys
 import cgi
-import cgitb
-cgitb.enable()
+# import cgitb
+# cgitb.enable()
 # HTML form
 print("<html><body>")
 
@@ -13,7 +14,7 @@ form = cgi.FieldStorage()
 cgi.print_environ()
 cgi.print_directory()
 cgi.print_arguments()
-cgi.print_form()
+cgi.print_form(form)
 cgi.print_exception()
 cgi.print_environ_usage()
 

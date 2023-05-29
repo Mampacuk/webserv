@@ -1,11 +1,25 @@
 #!/usr/bin/python3
 
+import sys
 import cgi, os
 
 form = cgi.FieldStorage()
 
+stdout_copy = sys.stdout
+
+sys.stdout = sys.stderr
+
+cgi.print_environ()
+cgi.print_directory()
+cgi.print_arguments()
+cgi.print_form(form)
+cgi.print_exception()
+cgi.print_environ_usage()
+
+sys.stdout = stdout_copy
+
 # Get filename here
-fileitem = form['filename']
+fileitem = form['fileToUpload']
 
 # Test if the file was uploaded
 if fileitem.filename:

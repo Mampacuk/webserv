@@ -312,7 +312,7 @@ namespace ft
 		_body.insert(_body.end(), buffer.begin(), buffer.end());
 	}
 
-	void response::cgi_process(const std::string &cgi_executable, int fds[2])
+	void response::cgi_process(const std::string &cgi_executable, int in[2], int out[2])
 	{
 		char *const cgi_argv[] = {const_cast<char*>(cgi_executable.c_str()), const_cast<char*>(_path.c_str()), NULL};
 		char **cgi_envp;
@@ -324,8 +324,7 @@ namespace ft
 			environment.push_back("REQUEST_METHOD=" + _request.get_method());
 			environment.push_back("SCRIPT_NAME=" + _uri);
 			environment.push_back("DOCUMENT_ROOT=" + _location->get_root());
-			if (!_request.get_query().empty())
-				environment.push_back("QUERY_STRING=" + _request.get_query());
+			environment.push_back("QUERY_STRING=" + _request.get_query());
 			environment.push_back("REMOTE_ADDR=" + _request.get_socket().get_host());
 			environment.push_back("CONTENT_LENGTH=" + to_string(_request.get_content_length()));
 			if (!_request[std::string("Content-Type")].empty())
@@ -340,9 +339,9 @@ namespace ft
 			for (size_t i = 0; cgi_envp[i]; i++)
 				std::cout << CYAN << "cgi_envp[" << i << "] : " << cgi_envp[i] << RESET << std::endl;
 		}
-		if (dup2(fds[0], STDIN_FILENO) == -1 || dup2(fds[1], STDOUT_FILENO) == -1)
+		if (dup2(in[0], STDIN_FILENO) == -1 || dup2(out[1], STDOUT_FILENO) == -1)
 			throw std::runtime_error("[CGI] dup2() failed.");
-		close(fds[0]);
+		close(in[0]), close(in[1]), close(out[0]), close(out[1]);
 		execve(cgi_argv[0], cgi_argv, cgi_envp);
 		throw std::runtime_error("[CGI] execve() failed: " + std::string(cgi_argv[0]) + " inaccessible.");
 	}
@@ -350,39 +349,46 @@ namespace ft
 	void response::post_method(const std::string &cgi_executable)
 	{
 		pid_t cgi_pid;
-		int term_status, fds[2];
+		int term_status, in[2], out[2];
 		
-		if (pipe(fds) == -1)
+		if (pipe(in) == -1)
 			throw server_error(internal_server_error);
+		if (pipe(out) == -1)
+		{
+			close(in[0]), close(in[1]);
+			throw server_error(internal_server_error);
+		}
 		cgi_pid = fork();
 		if (cgi_pid == -1)
 		{
-			close(fds[0]), close(fds[1]);
+			close(in[0]), close(in[1]), close(out[0]), close(out[1]);
 			throw server_error(internal_server_error);
 		}
 		else if (cgi_pid == 0)
-			cgi_process(cgi_executable, fds);
-		if (fcntl(fds[1], F_SETFL, O_NONBLOCK) == -1 || fcntl(fds[0], F_SETFL, O_NONBLOCK) == -1)
+			cgi_process(cgi_executable, in, out);
+		if (fcntl(in[1], F_SETFL, O_NONBLOCK) == -1 || fcntl(out[0], F_SETFL, O_NONBLOCK) == -1)
 		{
-			close(fds[0]), close(fds[1]);
+			close(in[0]), close(in[1]), close(out[0]), close(out[1]);
 			throw server_error(internal_server_error);
 		}
+		close(in[0]), close(out[1]);
 		ssize_t total_bytes_written = 0;
-		while (ssize_t bytes_written = write(fds[1], &(_request.get_body()[0]) + total_bytes_written, _request.get_content_length() - total_bytes_written))
+		while (ssize_t bytes_written = write(in[1], &(_request.get_body()[0]) + total_bytes_written, _request.get_content_length() - total_bytes_written))
 			if (bytes_written > 0)
 				total_bytes_written += bytes_written;
 		std::cout << LGREEN "total_bytes_written: " << total_bytes_written << " against content_length=" << _request.get_content_length() << RESET << std::endl; 
-		close(fds[1]);
+		close(in[1]);
 		if (waitpid(cgi_pid, &term_status, 0) == -1 || !WIFEXITED(term_status) || WEXITSTATUS(term_status) != EXIT_SUCCESS)
 		{
-			close(fds[0]);
+			webserver.error("[CGI] Process terminated unsuccessfully with " + to_string(WEXITSTATUS(term_status)));
+			close(in[0]), close(out[0]), close(out[1]);
 			throw server_error(internal_server_error);
 		}
 		char buffer[BUFSIZ];
-		while (ssize_t bytes_read = read(fds[0], buffer, BUFSIZ))
+		while (ssize_t bytes_read = read(out[0], buffer, BUFSIZ))
 			if (bytes_read > 0)
 				_body.insert(_body.end(), buffer, buffer + bytes_read);
-		close(fds[0]);
+		close(out[0]);
 	}
 
 	void response::delete_method()
