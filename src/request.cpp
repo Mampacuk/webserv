@@ -33,7 +33,7 @@ namespace ft
 		{
 			if ((_headers_end = search(_raw, CRLF CRLF)) == std::string::npos)
 			{
-				std::cout << CYAN "NOT DONE RECEIVING HEADERS" RESET << std::endl; 
+				// std::cout << CYAN "NOT DONE RECEIVING HEADERS" RESET << std::endl; 
 				return (false);
 			}
 			read_header(search(_raw, "Content-Length: "));
@@ -42,12 +42,12 @@ namespace ft
 			{
 				if (operator[]("Transfer-Encoding").empty())
 				{
-					std::cout << CYAN "CONTENT-LENGTH ABSENT AND TRANSFER-ENCODING ABSENT" RESET << std::endl;
+					// std::cout << CYAN "CONTENT-LENGTH ABSENT AND TRANSFER-ENCODING ABSENT" RESET << std::endl;
 					return (true);
 				}
 				else if (operator[]("Transfer-Encoding") != "chunked") // the message is ill-formed
 					throw protocol_error(bad_request);
-				std::cout << CYAN "TRANSFER-ENCODING CASE" RESET << std::endl;
+				// std::cout << CYAN "TRANSFER-ENCODING CASE" RESET << std::endl;
 			}
 			else
 			{
@@ -58,7 +58,7 @@ namespace ft
 		}
 		if (_content_length < 0) // "Transfer-Encoding: chunked" case
 		{
-			std::cout << CYAN BOLDED("TRANSFER ENCODING CASE") RESET << std::endl;
+			// std::cout << CYAN BOLDED("TRANSFER ENCODING CASE") RESET << std::endl;
 			return (ends_with(_raw, "0" CRLF CRLF));
 		}
 		// std::cout << CYAN "COMPELTED RECEIVING REQUEST? " << ((_raw.size() == _content_length + _headers_end + std::strlen(CRLF CRLF CRLF)
@@ -101,7 +101,7 @@ namespace ft
 
 	void request::parse()
 	{
-		std::cout << "received request is" << std::endl << LRED;
+		std::cout << "received request is" << std::endl << BLUE;
 		for (size_t i = 0; i < _raw.size(); i++) std::cout << _raw[i];
 		std::cout << RESET << std::endl;
 
@@ -126,8 +126,11 @@ namespace ft
 		// std::cout << RESET;
 		// std::cout << "uri: |" << _uri << "|" << std::endl;
 		// std::cout << "query: |" << _query << "|" RESET << std::endl;
-
 		_raw.clear();
+		std::cout << "after parsing body of size " << _body.size() << " is" << std::endl << CYAN;
+		for (size_t i = 0; i < _body.size(); i++) std::cout << _body[i];
+		std::cout << RESET << std::endl;
+
 	}
 
 	void request::separate_body()
@@ -195,9 +198,10 @@ namespace ft
 
 	void request::select_server()
 	{
-		const std::string hostname = operator[]("Host");
+		std::string hostname = operator[]("Host");
 		if (hostname.empty())
 			throw protocol_error(bad_request);
+		hostname = hostname.substr(0, hostname.find_last_of(':'));
 		for (server_pointer_vector::const_iterator server = _socket.get_server_socket().get_servers().begin(); server != _socket.get_server_socket().get_servers().end(); server++)
 			for (string_vector::const_iterator name = (*server)->get_names().begin(); name != (*server)->get_names().end(); name++)
 			{

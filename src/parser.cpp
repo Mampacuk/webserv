@@ -429,33 +429,36 @@ namespace ft
 
 			server_socket socket(::socket(rit->ai_family, rit->ai_socktype, rit->ai_protocol), host, port);
 			if (socket == -1)
+			{
+				freeaddrinfo(result);
 				throw std::runtime_error("[SOCKET] Failed to create a socket.");
-			webserver.label_log("Successfully created a socket " + to_string(socket), BOLDED("SOCKET"), GREEN, GREEN);
+			}
+			webserv::label_log("Successfully created a socket " + to_string(socket), BOLDED("SOCKET"), GREEN, GREEN);
 			int on = 1;
 			if (setsockopt(socket, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on)) == -1
 				|| setsockopt(socket, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on)) == -1
 				|| setsockopt(socket, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(on)) == -1)
 			{
-				close(socket);
+				close(socket), freeaddrinfo(result);
 				throw std::runtime_error("[SETSOCKETOPT] Couldn't set socket options.");
 			}
 			if (fcntl(socket, F_SETFL, O_NONBLOCK) == -1)
 			{
-				close(socket);
+				close(socket), freeaddrinfo(result);
 				throw std::runtime_error("[FCNTL] Couldn't set the flags of a socket.");
 			}
 			if (bind(socket, rit->ai_addr, rit->ai_addrlen) == -1)
 			{
-				close(socket);
+				close(socket), freeaddrinfo(result);
 				throw std::runtime_error("[BIND] bind() to " + host + ":" + port + " failed (" + strerror(errno) + ")");
 			}
-			webserver.label_log("Successfully bound to address " + host + ":" + port, BOLDED("BIND"), GREEN, GREEN);
+			webserv::label_log("Successfully bound to address " + host + ":" + port, BOLDED("BIND"), GREEN, GREEN);
 			if (listen(socket, BACKLOG) == -1)
 			{
-				close(socket);
+				close(socket), freeaddrinfo(result);
 				throw std::runtime_error("[LISTEN] Failed listening on " + host + ":" + port + ".");
 			}
-			webserver.label_log("Started listening on address " + host + ":" + port, BOLDED("LISTEN"), GREEN, GREEN);
+			webserv::label_log("Started listening on address " + host + ":" + port, BOLDED("LISTEN"), GREEN, GREEN);
 			freeaddrinfo(result);
 			while (it != range.second)
 			{

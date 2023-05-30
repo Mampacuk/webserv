@@ -42,7 +42,7 @@ namespace ft
 			bool rewrite(const std::string &what, const std::string &with_what);
 			void generate_autoindex(const std::string &path);
 			void cgi_process(const std::string &cgi_executable, int in[2], int out[2]);
-			void read_error_page(http_code error, bool loc = true);
+			void read_error_page(http_code error);
 			void construct_error_page(http_code error);
 			bool is_regular_file(const char *filename) const;
 			bool is_directory(const char *filename) const;

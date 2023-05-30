@@ -55,8 +55,8 @@ namespace ft
 		{
 			_status = e;
 
-			if (e == not_found || e == 505 || _location == NULL)
-				read_error_page(e, false);
+			if (!_location)
+				read_error_page(e);
 			else if (!read_requested_file(_location->get_error_page(e)))
 				if (!read_requested_file(_location->get_error_page(not_found)))
 					read_error_page(e);
@@ -71,11 +71,11 @@ namespace ft
 		_body.insert(_body.end(), content.begin(), content.end());
 	}
 
-	void response::read_error_page(http_code error, bool loc) //check how the path is constructed
+	void response::read_error_page(http_code error) //check how the path is constructed
 	{
 		std::string error_page;
 		
-		if (!loc)
+		if (!_location)
 			error_page = _request.get_server().get_root() + _request.get_server().get_error_page(error);
 		else
 			error_page = _location->get_root() + _location->get_route() + _location->get_error_page(error);
@@ -135,11 +135,8 @@ namespace ft
 			{
 				ft::string_vector::const_iterator it = _location->get_indices().begin();
 				for (; it != _location->get_indices().end(); it++)
-				{
-					std::cout << "Index file: " << *it << std::endl;
 					if (read_requested_file(_path + *it))
 						break ;
-				}
 				if (it == _location->get_indices().end())
 				{
 					if (_location->get_autoindex())
@@ -240,7 +237,7 @@ namespace ft
 		{
 			if (!_location->get_rewrites().empty())
 			{
-				for (ft::string_mmap::const_iterator it = _location->get_rewrites().begin(); it != _location->get_rewrites().end(); it++)
+				for (string_map::const_iterator it = _location->get_rewrites().begin(); it != _location->get_rewrites().end(); it++)
 					rewrite(it->first, it->second);
 				find_location(_request.get_server());
 				i++;
@@ -332,6 +329,8 @@ namespace ft
 		pid_t cgi_pid;
 		int term_status, in[2], out[2];
 		
+		if (cgi_executable.empty())
+			throw server_error(internal_server_error);
 		if (pipe(in) == -1)
 			throw server_error(internal_server_error);
 		if (pipe(out) == -1)

@@ -1,15 +1,20 @@
 #include "parser.hpp"
 
-ft::webserv webserver;
+static void print_leaks()
+{
+	system("leaks webserv");
+}
 
 int main(int argc, char **argv)
 {
+	atexit(print_leaks);
+	ft::webserv webserver;
 	std::string filename("conf/webserv.conf");
 
 	if (argc == 2)
 		filename = argv[1];
 	else if (argc != 1)
-		return (webserver.error("Too many arguments!"));
+		return (ft::webserv::error("Too many arguments!"));
 	try
 	{
 		ft::parser config(filename);
@@ -19,7 +24,7 @@ int main(int argc, char **argv)
 	}
 	catch (const std::exception &e)
 	{
-		return (webserver.error(e.what()));
+		return (ft::webserv::error(e.what()));
 	}
 }
 
