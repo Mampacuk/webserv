@@ -35,13 +35,14 @@ namespace ft
 			const char_vector &get_body() const;
 			ssize_t get_content_length() const;
 			const server &get_server() const;
+			void set_pathinfo(const std::string &pathinfo);
 			operator int() const;
 		private:
 			unsigned int try_strtoul(const std::string &number, int base = 10) const;
 			size_t	read_header(size_t pos);
 			void	separate_body();
 			size_t	parse_request_line();
-			void	parse_uri();
+			void	parse_query();
 			void	select_server();
 	};
 }

@@ -27,19 +27,19 @@ namespace ft
 		_protocol = static_cast<http*>(protocol);
 	}
 
-	int webserv::error(const std::string &error) const
+	int webserv::error(const std::string &error)
 	{
 		std::cerr << "[webserv]: " RED "Error" RESET ": " << error << std::endl;
 		return (EXIT_FAILURE);
 	}
 
-	int webserv::log(const std::string &msg, const char *color) const
+	int webserv::log(const std::string &msg, const char *color)
 	{
 		std::cout << "[webserv]: " << color << msg << RESET << std::endl;
 		return (EXIT_SUCCESS);
 	}
 
-	int webserv::label_log(const std::string &msg, const std::string &label, const char *msg_color, const char *label_color) const
+	int webserv::label_log(const std::string &msg, const std::string &label, const char *msg_color, const char *label_color)
 	{
 		std::cout << "[webserv]: [" << label_color << label << RESET "] " << msg_color << msg << RESET << std::endl;
 		return (EXIT_SUCCESS);

@@ -86,6 +86,7 @@
 
 # define HTTP_VERSION		"HTTP/1.1"
 # define BACKLOG			128
+# define MAX_URI_LEN		8000
 # define TIMEOUT_SEC		0
 # define TIMEOUT_MICROSEC	500000
 

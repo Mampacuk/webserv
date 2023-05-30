@@ -117,8 +117,8 @@ namespace ft
 		// std::cout << CYAN "about to inspect headers" RESET << std::endl;
 		while (pos != _headers_end + std::strlen(CRLF))
 			pos = read_header(pos);
-		parse_uri();
 		select_server();
+		parse_query();
 		
 		// std::cout << BLUE;
 		// for (string_map::iterator it = _headers.begin(); it != _headers.end(); it++)
@@ -181,19 +181,16 @@ namespace ft
 		return (line_end + std::strlen(CRLF));
 	}
 
-	void request::parse_uri()
+	void request::parse_query()
 	{
-		size_t ext = std::string::npos;
+		if (_uri.length() > MAX_URI_LEN)
+			throw protocol_error(uri_too_long);
 		size_t question_mark = _uri.find('?');
-		for (string_map::const_iterator it = _server->get_cgi().begin(); it != _server->get_cgi().end(); it++)
-			if (ext = _uri.find(("." + it->first).c_str(), 0, question_mark) <= ext && ext != std::string::npos)
-				if (ext + it->first.size() + 1 == _uri.size() || _uri[ext + it->first.size() + 1] == '/')
-					ext = ext + it->first.size() + 1;
-		if (ext != std::string::npos)
-			_pathinfo = _uri.substr(ext, question_mark);
 		if (question_mark != std::string::npos)
+		{
 			_query = _uri.substr(question_mark + 1);
-		_uri = _uri.substr(0, (ext < question_mark) ? ext : question_mark);
+			_uri = _uri.substr(0, question_mark);
+		}
 	}
 
 	void request::select_server()
@@ -241,6 +238,11 @@ namespace ft
 		return (_query);
 	}
 
+	const std::string &request::get_pathinfo() const
+	{
+		return (_pathinfo);
+	}
+
 	const char_vector &request::get_body() const
 	{
 		return (_body);
@@ -256,6 +258,11 @@ namespace ft
 		if (!_server)
 			throw std::runtime_error("Querying an incomplete request for its server is not allowed.");
 		return (*_server);
+	}
+
+	void request::set_pathinfo(const std::string &pathinfo)
+	{
+		_pathinfo = pathinfo;
 	}
 
 	request::operator int() const

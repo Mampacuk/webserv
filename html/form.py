@@ -1,18 +1,16 @@
 #!/usr/bin/python3
 
-# CGI处理模块
 import cgi, cgitb 
 
-# 创建 FieldStorage 的实例化
 form = cgi.FieldStorage() 
 
-# 获取数据
+
 site_name = form.getvalue('name')
 site_url  = form.getvalue('url')
 
 print ("<html>")
+# cgi.print_environ()
 print ("<head>")
-print ("<meta charset=\"utf-8\">")
 print ("<title>CGI test</title>")
 print ("</head>")
 print ("<body>")

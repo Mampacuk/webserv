@@ -21,9 +21,9 @@ namespace ft
 			const http &get_http() const;
 			void set_http(base_dir *protocol);
 			void set_environment(char **environment);
-			int error(const std::string &error) const;
-			int log(const std::string &message, const char *color = RESET) const;
-			int label_log(const std::string &msg, const std::string &label, const char *msg_color = RESET, const char *label_color = YELLOW) const;
+			static int error(const std::string &error);
+			static int log(const std::string &message, const char *color = RESET);
+			static int label_log(const std::string &msg, const std::string &label, const char *msg_color = RESET, const char *label_color = YELLOW);
 			void serve();
 		private:
 			client_socket accept_connection(const server_socket &socket);

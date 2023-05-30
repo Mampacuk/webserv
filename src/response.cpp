@@ -13,10 +13,14 @@ namespace ft
 
 	response &response::operator=(const response &other)
 	{
+		_request = other._request;
 		_status = other._status;
-		_body = other._body;
 		_headers = other._headers;
+		_uri = other._uri;
+		_path = other._path;
+		_body = other._body;
 		_message = other._message;
+		_cursor = other._cursor;
 		_location = other._location;
 		return (*this);
 	}
@@ -37,12 +41,8 @@ namespace ft
 			const std::string cgi = _location->get_cgi_executable(get_file_extension(_uri));
 			if (_request.get_method() == "GET")
 			{
-				std::cout << "GET METHOD: \n";
 				if (!cgi.empty())
-				{
-					std::cout << "Post case\n";
 					post_method(cgi);
-				}
 				else get_method();
 			}
 			else if (_request.get_method() == "POST")
@@ -53,17 +53,13 @@ namespace ft
 		}
 		catch (const server_error &e)
 		{
-			// std::cout << "Path: " << _path << "\n";
-			// throw std::exception();
-			// std::cout << "In catch block\n";
 			_status = e;
 
-			if (e == 400 || e == 505 || _location == NULL) //bad request or http version not supported
+			if (e == not_found || e == 505 || _location == NULL)
 				read_error_page(e, false);
 			else if (!read_requested_file(_location->get_error_page(e)))
 				if (!read_requested_file(_location->get_error_page(not_found)))
 					read_error_page(e);
-			//add_headers();
 		}
 		construct_response();
 	}
@@ -80,24 +76,11 @@ namespace ft
 		std::string error_page;
 		
 		if (!loc)
-			error_page = _request.get_server().get_root() + _request.get_server().get_error_page(error);	//root?
+			error_page = _request.get_server().get_root() + _request.get_server().get_error_page(error);
 		else
-		{
-			std::cout << "I am here\n";
-			// std::cout << _location->get_route() + _location->get_error_page(error_code) << std::endl;
 			error_page = _location->get_root() + _location->get_route() + _location->get_error_page(error);
-			std::cout << CYAN "get_error_page: " << _location->get_error_page(error) << RESET << std::endl;
-			std::cout << RED "error_code: " << error << RESET << std::endl;
-			std::cout << RED "location route: " << _location->get_route() << RESET << std::endl;
-			std::cout << "error page to be requested: " << error_page << std::endl;
-		}
-		// std::cout << "Server root: " << _request.get_server().get_root() << std::endl;
-		// std::cout << "Error page: " << error_page << std::endl;
 		if (error_page.empty() || !read_requested_file(error_page))
-		{
-			// std::cout << "Could not open file\n";
 			construct_error_page(error);
-		}
 	}
 
 	void response::get_method()
@@ -109,12 +92,8 @@ namespace ft
 	{
 		std::ifstream file;
 
-		std::cout << "Read requested file: " << filename << std::endl;
 		if (!is_regular_file(filename.c_str()))
-		{
-			std::cout << "not regular" << std::endl;
 			return (false);
-		}
 		file.open(filename);
 		if (file)
 		{
@@ -168,14 +147,6 @@ namespace ft
 					else throw server_error(forbidden);
 				}
 			}
-			// else
-			// {
-			// 	std::cout << "MTELLLL EM AYSSS ELSE_i meeejjjj\n";
-			// 	if (_location->get_autoindex())
-			// 		generate_autoindex(_path);
-			// 	else
-			// 		throw server_error(not_found);
-			// }
 		}
 		else
 			if (!read_requested_file(_path))
@@ -249,7 +220,6 @@ namespace ft
 
 	bool response::rewrite(const std::string &what, const std::string &with_what)
 	{
-		std::cout << MAGENTA "tryna replace " << what << " with " << with_what << RESET << std::endl;
 		size_t pos = _uri.find(what);
 		if (pos != std::string::npos)
 		{
@@ -262,10 +232,8 @@ namespace ft
 
 	void response::find_rewritten_location()
 	{
-		// std::cout << LGREEN "uri before rewrite: " << _uri << RESET << std::endl;
-		for (ft::string_mmap::const_iterator it = _request.get_server().get_rewrites().begin(); it != _request.get_server().get_rewrites().end(); it++)
+		for (string_map::const_iterator it = _request.get_server().get_rewrites().begin(); it != _request.get_server().get_rewrites().end(); it++)
 			rewrite(it->first, it->second);
-		// std::cout << LGREEN "uri after rewrite: " << _uri << RESET << std::endl;
 		int i = 0;
 		find_location(_request.get_server());
 		while (i != 10)
@@ -284,6 +252,21 @@ namespace ft
 			throw server_error(method_not_allowed);
 		if (_location->get_client_max_body_size() < _request.get_body().size())
 			throw server_error(content_too_large);
+		parse_pathinfo();		
+	}
+
+	void response::parse_pathinfo()
+	{
+		size_t extension = std::string::npos;
+		for (string_map::const_iterator it = _location->get_cgi().begin(); it != _location->get_cgi().end(); it++)
+		{
+			size_t tmp = _uri.find("." + it->first);
+			if (tmp != std::string::npos && tmp <= extension && (tmp + it->first.size() + 1 == _uri.size() || _uri[tmp + it->first.size() + 1] == '/'))
+					extension = tmp + it->first.size() + 1;
+		}
+		if (extension != std::string::npos)
+			_request.set_pathinfo(_uri.substr(extension));
+		_uri = _uri.substr(0, extension);
 	}
 
 	void response::generate_autoindex(const std::string &path) 
@@ -314,9 +297,11 @@ namespace ft
 
 	void response::cgi_process(const std::string &cgi_executable, int in[2], int out[2])
 	{
-		char *const cgi_argv[] = {const_cast<char*>(cgi_executable.c_str()), const_cast<char*>(_path.c_str()), NULL};
 		char **cgi_envp;
 		string_vector environment;
+		char *const cgi_argv[] = {const_cast<char*>(cgi_executable.c_str()), const_cast<char*>(_path.c_str()), NULL};
+
+		environment.push_back("PATH_INFO=" + _request.get_pathinfo());
 		environment.push_back("SERVER_NAME=" + _request[std::string("Host")]);
 		environment.push_back("SERVER_PROTOCOL=" HTTP_VERSION);
 		environment.push_back("SERVER_PORT=" + _request.get_socket().get_server_socket().get_port());
@@ -338,8 +323,6 @@ namespace ft
 		if (dup2(in[0], STDIN_FILENO) == -1 || dup2(out[1], STDOUT_FILENO) == -1)
 			throw std::runtime_error("[CGI] dup2() failed.");
 		close(in[0]), close(in[1]), close(out[0]), close(out[1]);
-		for (size_t i = 0; cgi_envp[i]; i++)
-			std::cerr << CYAN << "cgi_envp[" << i << "] : " << cgi_envp[i] << RESET << std::endl;
 		execve(cgi_argv[0], cgi_argv, cgi_envp);
 		throw std::runtime_error("[CGI] execve() failed: " + std::string(cgi_argv[0]) + " inaccessible.");
 	}
@@ -378,7 +361,6 @@ namespace ft
 		close(in[1]);
 		if (waitpid(cgi_pid, &term_status, 0) == -1 || !WIFEXITED(term_status) || WEXITSTATUS(term_status) != EXIT_SUCCESS)
 		{
-			webserver.error("[CGI] Process terminated unsuccessfully with " + to_string(WEXITSTATUS(term_status)));
 			close(in[0]), close(out[0]), close(out[1]);
 			throw server_error(internal_server_error);
 		}

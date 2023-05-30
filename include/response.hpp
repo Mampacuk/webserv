@@ -16,7 +16,7 @@ namespace ft
 			std::string		_path;
 			char_vector		_body;
 			char_vector		_message;
-			size_t			_cursor; // indicates bytes already sent
+			size_t			_cursor;
 			const location	*_location;
 			response &operator=(const response &other);
 		public:
@@ -38,6 +38,7 @@ namespace ft
 			void find_requested_file();
 			bool read_requested_file(const std::string &file);
 			void find_rewritten_location();
+			void parse_pathinfo();
 			bool rewrite(const std::string &what, const std::string &with_what);
 			void generate_autoindex(const std::string &path);
 			void cgi_process(const std::string &cgi_executable, int in[2], int out[2]);
