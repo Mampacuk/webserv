@@ -154,8 +154,8 @@ namespace ft
 
 		if (serv.get_names().empty())
 			serv.add_name("");
-		if (std::find(serv.get_locations().begin(), serv.get_locations().end(), location(serv, "/")) == serv.get_locations().end())
-			serv.add_location(location(serv, "/"));
+		if (std::find(serv.get_locations().begin(), serv.get_locations().end(), location(serv)) == serv.get_locations().end())
+			serv.add_location(location(serv));
 
 		static_cast<http*>(protocol)->add_server(serv);
 		map_sockets(&static_cast<http*>(protocol)->get_servers().back());

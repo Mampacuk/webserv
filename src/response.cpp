@@ -37,7 +37,7 @@ namespace ft
 			if (http::is_error_code(_status))
 				throw server_error(_status);
 			find_rewritten_location();
-			_path = append_trailing_slash(((_location->get_root() == "/") ? "" : _location->get_root()) + (_uri[0] == '/' ? _uri.substr(1) : _uri));
+			_path = append_trailing_slash(_location->get_root() + _uri);
 			std::cout << "Path: " << _path << std::endl;
 			const std::string cgi = _location->get_cgi_executable(get_file_extension(_uri));
 			if (_request.get_method() == "GET")
@@ -130,20 +130,17 @@ namespace ft
 
 	void response::find_requested_file()
 	{
-		if (ends_with(_path, "/") || _path.empty())
+		if (ends_with(_path, "/"))
 		{
-			if (!_location->get_indices().empty())
+			ft::string_vector::const_iterator it = _location->get_indices().begin();
+			for (; it != _location->get_indices().end(); it++)
+				if (read_requested_file(_path + *it))
+					break ;
+			if (it == _location->get_indices().end())
 			{
-				ft::string_vector::const_iterator it = _location->get_indices().begin();
-				for (; it != _location->get_indices().end(); it++)
-					if (read_requested_file(_path + *it))
-						break ;
-				if (it == _location->get_indices().end())
-				{
-					if (_location->get_autoindex())
-						generate_autoindex(_path);
-					else throw server_error(forbidden);
-				}
+				if (_location->get_autoindex())
+					generate_autoindex(_path);
+				else throw server_error(not_found);		//forbidden
 			}
 		}
 		else
