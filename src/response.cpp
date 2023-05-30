@@ -37,7 +37,8 @@ namespace ft
 			if (http::is_error_code(_status))
 				throw server_error(_status);
 			find_rewritten_location();
-			_path = append_trailing_slash(_location->get_root() + _uri);
+			_path = append_trailing_slash(((_location->get_root() == "/") ? "" : _location->get_root()) + (_uri[0] == '/' ? _uri.substr(1) : _uri));
+			std::cout << "Path: " << _path << std::endl;
 			const std::string cgi = _location->get_cgi_executable(get_file_extension(_uri));
 			if (_request.get_method() == "GET")
 			{
@@ -129,7 +130,7 @@ namespace ft
 
 	void response::find_requested_file()
 	{
-		if (ends_with(_path, "/"))
+		if (ends_with(_path, "/") || _path.empty())
 		{
 			if (!_location->get_indices().empty())
 			{
@@ -192,9 +193,9 @@ namespace ft
 		_message.insert(_message.end(), buffer.begin(), buffer.end());
 		_message.insert(_message.end(), _body.begin(), _body.end());
 		_body.clear();
-		// std::cout << "response of size " << _message.size() << " is:" << std::endl;
-		// for (size_t i = 0; i < _message.size(); i++) std::cout << YELLOW << _message[i] << RESET;
-		// std::cout << std::endl;
+		std::cout << "response of size " << _message.size() << " is:" YELLOW << std::endl;
+		for (size_t i = 0; i < _message.size(); i++) std::cout << _message[i];
+		std::cout << RESET << std::endl;
 	}
 
 	char_vector_iterator_pair response::get_chunk()

@@ -127,10 +127,6 @@ namespace ft
 		// std::cout << "uri: |" << _uri << "|" << std::endl;
 		// std::cout << "query: |" << _query << "|" RESET << std::endl;
 		_raw.clear();
-		std::cout << "after parsing body of size " << _body.size() << " is" << std::endl << CYAN;
-		for (size_t i = 0; i < _body.size(); i++) std::cout << _body[i];
-		std::cout << RESET << std::endl;
-
 	}
 
 	void request::separate_body()
