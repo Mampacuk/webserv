@@ -67,8 +67,6 @@ namespace ft
 	{
 		string_map::const_iterator it;
 		
-		std::cout << "Cgi extension in get_cgi_executable: " << cgi_extension << std::endl;
-		std::cout << "Cgi map size: " << _cgi.size() << std::endl;
 		it = _cgi.find(cgi_extension);	
 		return (it != _cgi.end() ? it->second : "");
 	}

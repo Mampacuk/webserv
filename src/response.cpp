@@ -225,8 +225,8 @@ namespace ft
 	void response::construct_response()
 	{
 		_headers["Content-Length"] = to_string(_body.size());
-		if (!_status)
-			_status = ok;
+		if (!_cgi.empty() && _status == ok)
+			_status = im_used;
 		std::string buffer = HTTP_VERSION " " + to_string(_status) + " " + reason_phrase(_status) + CRLF;
 		_message.insert(_message.end(), buffer.begin(), buffer.end());
 		for (string_map::const_iterator it = _headers.begin(); it != _headers.end(); it++)
@@ -332,8 +332,6 @@ namespace ft
 		_body.insert(_body.end(), buffer.begin(), buffer.end());
 		for (size_t i = 0; i < files.size(); i++)
 		{
-			std::cout << MAGENTA "path is " << _path << std::endl;
-			std::cout << "uri is " << _uri << RESET << std::endl;
 			buffer = "\n\t\t\t\t<li><a href=\"http://" + _request.get_socket().get_server_socket().get_host() + ":" + _request.get_socket().get_server_socket().get_port() + (!ends_with(_uri, "/") && is_directory((_path).c_str()) ? _uri + "/": _uri) + files[i] + "\">" + files[i] + "</a></li>";
 			_body.insert(_body.end(), buffer.begin(), buffer.end());
 		}

@@ -72,6 +72,9 @@ namespace ft
 			case no_content:					return ("No Content");
 			case reset_content:					return ("Reset Content");
 			case partial_content:				return ("Partial Content");
+			case multi_status:					return "Multi-Status";
+			case already_reported:				return "Already Reported";
+			case im_used:						return "IM Used";
 
 			//####### 3xx - Redirection #######
 			case multiple_choices:		return ("Multiple Choices");
@@ -80,8 +83,8 @@ namespace ft
 			case see_other:				return ("See Other");
 			case not_modified:			return ("Not Modified");
 			case use_proxy:				return ("Use Proxy");
-			case temporary_rewrite:	return ("Temporary Redirect");
-			case permanent_rewrite:	return ("Permanent Redirect");
+			case temporary_rewrite:		return ("Temporary Redirect");
+			case permanent_rewrite:		return ("Permanent Redirect");
 
 			//####### 4xx - Client Error #######
 			case bad_request:					return ("Bad Request");

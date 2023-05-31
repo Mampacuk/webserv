@@ -89,16 +89,13 @@ namespace ft
 		{
 			size_t line_end = search(_raw, CRLF, pos);
 			std::string line = std::string(_raw.begin() + pos, _raw.begin() + line_end);
-			// std::cout << MAGENTA "read line: " << line << RESET << std::endl;
 			size_t colon = line.find(':');
 			if (colon == 0 || colon == std::string::npos)
 				throw protocol_error(bad_request);
-			// std::cout << YELLOW "bad request check1" RESET << std::endl;
 			std::string key = std::string(_raw.begin() + pos, _raw.begin() + pos + colon);
 			// key validation, lowercasing
 			if (_headers.find(key) != _headers.end())
 				throw protocol_error(bad_request);
-			// std::cout << YELLOW "bad request check2" RESET << std::endl;
 			size_t val_start = line.find_first_not_of(' ', colon + 2);							// val start; 2 is to skip ": "
 			std::string value = (val_start == std::string::npos ? "" : line.substr(val_start));	// val separated (with tail spaces)
 			value = value.substr(0, value.find_last_not_of(' ') + 1);							// discard tail spaces
@@ -112,11 +109,16 @@ namespace ft
 	{
 		print_request();
 		separate_body();
+		// std::cout << MAGENTA "separated body" RESET << std::endl;
 		size_t pos = parse_request_line();
+		// std::cout << MAGENTA "parsed request line" RESET << std::endl;
 		while (pos != _headers_end + std::strlen(CRLF))
 			pos = read_header(pos);
+		// std::cout << MAGENTA "parsed headers" RESET << std::endl;
 		select_server();
+		// std::cout << MAGENTA "selected server" RESET << std::endl;
 		parse_query();
+		// std::cout << MAGENTA "parsed query" RESET << std::endl;
 		_raw.clear();
 	}
 
@@ -300,5 +302,10 @@ namespace ft
 				}
 				else throw protocol_error(bad_request);
 			}
+	}
+
+	char request::tolower(char c)
+	{
+		return (std::tolower(c));
 	}
 }
