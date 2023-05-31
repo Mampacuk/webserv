@@ -66,14 +66,17 @@ namespace ft
 	std::string base_dir::get_cgi_executable(const std::string &cgi_extension) const
 	{
 		string_map::const_iterator it;
-
+		
+		std::cout << "Cgi extension in get_cgi_executable: " << cgi_extension << std::endl;
+		std::cout << "Cgi map size: " << _cgi.size() << std::endl;
 		it = _cgi.find(cgi_extension);	
 		return (it != _cgi.end() ? it->second : "");
 	}
 
 	void base_dir::add_error_page(http_code error, const std::string &page)
 	{
-		_error_pages[error] = starts_with(page, "/") ? page.substr(1, page.size()) : page;
+		// _error_pages[error] = starts_with(page, "/") ? page.substr(1, page.size()) : page;
+		_error_pages.insert(std::make_pair(error, (!starts_with(page, "/") ? "/" : "") + page));
 	}
 
 	void base_dir::add_index(const std::string &index_file)
