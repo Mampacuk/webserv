@@ -17,6 +17,7 @@ namespace ft
 			char_vector		_body;
 			char_vector		_message;
 			size_t			_cursor;
+			std::string		_cgi;
 			const location	*_location;
 			response &operator=(const response &other);
 		public:
@@ -47,6 +48,7 @@ namespace ft
 			bool is_regular_file(const char *filename) const;
 			bool is_directory(const char *filename) const;
 			std::string append_trailing_slash(const std::string &path);
+			bool file_exists(const std::string &filename);
 	};
 }
 

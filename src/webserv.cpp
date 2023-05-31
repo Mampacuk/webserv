@@ -84,10 +84,16 @@ namespace ft
 			request.parse();
 			label_log("Pushed " + to_string(request) + " to responses", BOLDED("RECV"), GREEN, LGREEN);
 			responses.push_back(response(request));
+			// std::cout << "RESPONSES\n";
+			// for (response_list::iterator it = responses.begin(); it != responses.end(); it++)	
+			// 	std::cout << *it << std::endl;
 		}
 		catch (const protocol_error &e)
 		{
 			responses.push_back(response(request, e));
+			// std::cout << "RESPONSES\n";
+			// for (response_list::iterator it = responses.begin(); it != responses.end(); it++)	
+			// 	std::cout << *it << std::endl;
 		}
 		return (EXIT_SUCCESS);
 	}
