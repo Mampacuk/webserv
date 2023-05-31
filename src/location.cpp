@@ -56,15 +56,12 @@ namespace ft
 
 	void location::add_method(const std::string &method) // what if there are 2 GET _methods
 	{
-		if (method == "GET" || method == "POST" || method == "DELETE")
+		if (_methods.find(method) == _methods.end())
 		{
-			if (_methods.find(method) == _methods.end())
-			{
-				_methods.insert(method);
-				return ;
-			}
+			_methods.insert(method);
+			return ;
 		}
-		throw std::invalid_argument("Method unknown or duplicated.");
+		throw std::invalid_argument("Method duplicated.");
 	}
 
 	void location::set_modifier(bool modifier)

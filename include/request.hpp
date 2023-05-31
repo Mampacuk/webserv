@@ -25,8 +25,8 @@ namespace ft
 			request(const request &other);
 			request &operator=(const request &other);
 			bool append_chunk(const char *chunk, size_t chunk_size);
-			std::string operator[](const std::string &header) const;
 			void parse();
+			std::string operator[](const std::string &header) const;
 			const client_socket &get_socket() const;
 			const std::string &get_method() const;
 			const std::string &get_uri() const;
@@ -44,6 +44,8 @@ namespace ft
 			size_t	parse_request_line();
 			void	parse_query();
 			void	select_server();
+			void	print_request() const;
+			void	validate_hostname(const std::string &hostname) const;
 	};
 }
 

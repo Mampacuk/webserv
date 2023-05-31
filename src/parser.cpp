@@ -48,7 +48,7 @@ namespace ft
 				break ;
 			}
 		if (cont_it == _contexts.end() && dir_it == _directives.end() && !_chunks.empty())
-			throw parsing_error("Unknown directive or ill-formed context encountered.");
+			throw parsing_error("Unknown directive or ill-formed context encountered: " + front());
 		return (parent);
 	}
 

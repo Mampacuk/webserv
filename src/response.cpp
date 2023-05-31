@@ -190,9 +190,7 @@ namespace ft
 		_message.insert(_message.end(), buffer.begin(), buffer.end());
 		_message.insert(_message.end(), _body.begin(), _body.end());
 		_body.clear();
-		std::cout << "response of size " << _message.size() << " is:" YELLOW << std::endl;
-		for (size_t i = 0; i < _message.size(); i++) std::cout << _message[i];
-		std::cout << RESET << std::endl;
+		print_response();
 	}
 
 	char_vector_iterator_pair response::get_chunk()
@@ -247,7 +245,9 @@ namespace ft
 			throw server_error(method_not_allowed);
 		if (_location->get_client_max_body_size() < _request.get_body().size())
 			throw server_error(content_too_large);
-		parse_pathinfo();		
+		if (_request.get_uri().length() + (_request.get_query().empty() ? 0 : _request.get_query().length() + 1) >= MAX_URI_LENGTH)
+			throw server_error(uri_too_long);
+		parse_pathinfo();
 	}
 
 	void response::parse_pathinfo()
@@ -354,7 +354,6 @@ namespace ft
 		while (ssize_t bytes_written = write(in[1], &(_request.get_body()[0]) + total_bytes_written, _request.get_content_length() - total_bytes_written))
 			if (bytes_written > 0)
 				total_bytes_written += bytes_written;
-		// std::cout << LGREEN "total_bytes_written: " << total_bytes_written << " against content_length=" << _request.get_content_length() << RESET << std::endl; 
 		close(in[1]);
 		if (waitpid(cgi_pid, &term_status, 0) == -1 || !WIFEXITED(term_status) || WEXITSTATUS(term_status) != EXIT_SUCCESS)
 		{
@@ -374,11 +373,18 @@ namespace ft
 		{
 			if (std::remove(_path.c_str()) == 0)
 				_status = no_content;
-			else
-				throw server_error(internal_server_error);
+			else throw server_error(internal_server_error);
 		}
-		else
-			throw server_error(forbidden);
+		else if (errno == ENOENT)
+			throw server_error(not_found);
+		else throw server_error(forbidden);
+	}
+
+	void response::print_response() const
+	{
+		std::cout << GREEN BOLDED("------- start of sent response -------") << LGREEN << std::endl;
+		write(STDOUT_FILENO, &_message.front(), _message.size());
+		std::cout << GREEN BOLDED("------- end of sent response ---------") RESET << std::endl;
 	}
 
 	bool response::is_regular_file(const char *filename) const

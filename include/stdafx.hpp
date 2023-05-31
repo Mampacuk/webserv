@@ -84,11 +84,12 @@
 
 # define CRLF		"\r\n"
 
-# define HTTP_VERSION		"HTTP/1.1"
-# define BACKLOG			128
-# define MAX_URI_LEN		8000
-# define TIMEOUT_SEC		0
-# define TIMEOUT_MICROSEC	500000
+# define HTTP_VERSION			"HTTP/1.1"
+# define URI_RESERVED_CHARSET	""
+# define BACKLOG				128
+# define MAX_URI_LENGTH			8000
+# define TIMEOUT_SEC			0
+# define TIMEOUT_MICROSEC		500000
 
 namespace ft
 {
@@ -122,6 +123,9 @@ namespace ft
 		no_content                    = 204, //!< Indicates that the server has successfully fulfilled the request and that there is no additional content to send in the response payload body.
 		reset_content                 = 205, //!< Indicates that the server has fulfilled the request and desires that the user agent reset the \"document view\", which caused the request to be sent, to its original state as received from the origin server.
 		partial_content               = 206, //!< Indicates that the server is successfully fulfilling a range request for the target resource by transferring one or more parts of the selected representation that correspond to the satisfiable ranges found in the requests's Range header field.
+		multi_status                  = 207, //!< Provides status for multiple independent operations.
+		already_reported              = 208, //!< Used inside a DAV:propstat response element to avoid enumerating the internal members of multiple bindings to the same collection repeatedly. [RFC 5842]
+		im_used                       = 226, //!< The server has fulfilled a GET request for the resource, and the response is a representation of the result of one or more instance-manipulations applied to the current instance.
 
 		/*####### 3xx - Redirection #######*/
 		/* Indicates that further action needs to be taken by the user agent

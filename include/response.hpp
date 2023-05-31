@@ -44,6 +44,7 @@ namespace ft
 			void cgi_process(const std::string &cgi_executable, int in[2], int out[2]);
 			void read_error_page(http_code error);
 			void construct_error_page(http_code error);
+			void print_response() const;
 			bool is_regular_file(const char *filename) const;
 			bool is_directory(const char *filename) const;
 			std::string append_trailing_slash(const std::string &path);

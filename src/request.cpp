@@ -20,7 +20,10 @@ namespace ft
 		return (*this);
 	}
 
-	request::request(client_socket socket) : _method(), _uri(), _query(), _pathinfo(), _headers(), _raw(), _body(), _socket(socket), _content_length(-1), _headers_end(std::string::npos), _server() {}
+	request::request(client_socket socket) : _method(), _uri(), _query(), _pathinfo(), _headers(), _raw(), _body(), _socket(socket), _content_length(-1), _headers_end(std::string::npos), _server()
+	{
+		_server = _socket.get_server_socket().get_servers().front();
+	}
 
 	request::request(const request &other) : _method(other._method), _uri(other._uri), _query(other._query), _pathinfo(other._pathinfo), _headers(other._headers), _raw(other._raw), _body(other._body),
 		_socket(other._socket), _content_length(other._content_length), _headers_end(other._headers_end), _server(other._server) {}
@@ -55,6 +58,8 @@ namespace ft
 					throw protocol_error(bad_request);
 				_content_length = try_strtoul(operator[]("Content-Length"));
 			}
+			_headers.erase("Content-Length");
+			_headers.erase("Transfer-Encoding");
 		}
 		if (_content_length < 0) // "Transfer-Encoding: chunked" case
 		{
@@ -84,15 +89,19 @@ namespace ft
 		{
 			size_t line_end = search(_raw, CRLF, pos);
 			std::string line = std::string(_raw.begin() + pos, _raw.begin() + line_end);
-
+			// std::cout << MAGENTA "read line: " << line << RESET << std::endl;
 			size_t colon = line.find(':');
-			// check if there's a key, colon is present, there's no spaces in header and it's followed by one space
-			if (colon == 0 || colon == std::string::npos || colon != line.find(' ') - 1)
+			if (colon == 0 || colon == std::string::npos)
 				throw protocol_error(bad_request);
+			// std::cout << YELLOW "bad request check1" RESET << std::endl;
 			std::string key = std::string(_raw.begin() + pos, _raw.begin() + pos + colon);
-			size_t val_start = line.find_first_not_of(' ', colon + 2);	// val start; 2 is to skip ": "
-			std::string value = line.substr(val_start);					// val separated (with tail spaces)
-			value = value.substr(0, value.find_last_not_of(' ') + 1);	// discard tail spaces
+			// key validation, lowercasing
+			if (_headers.find(key) != _headers.end())
+				throw protocol_error(bad_request);
+			// std::cout << YELLOW "bad request check2" RESET << std::endl;
+			size_t val_start = line.find_first_not_of(' ', colon + 2);							// val start; 2 is to skip ": "
+			std::string value = (val_start == std::string::npos ? "" : line.substr(val_start));	// val separated (with tail spaces)
+			value = value.substr(0, value.find_last_not_of(' ') + 1);							// discard tail spaces
 			_headers[key] = value;
 			pos = line_end + std::strlen(CRLF);
 		}
@@ -101,31 +110,13 @@ namespace ft
 
 	void request::parse()
 	{
-		std::cout << "received request is" << std::endl << BLUE;
-		for (size_t i = 0; i < _raw.size(); i++) std::cout << _raw[i];
-		std::cout << RESET << std::endl;
-
+		print_request();
 		separate_body();
-		// std::cout << CYAN "parse() after separate_body()" RESET << std::endl;
 		size_t pos = parse_request_line();
-		// std::cout << "method: |" << _method << "|" << std::endl;
-		// std::cout << "content length: " << _content_length << std::endl;
-		// std::cout << "headers end: " << _headers_end << std::endl;
-		// std::cout << "body: |";
-		// for (size_t i = 0; i < _body.size(); i++) std::cout << _body[i];
-		// std::cout << "|, empty? " << (_body.empty() ? "yes" : "no") << std::endl;
-		// std::cout << CYAN "about to inspect headers" RESET << std::endl;
 		while (pos != _headers_end + std::strlen(CRLF))
 			pos = read_header(pos);
 		select_server();
 		parse_query();
-		
-		// std::cout << BLUE;
-		// for (string_map::iterator it = _headers.begin(); it != _headers.end(); it++)
-		// 	std::cout << "header: { " << it->first << " : " << it->second << " }" << std::endl;
-		// std::cout << RESET;
-		// std::cout << "uri: |" << _uri << "|" << std::endl;
-		// std::cout << "query: |" << _query << "|" RESET << std::endl;
 		_raw.clear();
 	}
 
@@ -175,6 +166,8 @@ namespace ft
 		if (space > line_end)
 			throw protocol_error(bad_request);
 		_uri = std::string(_raw.begin() + _method.length() + 1, _raw.begin() + space);
+		if (_uri.empty())
+			throw protocol_error(bad_request);
 		if (!std::equal(_raw.begin() + space + 1, _raw.begin() + line_end, HTTP_VERSION))
 			throw protocol_error(http_version_not_supported);
 		return (line_end + std::strlen(CRLF));
@@ -182,8 +175,6 @@ namespace ft
 
 	void request::parse_query()
 	{
-		if (_uri.length() > MAX_URI_LEN)
-			throw protocol_error(uri_too_long);
 		size_t question_mark = _uri.find('?');
 		if (question_mark != std::string::npos)
 		{
@@ -197,7 +188,11 @@ namespace ft
 		std::string hostname = operator[]("Host");
 		if (hostname.empty())
 			throw protocol_error(bad_request);
-		hostname = hostname.substr(0, hostname.find_last_of(':'));
+		size_t colon = hostname.find_last_of(':');
+		if (colon != std::string::npos)
+			try_strtoul(hostname.substr(colon + 1));
+		hostname = hostname.substr(0, colon);
+		validate_hostname(hostname);
 		for (server_pointer_vector::const_iterator server = _socket.get_server_socket().get_servers().begin(); server != _socket.get_server_socket().get_servers().end(); server++)
 			for (string_vector::const_iterator name = (*server)->get_names().begin(); name != (*server)->get_names().end(); name++)
 			{
@@ -208,6 +203,13 @@ namespace ft
 				}
 			}
 		_server = _socket.get_server_socket().get_servers().front();
+	}
+
+	void request::print_request() const
+	{
+		std::cout << BLUE BOLDED("------- start of received request -------") << CYAN << std::endl;
+		write(STDOUT_FILENO, &_raw.front(), _raw.size());
+		std::cout << std::endl << BLUE BOLDED("-------- END of received request --------") RESET << std::endl;
 	}
 
 	std::string request::operator[](const std::string &header) const
@@ -280,5 +282,23 @@ namespace ft
 		{
 			throw protocol_error(bad_request);
 		}
+	}
+
+	void request::validate_hostname(const std::string &hostname) const
+	{
+		if (hostname[0] == '.' || hostname[hostname.length() - 1] == '.' || hostname[0] == '-' || hostname[hostname.length() - 1] == '-')
+			throw protocol_error(bad_request);
+		for (size_t i = 0; i < hostname.length(); i++)
+			if (!std::isalnum(hostname[i]))
+			{
+				if (hostname[i] == '.' || hostname[i] == '-')
+				{
+					if (i != 0 && !std::isalnum(hostname[i - 1]))
+						throw protocol_error(bad_request);
+					if (i != hostname.length() - 1 && !std::isalnum(hostname[i + 1]))
+						throw protocol_error(bad_request);
+				}
+				else throw protocol_error(bad_request);
+			}
 	}
 }
