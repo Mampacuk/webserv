@@ -18,6 +18,7 @@ namespace ft
 			client_socket	_socket;
 			ssize_t			_content_length;
 			size_t			_headers_end;
+			size_t			_chunk_size_begin;
 			const server	*_server;
 		public:
 			request(client_socket socket);
@@ -42,12 +43,14 @@ namespace ft
 		private:
 			unsigned int	try_strtoul(const std::string &number, int base = 10) const;
 			size_t			read_header(size_t pos);
+			bool			seek_chunk();
 			void			separate_body();
 			size_t			parse_request_line();
 			void			parse_query();
 			void			select_server();
 			void			print_request() const;
 			void			validate_hostname(const std::string &hostname) const;
+			size_t			parse_chunk_size(const std::string &field) const;
 	};
 }
 

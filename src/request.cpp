@@ -16,25 +16,26 @@ namespace ft
 		_socket = other._socket;
 		_content_length = other._content_length;
 		_headers_end = other._headers_end;
+		_chunk_size_begin = other._chunk_size_begin;
 		_server = other._server;
 		return (*this);
 	}
 
-	request::request(client_socket socket) : _method(), _uri(), _query(), _pathinfo(), _headers(), _raw(), _body(), _socket(socket), _content_length(-1), _headers_end(std::string::npos), _server()
+	request::request(client_socket socket) : _method(), _uri(), _query(), _pathinfo(), _headers(), _raw(), _body(), _socket(socket), _content_length(-1), _headers_end(std::string::npos), _chunk_size_begin(0), _server()
 	{
 		_server = _socket.get_server_socket().get_servers().front();
 	}
 
 	request::request(const request &other) : _method(other._method), _uri(other._uri), _query(other._query), _pathinfo(other._pathinfo), _headers(other._headers), _raw(other._raw), _body(other._body),
-		_socket(other._socket), _content_length(other._content_length), _headers_end(other._headers_end), _server(other._server) {}
+		_socket(other._socket), _content_length(other._content_length), _headers_end(other._headers_end), _chunk_size_begin(other._chunk_size_begin), _server(other._server) {}
 
 	// appends chunk to the request. returns whether the request was fully accepted
 	bool request::append_chunk(const char *chunk, size_t chunk_size)
 	{
 		_raw.insert(_raw.end(), chunk, chunk + chunk_size);
-		std::cout << MAGENTA BOLDED("------- start of received CHUNK -------") << MAGENTA << std::endl;
-		write(STDOUT_FILENO, chunk, chunk_size);
-		std::cout << std::endl << MAGENTA BOLDED("-------- END of received CHUNK --------") RESET << std::endl;
+		// std::cout << MAGENTA BOLDED("------- start of received CHUNK -------") << MAGENTA << std::endl;
+		// write(STDOUT_FILENO, chunk, chunk_size);
+		// std::cout << std::endl << MAGENTA BOLDED("-------- END of received CHUNK --------") RESET << std::endl;
 		if (_headers_end == std::string::npos)
 		{
 			if ((_headers_end = search(_raw, std::string(CRLF CRLF))) == std::string::npos)
@@ -67,22 +68,8 @@ namespace ft
 		}
 		if (_content_length < 0) // "Transfer-Encoding: chunked" case
 		{
-			size_t zero_chunk = search(_raw, std::string(CRLF "0"), _headers_end);
-			if (zero_chunk == std::string::npos)
-				return (false);
-			zero_chunk += std::strlen(CRLF);
-			while (zero_chunk < _raw.size() && _raw[zero_chunk] == '0')
-				zero_chunk++;
-			if (zero_chunk >= _raw.size())
-				return (false);
-			if (_raw[zero_chunk] == ';')
-			{
-				size_t chunk_extension = search(_raw, std::string(CRLF), zero_chunk);
-				zero_chunk = (chunk_extension == std::string::npos ? zero_chunk : chunk_extension);
-			}
-			return (std::equal(_raw.begin() + zero_chunk, _raw.begin() + zero_chunk + std::strlen(CRLF), CRLF));
-			// std::cout << CYAN BOLDED("TRANSFER ENCODING CASE") RESET << std::endl;
-			// return (ends_with(_raw, "0" CRLF CRLF));
+			std::cout << CYAN BOLDED("TRANSFER ENCODING CASE") RESET << std::endl;
+			return (seek_chunk());
 		}
 		// std::cout << CYAN "COMPLETED RECEIVING REQUEST? " << ((_raw.size() == _content_length + _headers_end + std::strlen(CRLF CRLF CRLF)
 		// 	|| (ends_with(_raw, CRLF) && !ends_with(_raw, CRLF CRLF))) ? "yes" : "no") << RESET << std::endl;
@@ -105,10 +92,12 @@ namespace ft
 		// verify the headers is present, it's not in the body, and it's preceded by a CRLF
 		if (pos != std::string::npos && pos < _headers_end && std::equal(_raw.begin() + pos - std::strlen(CRLF), _raw.begin() + pos, CRLF))
 		{
-			size_t line_end = std::min(search(_raw, std::string(CRLF), pos), _raw.size());
+			size_t line_end = search(_raw, std::string(CRLF), pos);
+			if (line_end == std::string::npos)
+				throw protocol_error(bad_request);
 			std::string line = std::string(_raw.begin() + pos, _raw.begin() + line_end);
 			if (line.empty())
-				return (pos + std::strlen(CRLF));
+				return (std::string::npos);
 			size_t colon = line.find(':');
 			if (colon == 0 || colon == std::string::npos)
 				throw protocol_error(bad_request);
@@ -130,19 +119,45 @@ namespace ft
 	{
 		print_request();
 		separate_body();
-		std::cout << MAGENTA "separated body" RESET << std::endl;
+		// std::cout << MAGENTA "separated body" RESET << std::endl;
 		size_t pos = parse_request_line();
-		std::cout << MAGENTA "parsed request line" RESET << std::endl;
-		_headers_end = std::string::npos;
-		while (search(_raw, std::string(CRLF), pos) != std::string::npos)
+		// std::cout << MAGENTA "parsed request line" RESET << std::endl;
+		_headers_end = std::string::npos; // to allow trailer search
+		while (pos != std::string::npos)
 			pos = read_header(pos);
-		read_header(pos);
-		std::cout << MAGENTA "parsed headers" RESET << std::endl;
+		// std::cout << MAGENTA "parsed headers" RESET << std::endl;
 		select_server();
-		std::cout << MAGENTA "selected server" RESET << std::endl;
+		// std::cout << MAGENTA "selected server" RESET << std::endl;
 		parse_query();
-		std::cout << MAGENTA "parsed query" RESET << std::endl;
+		// std::cout << MAGENTA "parsed query" RESET << std::endl;
 		_raw.clear();
+	}
+
+	// returns true if the trailing 0-chunk was found
+	// appends chunk to body, throws bad_request if there's chunk size mismatch
+	// sets _chunk_size_begin to point to the start of the trailer once 0-chunk is found
+	bool request::seek_chunk()
+	{
+		if (!_chunk_size_begin)
+			_chunk_size_begin = _headers_end + std::strlen(CRLF CRLF);
+		const size_t chunk_size_end = search(_raw, std::string(CRLF), _chunk_size_begin);
+		if (chunk_size_end == std::string::npos)
+			return (false);
+		const size_t chunk_size = parse_chunk_size(std::string(_raw.begin() + _chunk_size_begin, _raw.begin() + chunk_size_end));
+		if (chunk_size == 0)
+		{
+			_chunk_size_begin = chunk_size_end + std::strlen(CRLF);
+			return (true);
+		}
+		const size_t chunk_content_begin = chunk_size_end + std::strlen(CRLF);
+		const size_t chunk_content_end = search(_raw, std::string(CRLF), chunk_content_begin);
+		if (chunk_content_end == std::string::npos)
+			return (false);
+		if (chunk_content_end - chunk_content_begin != chunk_size)
+			throw protocol_error(bad_request);
+		_body.insert(_body.end(), _raw.begin() + chunk_content_begin, _raw.begin() + chunk_content_end);
+		_chunk_size_begin = chunk_content_end + std::strlen(CRLF);
+		return (false);
 	}
 
 	void request::separate_body()
@@ -159,30 +174,13 @@ namespace ft
 				_content_length = _body.size();
 			else if (static_cast<size_t>(_content_length) != read_body_end - read_body_start)
 				throw protocol_error(bad_request);
+			_raw.erase(_raw.begin() + _headers_end + std::strlen(CRLF CRLF), _raw.end());
 		}
 		else
 		{
-			size_t	chunk_size;
-			size_t	pos = _headers_end + std::strlen(CRLF CRLF);
-			// size_t	colon = search(_raw, "")
-			size_t	end_of_line = search(_raw, std::string(CRLF), pos);
-			chunk_size = try_strtoul(std::string(_raw.begin() + pos, _raw.begin() + end_of_line), 16);
-			_content_length = 0;
-			while (chunk_size > 0)
-			{
-				pos = end_of_line + std::strlen(CRLF);				// now points to the beginning of chunk
-				end_of_line = search(_raw, std::string(CRLF), pos);	// now points to the end of chunk
-				if (end_of_line - pos != chunk_size)
-					throw protocol_error(bad_request);
-				_body.insert(_body.end(), _raw.begin() + pos, _raw.begin() + pos + chunk_size);	// append the chunk to the body
-				_content_length += chunk_size;
-				pos = end_of_line + std::strlen(CRLF);				// now points to the beginning of chunk-size
-				end_of_line = search(_raw, std::string(CRLF), pos);	// now points to the end of chunk-size
-				chunk_size = try_strtoul(std::string(_raw.begin() + pos, _raw.begin() + end_of_line), 16);
-			}
-			trailer_begin = end_of_line + std::strlen(CRLF);
+			_content_length = _body.size();
+			_raw.erase(_raw.begin() + _headers_end + std::strlen(CRLF), _raw.begin() + _chunk_size_begin);
 		}
-		_raw.erase(_raw.begin() + _headers_end + (!trailer_begin ? 0 : std::strlen(CRLF)), _raw.begin() + (!trailer_begin ? _raw.size() : trailer_begin));
 		// std::cout << YELLOW "body (size " << _body.size() << ") now" << std::endl;
 		// write(STDOUT_FILENO, &_body.front(), _body.size());
 		// std::cout << RESET << std::endl;
