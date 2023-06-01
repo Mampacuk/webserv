@@ -2,7 +2,7 @@
 
 namespace ft
 {
-	webserv::webserv(): _protocol() {}
+	webserv::webserv() : _protocol() {}
 
 	webserv::~webserv()
 	{
@@ -27,98 +27,7 @@ namespace ft
 		_protocol = static_cast<http*>(protocol);
 	}
 
-	int webserv::error(const std::string &error)
-	{
-		std::cerr << "[webserv]: " RED "Error" RESET ": " << error << std::endl;
-		return (EXIT_FAILURE);
-	}
-
-	int webserv::log(const std::string &msg, const char *color)
-	{
-		std::cout << "[webserv]: " << color << msg << RESET << std::endl;
-		return (EXIT_SUCCESS);
-	}
-
-	int webserv::label_log(const std::string &msg, const std::string &label, const char *msg_color, const char *label_color)
-	{
-		std::cout << "[webserv]: [" << label_color << label << RESET "] " << msg_color << msg << RESET << std::endl;
-		return (EXIT_SUCCESS);
-	}
-
-	client_socket webserv::accept_connection(const server_socket &socket)
-	{
-		int client_fd;
-		std::string host;
-		std::string port;
-		struct sockaddr_in client_addr;
-		socklen_t client_addr_len = sizeof(client_addr);
-
-		client_fd = accept(socket, reinterpret_cast<struct sockaddr*>(&client_addr), &client_addr_len);
-		if (client_fd == -1 || fcntl(client_fd, F_SETFL, O_NONBLOCK) == -1)
-			return (client_socket(client_fd, "", "", socket));
-		host = ft::inet_ntoa(client_addr.sin_addr);
-		port = ft::to_string(ntohs(client_addr.sin_port));
-		label_log("Successfully accepted connection from " + host + ":" + port, BOLDED("ACCEPT"), GREEN, LGREEN);
-		return (client_socket(client_fd, host, port, socket));
-	}
-
-	int webserv::receive_request(request &request, response_list &responses)
-	{
-		char buffer[BUFSIZ]; // pass BUFSIZ - 1 so it's null-terminated
-		int  bytes_read = recv(request, buffer, BUFSIZ - 1, 0);
-		if (bytes_read <= 0)
-		{
-			if (!bytes_read)
-				label_log("Connection closed by the client.", BOLDED("RECV"), YELLOW);
-			else
-				error("[RECEIVE] recv() failed due to " + to_string(errno) + " " + strerror(errno));
-			close(request);
-			return (EXIT_SUCCESS);
-		}
-		buffer[bytes_read] = '\0';
-		label_log("Received " + to_string(bytes_read) + " bytes from " + to_string(request), BOLDED("RECV"), GREEN, LGREEN);
-		try
-		{
-			if (!(request.append_chunk(buffer, bytes_read)))	
-				return (EXIT_FAILURE);	// request wasn't fully received
-			request.parse();
-			label_log("Pushed " + to_string(request) + " to responses", BOLDED("RECV"), GREEN, LGREEN);
-			responses.push_back(response(request));
-			// std::cout << "RESPONSES\n";
-			// for (response_list::iterator it = responses.begin(); it != responses.end(); it++)	
-			// 	std::cout << *it << std::endl;
-		}
-		catch (const protocol_error &e)
-		{
-			responses.push_back(response(request, e));
-			// std::cout << "RESPONSES\n";
-			// for (response_list::iterator it = responses.begin(); it != responses.end(); it++)	
-			// 	std::cout << *it << std::endl;
-		}
-		return (EXIT_SUCCESS);
-	}
-
-	int webserv::send_response(response &response)
-	{
-		char_vector_iterator_pair range = response.get_chunk();
-		ssize_t bytes_written = send(response, &(*range.first), range.second - range.first, 0);
-		if (bytes_written <= 0)
-		{
-			if (!bytes_written)
-				label_log("Connection closed by the client.", BOLDED("RECV"), YELLOW);
-			else
-				error("[SEND] send() failed due to " + to_string(errno) + " " + strerror(errno));
-			return (EXIT_SUCCESS);
-		}
-		#ifdef DEBUG
-		label_log("Sent successfully " + to_string(bytes_written) + " bytes from " + to_string(response), BOLDED("SEND"), GREEN, GREEN);
-		#endif
-		if (!response.sent())
-			return (EXIT_FAILURE);
-		return (EXIT_SUCCESS);
-	}
-
-	void webserv::serve()
+	void webserv::serve() const
 	{
 		fd_set					master_set;
 		fd_set					reading_set;
@@ -126,9 +35,6 @@ namespace ft
 		request_list			requests;
 		response_list			responses;
 		int						desc_ready = 0;
-		// int						bar_id = 0;
-		// const char				bars[] = {'\\', '|', '/', '-'};
-		// const int				nbars = sizeof(bars) / sizeof(bars[0]);
 		struct timeval			timeout = {TIMEOUT_SEC, TIMEOUT_MICROSEC};
 		const server_socket_set	&sockets = _protocol->get_sockets();
 		int						max_sd = *(--sockets.end());
@@ -147,71 +53,35 @@ namespace ft
 				FD_ZERO(&writing_set);
 				for (response_list::iterator it = responses.begin(); it != responses.end(); it++)
 					FD_SET(*it, &writing_set);
-				// std::cout << "\rWaiting for a connection... " << bars[(bar_id = (bar_id >= nbars - 1) ? 0 : bar_id + 1)] << std::flush;
 				desc_ready = select(max_sd + 1, &reading_set, &writing_set, NULL, &timeout);
-				#ifdef DEBUG
-				if (desc_ready > 0)
-				{
-					std::cout << std::endl;
-					label_log("select() returned " + to_string(desc_ready) + " descriptors", BOLDED("SELECT"), YELLOW);
-				}
-				#endif
 				if (desc_ready == -1)
 				{
 					error("[SELECT] select() call failed: " + std::string(strerror(errno)));
 					desc_ready = 0;
 				}
 			}
-			#ifdef DEBUG
-			log("Responses: " + to_string(responses.size()) + ", Requests: " + to_string(requests.size()), MAGENTA);
-			bool entered = false;
-			#endif
 			// accept() reading_set block
 			for (server_socket_set::iterator it = sockets.begin(); it != sockets.end(); it++)
 			{
-				#ifdef DEBUG
-				entered = true;
-				log("Determining if server socket " + to_string(*it) + " is set...", LRED);
-				#endif
 				if (FD_ISSET(*it, &reading_set))
 				{
 					client_socket new_sd(accept_connection(*it));
 					if (new_sd == -1)
-					{
 						error("[ACCEPT] Couldn't create a socket for accepted connection: " + std::string(strerror(errno)));
-					}
 					else
 					{
-						#ifdef DEBUG
-						label_log("Successfully created " + to_string(new_sd) + " from " + to_string(*it), BOLDED("ACCEPT"), GREEN, LGREEN);
-						#endif
 						requests.push_back(new_sd);
 						FD_SET(new_sd, &master_set);
-						// FD_SET(new_sd, &reading_set);
 						max_sd = new_sd.get_fd() > max_sd ? new_sd.get_fd() : max_sd;
 					}
 					break ;
 				}
-				#ifdef DEBUG
-				else log("Server socket " + to_string(*it) + " wasn't set.", LRED);
-				#endif
 			}
-			#ifdef DEBUG
-			if (!entered) log("Server sockets are empty.", RED);
-			entered = false;
-			log("Responses: " + to_string(responses.size()) + ", Requests: " + to_string(requests.size()), MAGENTA);
-			#endif
-
 			// recv() reading_set block 
 			for (request_list::iterator it = requests.begin(); it != requests.end(); it++)
 			{
-				#ifdef DEBUG
-				entered = true;
-				log("Determining if request " + to_string(*it) + " is set...", LRED);
-				#endif
 				if (FD_ISSET(*it, &reading_set))
 				{
-					label_log("About to receive from " + to_string(*it), BOLDED("RECV"), GREEN, LGREEN);
 					if (receive_request(*it, responses) == EXIT_SUCCESS)
 					{
 						FD_CLR(*it, &reading_set);
@@ -220,33 +90,14 @@ namespace ft
 					}
 					break ;
 				}
-				#ifdef DEBUG
-				else log("Request " + to_string(*it) + " wasn't set.", LRED);
-				#endif
 			}
-			#ifdef DEBUG
-			if (!entered) log("Requests are empty.", RED);
-			entered = false;
-			log("Responses: " + to_string(responses.size()) + ", Requests: " + to_string(requests.size()), MAGENTA);
-			#endif
-
 			// send() writing_set block
 			for (response_list::iterator it = responses.begin(); it != responses.end(); it++)
 			{
-				#ifdef DEBUG
-				entered = true;
-				log("Determining if response " + to_string(*it) + " is set...", LRED);
-				#endif
 				if (FD_ISSET(*it, &writing_set))
 				{
-					#ifdef DEBUG
-					label_log("About to send from " + to_string(*it), BOLDED("SEND"), GREEN, YELLOW);
-					#endif
 					if (send_response(*it) == EXIT_SUCCESS)
 					{
-						#ifdef DEBUG
-						label_log("Ended connection of " + to_string(*it), BOLDED("SEND"), GREEN, YELLOW);
-						#endif
 						FD_CLR(*it, &writing_set);
 						FD_CLR(*it, &master_set);
 						close(*it);
@@ -254,15 +105,84 @@ namespace ft
 					}
 					break ;
 				}
-				#ifdef DEBUG
-				else log("Response " + to_string(*it) + " wasn't set.", LRED);
-				#endif
 			}
-			#ifdef DEBUG
-			if (!entered) log("Responses are empty.", RED);
-			log("Responses: " + to_string(responses.size()) + ", Requests: " + to_string(requests.size()), MAGENTA);
-			#endif
-			desc_ready = 0;
+			desc_ready = 0; // renew the select() loop
 		}
+	}
+
+	int webserv::error(const std::string &error)
+	{
+		std::cerr << "[" CYAN BOLDED("webserv") RESET "]: " RED BOLDED("Error") LRED ": " << error << RESET << std::endl;
+		return (EXIT_FAILURE);
+	}
+
+	int webserv::log(const std::string &msg, const char *color)
+	{
+		std::cout << "[" CYAN BOLDED("webserv") RESET "]: " << color << msg << RESET << std::endl;
+		return (EXIT_SUCCESS);
+	}
+
+	client_socket webserv::accept_connection(const server_socket &socket) const
+	{
+		int client_fd;
+		std::string host;
+		std::string port;
+		struct sockaddr_in client_addr;
+		socklen_t client_addr_len = sizeof(client_addr);
+
+		client_fd = accept(socket, reinterpret_cast<struct sockaddr*>(&client_addr), &client_addr_len);
+		if (client_fd == -1 || fcntl(client_fd, F_SETFL, O_NONBLOCK) == -1)
+			return (client_socket(client_fd, "", "", socket));
+		host = ft::inet_ntoa(client_addr.sin_addr);
+		port = ft::to_string(ntohs(client_addr.sin_port));
+		log(BOLDED("[ACCEPT]") " Connected client " + host + ":" + port + " to address " + socket.get_host() + ":" + socket.get_port() + ".", GREEN);
+		return (client_socket(client_fd, host, port, socket));
+	}
+
+	int webserv::receive_request(request &request, response_list &responses) const
+	{
+		char buffer[BUFSIZ]; // pass BUFSIZ - 1 so it's null-terminated
+		int  bytes_read = recv(request, buffer, BUFSIZ - 1, 0);
+		if (bytes_read <= 0)
+		{
+			if (!bytes_read)
+				log(BOLDED("[RECV]") " Connection closed by the client.", YELLOW);
+			else
+				error(BOLDED("[RECV]") " recv() failed due to " + to_string(errno) + " " + strerror(errno));
+			close(request);
+			return (EXIT_SUCCESS);
+		}
+		buffer[bytes_read] = '\0';
+		log(BOLDED("[RECV]") " Received " + to_string(bytes_read) + " bytes from " + to_string(request), GREEN);
+		try
+		{
+			if (!(request.append_chunk(buffer, bytes_read)))	
+				return (EXIT_FAILURE);	// request wasn't fully received
+			request.parse();
+			log(BOLDED("[RECV]") " Pushed " + to_string(request) + " to responses", GREEN);
+			responses.push_back(response(request));
+		}
+		catch (const protocol_error &e)
+		{
+			responses.push_back(response(request, e));
+		}
+		return (EXIT_SUCCESS);
+	}
+
+	int webserv::send_response(response &response) const
+	{
+		char_vector_iterator_pair range = response.get_chunk();
+		ssize_t bytes_written = send(response, &(*range.first), range.second - range.first, 0);
+		if (bytes_written <= 0)
+		{
+			if (!bytes_written)
+				log(BOLDED("[RECV]") " Connection closed by the client.", YELLOW);
+			else
+				error(BOLDED("[SEND]") " send() failed due to " + std::string(strerror(errno)));
+			return (EXIT_SUCCESS);
+		}
+		if (!response.sent())
+			return (EXIT_FAILURE);
+		return (EXIT_SUCCESS);
 	}
 }

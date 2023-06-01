@@ -1,8 +1,6 @@
 #ifndef SERVER_HPP
 # define SERVER_HPP
 
-// # include "stdafx.hpp"
-// # include "base_dir_ext.hpp"
 # include "location.hpp"
 
 namespace ft

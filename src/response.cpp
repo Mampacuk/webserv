@@ -40,11 +40,6 @@ namespace ft
 		return (std::make_pair(begin, end));
 	}
 
-	bool response::empty() const
-	{
-		return (_message.empty());
-	}
-
 	bool response::sent() const
 	{
 		return (_cursor == _message.size());

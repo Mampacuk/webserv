@@ -3,69 +3,29 @@
 
 // # define DEBUG
 
-# if defined(_WIN32) || defined(__CYGWIN__) // defined on windows
-#  undef UNICODE
-#  define NOMINMAX
-#  define WINVER 0x0A00
-#  define _WIN32_WINNT 0x0A00
-#  include <WinSock2.h>
-#  include <WS2tcpip.h>
-#  include <wspiapi.h>
-#  include <io.h>
-#  define SO_REUSEPORT 0x0200
-#  define F_SETFL 4
-#  define O_NONBLOCK 00004000
-#  ifdef _WIN64
-#   define ssize_t __int64
-#  else
-#   define ssize_t long
-#  endif
-#  define STDIN_FILENO 0
-#  define STDOUT_FILENO 1
-#  define STDERR_FILENO 2
-   typedef int pid_t;
-   int fcntl(int, int, ...);
-   int kill(...);
-   pid_t fork(...);
-   int pipe(...);
-   int execve(...);
-   typedef struct {} DIR;
-   DIR *opendir(...);
-   typedef struct { char *d_name; } dirent;
-   dirent *readdir(...);
-   void closedir(...);
-   pid_t waitpid(...);
-#  define WTERMSIG(status)    ((status) & 0x7f)
-#  define WIFEXITED(status)   (WTERMSIG(status) == 0)
-#  define WEXITSTATUS(status) (((status) & 0xff00) >> 8)
-#  define SIGTERM 15
-# elif defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
-#  include <sys/types.h>
-#  include <sys/socket.h>
-#  include <netinet/tcp.h>
-#  include <netinet/in.h>
-#  include <netdb.h>
-#  include <unistd.h>
-#  include <fcntl.h>
-#  include <dirent.h>
-# endif
-
-# include <string>
-# include <cstring>
-# include <string.h>
-# include <cstdlib>
-# include <fstream>
-# include <sstream>
+# include <sys/types.h>
+# include <sys/socket.h>
+# include <netinet/tcp.h>
+# include <netinet/in.h>
+# include <netdb.h>
+# include <unistd.h>
+# include <fcntl.h>
+# include <dirent.h>
 # include <limits>
 # include <stdexcept>
 # include <iostream>
+# include <fstream>
+# include <sstream>
+# include <cstring>
+# include <cstdlib>
+# include <cctype>
+# include <csignal>
 # include <algorithm>
+# include <vector>
+# include <string>
 # include <list>
 # include <set>
 # include <map> 
-# include <vector>
-# include <signal.h>
-# include <cctype>
 
 # define RESET		"\033[0m"
 # define BOLD		"\033[1m"
@@ -80,17 +40,16 @@
 # define GRAY		"\033[90m"
 # define LRED		"\033[91m"
 # define LGREEN		"\033[92m"
-
 # define BOLDED(x) BOLD x RESET
 
-# define CRLF		"\r\n"
 
-# define HTTP_VERSION			"HTTP/1.1"
-# define TOKEN_CHARSET			"()<>@,;:\\\"/[]?={}\n\t"
-# define BACKLOG				128
-# define MAX_URI_LENGTH			8000
-# define TIMEOUT_SEC			0
-# define TIMEOUT_MICROSEC		500000
+# define HTTP_VERSION		"HTTP/1.1"
+# define CRLF				"\r\n"
+# define TOKEN_CHARSET		"()<>@,;:\\\"/[]?={}\n\t"
+# define BACKLOG			128
+# define MAX_URI_LENGTH		8000
+# define TIMEOUT_SEC		0
+# define TIMEOUT_MICROSEC	500000
 
 namespace ft
 {
@@ -205,16 +164,16 @@ namespace ft
 	typedef std::set<server_socket>	server_socket_set;
 	typedef std::set<string_pair>	string_pair_set;
 	typedef std::set<std::string>	string_set;
+	typedef std::set<location>		location_set;
 	
-	typedef std::multimap<std::string, std::string> string_mmap;
-	typedef std::multimap<string_pair, const server*> string_pair_server_pointer_mmap;
+	typedef std::multimap<std::string, std::string>		string_mmap;
+	typedef std::multimap<string_pair, const server*>	string_pair_server_pointer_mmap;
 	
 	typedef std::list<std::string>	string_list;
 	typedef std::list<request>		request_list;
 	typedef std::list<response>		response_list;
 	typedef std::list<server>		server_list;
 
-	typedef std::set<location> location_set;
 
 	bool ends_with(const std::string &str, const std::string &suffix);
 	bool starts_with(const std::string &str, const std::string &prefix);

@@ -2,9 +2,9 @@
 
 namespace ft
 {
-	parser::parser(): _directives(), _contexts(), _config(), _chunks() {}
+	parser::~parser() {}
 
-	parser::parser(const std::string &filename): _directives(), _contexts(), _config(), _chunks()
+	parser::parser(const std::string &filename) : _directives(), _contexts(), _config(), _chunks()
 	{
 		_config.open(filename.c_str());
 		if (!_config.is_open())
@@ -25,12 +25,6 @@ namespace ft
 		parse_chunks();
 	}
 
-	parser::~parser() {}
-
-	parser::parser(const parser &other): _directives(other._directives), _contexts(other._contexts), _config(), _chunks(other._chunks) {}
-
-	parser &parser::operator=(const parser&) { return (*this); }
-
 	base_dir *parser::parse(base_dir *parent)
 	{
 		context_map::iterator cont_it = _contexts.begin();
@@ -50,6 +44,35 @@ namespace ft
 		if (cont_it == _contexts.end() && dir_it == _directives.end() && !_chunks.empty())
 			throw parsing_error("Unknown directive or ill-formed context encountered: " + front());
 		return (parent);
+	}
+
+	void parser::parse_chunks()
+	{
+		std::string line;
+
+		while (std::getline(_config, line))
+		{
+			std::string chunk;
+			std::stringstream buffer(line);
+			while (buffer >> chunk)
+			{
+				const size_t hash = chunk.find('#');
+				if (hash != std::string::npos)
+				{
+					_chunks.push_front(chunk);
+					erase_chunk_middle("#", true);
+					if (front().empty())
+						pop_front();
+					else
+						_chunks.push_back(pop_front());
+					if (hash + 1 != chunk.length())
+						pop_front();
+					buffer.str(""); // clear buffer
+				}
+				else
+					_chunks.push_back(chunk);
+			}
+		}
 	}
 
 	bool parser::is_context(std::string context)
@@ -83,35 +106,6 @@ namespace ft
 		if (!erase_chunk_front(directive))
 			throw parsing_error("Unknown directive provided.");
 		return (true);
-	}
-
-	void parser::parse_chunks()
-	{
-		std::string line;
-
-		while (std::getline(_config, line))
-		{
-			std::string chunk;
-			std::stringstream buffer(line);
-			while (buffer >> chunk)
-			{
-				const size_t hash = chunk.find('#');
-				if (hash != std::string::npos)
-				{
-					_chunks.push_front(chunk);
-					erase_chunk_middle("#", true);
-					if (front().empty())
-						pop_front();
-					else
-						_chunks.push_back(pop_front());
-					if (hash + 1 != chunk.length())
-						pop_front();
-					buffer.str(""); // clear buffer
-				}
-				else
-					_chunks.push_back(chunk);
-			}
-		}
 	}
 
 	base_dir *parser::process_http(base_dir*)
@@ -186,33 +180,6 @@ namespace ft
 		return (parent);
 	}
 
-	void parser::load_base_dir()
-	{
-		_directives["root"].second = true;
-		_directives["autoindex"].second = true;
-		_directives["error_page"].second = true;
-		_directives["client_max_body_size"].second = true;
-		_directives["index"].second = true;
-		_directives["cgi"].second = true;
-	}
-
-	void parser::unload_base_dir()
-	{
-		_directives["cgi"].second = false;
-		_directives["index"].second = false;
-		_directives["client_max_body_size"].second = false;
-		_directives["error_page"].second = false;
-		_directives["autoindex"].second = false;
-		_directives["root"].second = false;
-	}
-
-	bool parser::read_root(base_dir *parent)
-	{
-		bool semicolon_erased = erase_chunk_middle(";");
-		parent->set_root(pop_front());
-		return (semicolon_erased);
-	}
-
 	bool parser::read_autoindex(base_dir *parent)
 	{
 		bool semicolon_erased = erase_chunk_middle(";");
@@ -223,6 +190,47 @@ namespace ft
 		else
 			throw parsing_error("Invalid `autoindex` argument.");
 		pop_front();
+		return (semicolon_erased);
+	}
+
+	bool parser::read_root(base_dir *parent)
+	{
+		bool semicolon_erased = erase_chunk_middle(";");
+		parent->set_root(pop_front());
+		return (semicolon_erased);
+	}
+
+	bool parser::read_client_max_body_size(base_dir *parent)
+	{
+		const char front_back = front()[front().length() - 1];
+		bool semicolon_erased = erase_chunk_middle(";");
+		int multiplier = 1; // default: bytes
+		if (std::isalpha(front_back))
+		{
+			if (front_back == 'k' || front_back == 'K')
+				multiplier = 1000;
+			else if (front_back == 'm' || front_back == 'M')
+				multiplier = 1000000;
+			else if (front_back == 'g' || front_back == 'G')
+				multiplier = 1000000000;
+			else
+				throw parsing_error("Bad storage unit extension.");
+			front().erase(front().end() - 1); // front().pop_back(); in C++11
+		}
+		parent->set_client_max_body_size(multiplier * ft::strtoul(pop_front()));
+		return (semicolon_erased);
+	}
+
+	bool parser::read_cgi(base_dir *parent)
+	{
+		bool semicolon_erased;
+		std::string expr;
+		if (erase_chunk_middle(";"))
+			throw parsing_error("Invalid number of arguments for `cgi`.");
+		expr = pop_front();
+		semicolon_erased = erase_chunk_middle(";");
+		parent->flush_cgi();
+		static_cast<base_dir_ext*>(parent)->add_cgi(pop_front(), expr);
 		return (semicolon_erased);
 	}
 
@@ -247,27 +255,6 @@ namespace ft
 		for (size_t i = 0; i < response_codes.size(); i++)
 			parent->add_error_page(response_codes[i], front());
 		pop_front();
-		return (semicolon_erased);
-	}
-
-	bool parser::read_client_max_body_size(base_dir *parent)
-	{
-		const char front_back = front()[front().length() - 1];
-		bool semicolon_erased = erase_chunk_middle(";");
-		int multiplier = 1; // default: bytes
-		if (std::isalpha(front_back))
-		{
-			if (front_back == 'k' || front_back == 'K')
-				multiplier = 1000;
-			else if (front_back == 'm' || front_back == 'M')
-				multiplier = 1000000;
-			else if (front_back == 'g' || front_back == 'G')
-				multiplier = 1000000000;
-			else
-				throw parsing_error("Bad storage unit extension.");
-			front().erase(front().end() - 1); // front().pop_back(); in C++11
-		}
-		parent->set_client_max_body_size(multiplier * ft::strtoul(pop_front()));
 		return (semicolon_erased);
 	}
 
@@ -319,19 +306,6 @@ namespace ft
 		for (size_t i = 0; i < arguments.size(); i++)
 			static_cast<server*>(parent)->add_name(arguments[i]);
 		return (true);
-	}
-
-	bool parser::read_cgi(base_dir *parent)
-	{
-		bool semicolon_erased;
-		std::string expr;
-		if (erase_chunk_middle(";"))
-			throw parsing_error("Invalid number of arguments for `rewrite`.");
-		expr = pop_front();
-		semicolon_erased = erase_chunk_middle(";");
-		parent->flush_cgi();
-		static_cast<base_dir_ext*>(parent)->add_cgi(pop_front(), expr);
-		return (semicolon_erased);
 	}
 
 	bool parser::read_limit_except(base_dir *loc)
@@ -424,41 +398,40 @@ namespace ft
 			hints.ai_socktype = SOCK_STREAM;				 // what type of _sockets?
 			hints.ai_flags = AI_ADDRCONFIG;					 // only address families configured on the system
 			if ((status = getaddrinfo(host.c_str(), port.c_str(), &hints, &result)) != 0)
-				throw std::runtime_error("[GETADDRINFO] " + std::string(gai_strerror(status)));
+				throw std::runtime_error(BOLDED("[GETADDRINFO] ") + std::string(gai_strerror(status)));
 			rit = result;
-
 			server_socket socket(::socket(rit->ai_family, rit->ai_socktype, rit->ai_protocol), host, port);
 			if (socket == -1)
 			{
 				freeaddrinfo(result);
-				throw std::runtime_error("[SOCKET] Failed to create a socket.");
+				throw std::runtime_error(BOLDED("[SOCKET]") " Failed to create a socket.");
 			}
-			webserv::label_log("Successfully created a socket " + to_string(socket), BOLDED("SOCKET"), GREEN, GREEN);
+			webserv::log(BOLDED("[SOCKET]") " Successfully created a socket " + to_string(socket), GREEN);
 			int on = 1;
 			if (setsockopt(socket, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on)) == -1
 				|| setsockopt(socket, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on)) == -1
 				|| setsockopt(socket, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(on)) == -1)
 			{
 				close(socket), freeaddrinfo(result);
-				throw std::runtime_error("[SETSOCKETOPT] Couldn't set socket options.");
+				throw std::runtime_error(BOLDED("[SETSOCKETOPT]") " Couldn't set socket options.");
 			}
 			if (fcntl(socket, F_SETFL, O_NONBLOCK) == -1)
 			{
 				close(socket), freeaddrinfo(result);
-				throw std::runtime_error("[FCNTL] Couldn't set the flags of a socket.");
+				throw std::runtime_error(BOLDED("[FCNTL]") " Couldn't set the flags of a socket.");
 			}
 			if (bind(socket, rit->ai_addr, rit->ai_addrlen) == -1)
 			{
 				close(socket), freeaddrinfo(result);
-				throw std::runtime_error("[BIND] bind() to " + host + ":" + port + " failed (" + strerror(errno) + ")");
+				throw std::runtime_error(BOLDED("[BIND]") " bind() to " + host + ":" + port + " failed (" + strerror(errno) + ").");
 			}
-			webserv::label_log("Successfully bound to address " + host + ":" + port, BOLDED("BIND"), GREEN, GREEN);
+			webserv::log(BOLDED("BIND") " Successfully bound to address " + host + ":" + port, GREEN);
 			if (listen(socket, BACKLOG) == -1)
 			{
 				close(socket), freeaddrinfo(result);
 				throw std::runtime_error("[LISTEN] Failed listening on " + host + ":" + port + ".");
 			}
-			webserv::label_log("Started listening on address " + host + ":" + port, BOLDED("LISTEN"), GREEN, GREEN);
+			webserv::log(BOLDED("LISTEN") " Started listening on address " + host + ":" + port, GREEN);
 			freeaddrinfo(result);
 			while (it != range.second)
 			{
@@ -508,5 +481,25 @@ namespace ft
 				throw parsing_error(token + " not met when expected.");
 			erase_chunk_front(token);
 		}
+	}
+
+	void parser::load_base_dir()
+	{
+		_directives["root"].second = true;
+		_directives["autoindex"].second = true;
+		_directives["error_page"].second = true;
+		_directives["client_max_body_size"].second = true;
+		_directives["index"].second = true;
+		_directives["cgi"].second = true;
+	}
+
+	void parser::unload_base_dir()
+	{
+		_directives["cgi"].second = false;
+		_directives["index"].second = false;
+		_directives["client_max_body_size"].second = false;
+		_directives["error_page"].second = false;
+		_directives["autoindex"].second = false;
+		_directives["root"].second = false;
 	}
 }

@@ -28,7 +28,6 @@ namespace ft
 		public:
 			operator int() const;
 			char_vector_iterator_pair get_chunk();
-			bool empty() const;
 			bool sent() const;
 		private:
 			void generate_response();

@@ -1,7 +1,6 @@
 #ifndef SERVER_SOCKET_HPP
 # define SERVER_SOCKET_HPP
 
-// # include "server.hpp" //instread of this inlcude socket.hpp
 # include "socket.hpp"
 
 namespace ft
@@ -16,8 +15,8 @@ namespace ft
 			server_socket(const server_socket &other);
 			server_socket(int fd, const std::string &host, const std::string &port);
 			server_socket &operator=(const server_socket &other);
-			void add_server(const server *server);
 			const server_pointer_vector &get_servers() const;
+			void add_server(const server *server);
 	};
 }
 
