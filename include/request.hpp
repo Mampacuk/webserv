@@ -43,7 +43,7 @@ namespace ft
 		private:
 			unsigned int	try_strtoul(const std::string &number, int base = 10) const;
 			size_t			read_header(size_t pos);
-			bool			seek_chunk();
+			size_t			seek_chunk();
 			void			separate_body();
 			size_t			parse_request_line();
 			void			parse_query();

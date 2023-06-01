@@ -169,6 +169,7 @@ namespace ft
 		unsupported_media_type        = 415, //!< Indicates that the origin server is refusing to service the request because the payload is in a format not supported by the target resource for this method.
 		range_not_satisfiable         = 416, //!< Indicates that none of the ranges in the request's Range header field overlap the current extent of the selected resource or that the set of ranges requested has been rejected due to invalid ranges or an excessive request of small or overlapping ranges.
 		expectation_failed            = 417, //!< Indicates that the expectation given in the request's Expect header field could not be met by at least one of the inbound servers.
+		i_am_a_teapot				  = 418,
 
 		/*####### 5xx - Server Error #######*/
 		/* Indicates that the server is aware that it has erred
@@ -251,6 +252,13 @@ namespace ft
 	size_t search(const Container &haystack, const Sequence &needle, size_t pos = 0, BinaryPredicate comp = BinaryPredicate())
 	{
 		typename Container::const_iterator result = std::search(haystack.begin() + pos, haystack.end(), needle.begin(), needle.end(), comp);
+		return (result != haystack.end() ? std::distance(haystack.begin(), result) : std::string::npos);
+	}
+
+	template <typename Container, typename Sequence, typename BinaryPredicate>
+	size_t rsearch(const Container &haystack, const Sequence &needle, size_t pos = 0, BinaryPredicate comp = BinaryPredicate())
+	{
+		typename Container::const_iterator result = std::find_end(haystack.begin() + pos, haystack.end(), needle.begin(), needle.end(), comp);
 		return (result != haystack.end() ? std::distance(haystack.begin(), result) : std::string::npos);
 	}
 

@@ -33,29 +33,26 @@ namespace ft
 	bool request::append_chunk(const char *chunk, size_t chunk_size)
 	{
 		_raw.insert(_raw.end(), chunk, chunk + chunk_size);
-		// std::cout << MAGENTA BOLDED("------- start of received CHUNK -------") << MAGENTA << std::endl;
-		// write(STDOUT_FILENO, chunk, chunk_size);
-		// std::cout << std::endl << MAGENTA BOLDED("-------- END of received CHUNK --------") RESET << std::endl;
 		if (_headers_end == std::string::npos)
 		{
 			if ((_headers_end = search(_raw, std::string(CRLF CRLF))) == std::string::npos)
-			{
-				// std::cout << CYAN "NOT DONE RECEIVING HEADERS" RESET << std::endl; 
 				return (false);
-			}
-			read_header(search(_raw, std::string("Content-Length:"), 0, case_insensitive_equal_to()));
+			const size_t content_length_pos = search(_raw, std::string("Content-Length:"), 0, case_insensitive_equal_to());
+			if (content_length_pos != rsearch(_raw, std::string("Content-Length:"), 0, case_insensitive_equal_to()))
+				throw protocol_error(bad_request);
+			read_header(content_length_pos);
 			read_header(search(_raw, std::string("Transfer-Encoding:"), 0, case_insensitive_equal_to()));
 			if (operator[]("Content-Length").empty())
 			{
 				if (operator[]("Transfer-Encoding").empty())
 				{
 					// check with small BUFSIZ
-					// std::cout << CYAN "CONTENT-LENGTH ABSENT AND TRANSFER-ENCODING ABSENT" RESET << std::endl;
+					std::cout << CYAN "CONTENT-LENGTH ABSENT AND TRANSFER-ENCODING ABSENT" RESET << std::endl;
 					return (true);
 				}
 				else if (operator[]("Transfer-Encoding") != "chunked") // the message is ill-formed
 					throw protocol_error(bad_request);
-				// std::cout << CYAN "TRANSFER-ENCODING CASE" RESET << std::endl;
+				std::cout << CYAN "TRANSFER-ENCODING CASE" RESET << std::endl;
 			}
 			else
 			{
@@ -68,11 +65,14 @@ namespace ft
 		}
 		if (_content_length < 0) // "Transfer-Encoding: chunked" case
 		{
+			size_t chunked = 1;
 			std::cout << CYAN BOLDED("TRANSFER ENCODING CASE") RESET << std::endl;
-			return (seek_chunk());
+			while (chunked && chunked != std::string::npos)
+				chunked = seek_chunk();
+			return (chunked == 0);
 		}
-		// std::cout << CYAN "COMPLETED RECEIVING REQUEST? " << ((_raw.size() == _content_length + _headers_end + std::strlen(CRLF CRLF CRLF)
-		// 	|| (ends_with(_raw, CRLF) && !ends_with(_raw, CRLF CRLF))) ? "yes" : "no") << RESET << std::endl;
+		std::cout << CYAN "COMPLETED RECEIVING REQUEST? " << ((_raw.size() == _content_length + _headers_end + std::strlen(CRLF CRLF CRLF)
+			|| (ends_with(_raw, CRLF) && !ends_with(_raw, CRLF CRLF))) ? "yes" : "no") << RESET << std::endl;
 		// std::cout << RED "vvvvvvv received chunk of size " << chunk_size << "vvvvvvv" RESET << std::endl;
 		// std::cout << chunk << std::endl;
 		// std::cout << RED "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" RESET << std::endl;
@@ -99,7 +99,7 @@ namespace ft
 			if (line.empty())
 				return (std::string::npos);
 			size_t colon = line.find(':');
-			if (colon == 0 || colon == std::string::npos)
+			if (colon == 0 || colon == std::string::npos || line.find(' ') < colon)
 				throw protocol_error(bad_request);
 			// std::cout << CYAN "bad_request1" RESET << std::endl;
 			std::string key = uppercase(std::string(_raw.begin() + pos, _raw.begin() + pos + colon));
@@ -119,51 +119,44 @@ namespace ft
 	{
 		print_request();
 		separate_body();
-		// std::cout << MAGENTA "separated body" RESET << std::endl;
 		size_t pos = parse_request_line();
-		// std::cout << MAGENTA "parsed request line" RESET << std::endl;
 		_headers_end = std::string::npos; // to allow trailer search
 		while (pos != std::string::npos)
 			pos = read_header(pos);
-		// std::cout << MAGENTA "parsed headers" RESET << std::endl;
 		select_server();
-		// std::cout << MAGENTA "selected server" RESET << std::endl;
 		parse_query();
-		// std::cout << MAGENTA "parsed query" RESET << std::endl;
 		_raw.clear();
 	}
 
-	// returns true if the trailing 0-chunk was found
+	// returns the chunk size. if chunk isn't ready, returns std::string::npos
 	// appends chunk to body, throws bad_request if there's chunk size mismatch
 	// sets _chunk_size_begin to point to the start of the trailer once 0-chunk is found
-	bool request::seek_chunk()
+	size_t request::seek_chunk()
 	{
 		if (!_chunk_size_begin)
 			_chunk_size_begin = _headers_end + std::strlen(CRLF CRLF);
 		const size_t chunk_size_end = search(_raw, std::string(CRLF), _chunk_size_begin);
 		if (chunk_size_end == std::string::npos)
-			return (false);
+			return (std::string::npos);
 		const size_t chunk_size = parse_chunk_size(std::string(_raw.begin() + _chunk_size_begin, _raw.begin() + chunk_size_end));
 		if (chunk_size == 0)
 		{
 			_chunk_size_begin = chunk_size_end + std::strlen(CRLF);
-			return (true);
+			return (chunk_size);
 		}
 		const size_t chunk_content_begin = chunk_size_end + std::strlen(CRLF);
 		const size_t chunk_content_end = search(_raw, std::string(CRLF), chunk_content_begin);
 		if (chunk_content_end == std::string::npos)
-			return (false);
+			return (std::string::npos);
 		if (chunk_content_end - chunk_content_begin != chunk_size)
 			throw protocol_error(bad_request);
 		_body.insert(_body.end(), _raw.begin() + chunk_content_begin, _raw.begin() + chunk_content_end);
 		_chunk_size_begin = chunk_content_end + std::strlen(CRLF);
-		return (false);
+		return (chunk_size);
 	}
 
 	void request::separate_body()
 	{
-		size_t trailer_begin = 0;
-
 		read_header(search(_raw, std::string("Transfer-Encoding:"), 0, case_insensitive_equal_to()));
 		if (operator[]("Transfer-Encoding").empty())
 		{
@@ -352,33 +345,38 @@ namespace ft
 		size_t chunk_size;
 		std::string field_chunk;
 
+		std::cout << CYAN "parse_chunk_size on field |" << field << "|" << RESET << std::endl;
 		if (field.empty())
-			throw server_error(bad_request);
-		int semicolon = field.find(";");
+			throw protocol_error(bad_request);
+		size_t semicolon = field.find(";");
 		chunk_size = try_strtoul(field.substr(0, semicolon), 16);
 		field_chunk = field;
 		while (semicolon < field_chunk.size() - 1)
 		{
 			field_chunk = field_chunk.substr(semicolon + 1);
 			size_t equal = field_chunk.find("=");
-			if (equal >= field_chunk.size() - 1)
-				throw server_error(bad_request);
-			validate_token(field_chunk.substr(0, equal));
-			semicolon = (field_chunk.substr(equal + 1)).find(";");
-			validate_ext_val(field_chunk.substr(equal + 1, semicolon));
+			if (equal < field_chunk.size() - 1)
+			{
+				validate_token(field_chunk.substr(0, equal));
+				semicolon = field_chunk.find(";", equal + 1);
+				validate_ext_val(field_chunk.substr(equal + 1, (semicolon == std::string::npos ? field_chunk.size() : semicolon) - equal - 1));
+			}
+			else
+				semicolon = std::string::npos;
 		}
 		if (semicolon == field_chunk.size() - 1)
-			throw server_error(bad_request);
+			throw protocol_error(bad_request);
+		std::cout << CYAN "RETURNED FROM parse_chunk_size " << field << RESET << std::endl;
 		return (chunk_size);
 	}
 
 	void request::validate_token(const std::string &token) const
 	{
 		if (token.empty())
-			throw server_error(bad_request);
+			throw protocol_error(bad_request);
 		for (size_t i = 0; i < token.size(); i++)
 			if (std::iscntrl(token[i]) || std::string(TOKEN_CHARSET).find(token[i]) != std::string::npos)
-				throw server_error(bad_request);
+				throw protocol_error(bad_request);
 	}
 
 	void request::validate_ext_val(const std::string &ext_val) const

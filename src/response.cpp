@@ -6,7 +6,9 @@ namespace ft
 
 	response::response(const request &request, http_code status) : _request(request), _status(status), _headers(), _uri(request.get_uri()), _path(), _body(), _message(), _cursor(), _cgi(), _location()
 	{
+		std::cout << "received request with status " << status << std::endl; 
 		generate_response();
+		print_response();
 	}
 
 	response::~response() {}
@@ -44,7 +46,19 @@ namespace ft
 			{
 				if (!_cgi.empty())
 					post_method(_cgi);
-				else get_method();
+				else
+				{
+					try
+					{
+						get_method();
+					}
+					catch (const server_error &e)
+					{
+						if (e == i_am_a_teapot)
+							return;
+						throw ;
+					}
+				} 
 			}
 			else if (_request.get_method() == "POST")
 				post_method(_cgi);
@@ -102,6 +116,7 @@ namespace ft
 
 	void response::get_method()
 	{
+		std::cout << "Inside get\n";
 		find_requested_file();
 	}
 
@@ -162,7 +177,7 @@ namespace ft
 					if (loc != _location || is_regular_file((_path + *it).c_str()))
 					{
 						generate_response();
-						return ;
+						throw server_error(i_am_a_teapot) ;
 					}
 					else
 						_uri = prev_uri;
@@ -172,7 +187,7 @@ namespace ft
 			{
 				if (_location->get_autoindex())
 					generate_autoindex(_path);
-				else throw server_error(not_found);		//forbidden
+				else throw server_error(not_found);
 			}
 		}
 		else
@@ -240,7 +255,6 @@ namespace ft
 		}
 		_message.insert(_message.end(), _body.begin(), _body.end());
 		_body.clear();
-		print_response();
 	}
 
 	char_vector_iterator_pair response::get_chunk()
