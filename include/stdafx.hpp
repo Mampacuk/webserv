@@ -65,6 +65,7 @@
 # include <map> 
 # include <vector>
 # include <signal.h>
+# include <cctype>
 
 # define RESET		"\033[0m"
 # define BOLD		"\033[1m"
@@ -85,7 +86,7 @@
 # define CRLF		"\r\n"
 
 # define HTTP_VERSION			"HTTP/1.1"
-# define URI_RESERVED_CHARSET	""
+# define TOKEN_CHARSET			"()<>@,;:\\\"/[]?={}\n\t"
 # define BACKLOG				128
 # define MAX_URI_LENGTH			8000
 # define TIMEOUT_SEC			0
