@@ -2,11 +2,15 @@
 
 namespace ft
 {
-	http::http(): base_dir(), _sockets(), _servers() {}
+	http::http() : base_dir(), _sockets(), _servers() {}
 
-	http::~http() {}
+	http::~http()
+	{
+		for (server_socket_set::iterator it = _sockets.begin(); it != _sockets.end(); it++)
+			close(*it);
+	}
 
-	http::http(const http &other): base_dir(other), _sockets(other._sockets), _servers(other._servers) {}
+	http::http(const http &other) : base_dir(other), _sockets(other._sockets), _servers(other._servers) {}
 
 	http &http::operator=(const http &other)
 	{
@@ -16,14 +20,14 @@ namespace ft
 		return (*this);
 	}
 
-	const server_list &http::get_servers() const
-	{
-		return (_servers);
-	}
-
 	const server_socket_set &http::get_sockets() const
 	{
 		return (_sockets);
+	}
+
+	const server_list &http::get_servers() const
+	{
+		return (_servers);
 	}
 
 	void http::add_server(const server &server)
@@ -34,12 +38,6 @@ namespace ft
 	void http::add_socket(const server_socket &socket)
 	{
 		_sockets.insert(socket);
-	}
-
-	void http::close_sockets()
-	{
-		for (server_socket_set::iterator it = _sockets.begin(); it != _sockets.end(); it++)
-			close(*it);
 	}
 
 	bool http::is_port_number(const std::string &port_string)

@@ -9,8 +9,8 @@ namespace ft
     {
         private:
             const server_socket &_socket;
-		public:
 			client_socket();
+		public:
 			~client_socket();
 			client_socket(const client_socket &other);
 			client_socket(int fd, const std::string &host, const std::string &port, const server_socket &socket);

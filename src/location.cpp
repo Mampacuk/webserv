@@ -12,24 +12,30 @@ namespace ft
 	{
 		if (dynamic_cast<const location*>(&other))
 		{
-			_methods = static_cast<const location&>(other)._methods;
 			_route = static_cast<const location&>(other)._route;
 			_modifier = static_cast<const location&>(other)._modifier;
+			_methods = static_cast<const location&>(other)._methods;
 		}
 	}
 
 	location &location::operator=(const location &other)
 	{
 		base_dir_ext::operator=(other);
-		_methods = other._methods;
 		_route = other._route;
 		_modifier = other._modifier;
+		_methods = other._methods;
+		_flush_methods = other._flush_methods;
 		return (*this);
 	}
 
 	const std::string &location::get_route() const
 	{
 		return (_route);
+	}
+
+	bool location::has_modifier() const
+	{
+		return (_modifier);
 	}
 
 	bool location::is_allowed_method(const std::string &method) const
@@ -41,17 +47,17 @@ namespace ft
 		return (false);
 	}
 
-	bool location::has_modifier() const
-	{
-		return (_modifier);
-	}
-
 	void location::set_route(const std::string &route, location *parent)
 	{
 		if (parent)
 			if (route.compare(0, parent->get_route().length(), parent->get_route()))
 				throw std::invalid_argument("location \"" + route + "\" is outside location \"" + parent->get_route() + "\"");
 		_route = (ends_with(route, "/") ? route.substr(0, route.size() - 1) : route);
+	}
+
+	void location::set_modifier(bool modifier)
+	{
+		_modifier = modifier;
 	}
 
 	void location::add_method(const std::string &method) // what if there are 2 GET _methods
@@ -62,11 +68,6 @@ namespace ft
 			return ;
 		}
 		throw std::invalid_argument("Method duplicated.");
-	}
-
-	void location::set_modifier(bool modifier)
-	{
-		_modifier = modifier;
 	}
 
 	void location::flush_methods()

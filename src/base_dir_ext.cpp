@@ -18,26 +18,26 @@ namespace ft
 		return (*this);
 	}
 
-	const string_map &base_dir_ext::get_rewrites() const
-	{
-		return (_rewrites);
-	}
-
 	const location_set &base_dir_ext::get_locations() const
 	{
 		return (_locations);
 	}
 
-	void base_dir_ext::add_rewrite(std::string expression, std::string uri)
+	const string_map &base_dir_ext::get_rewrites() const
 	{
-		_rewrites.insert(string_pair(expression, uri));
+		return (_rewrites);
 	}
 
 	void base_dir_ext::add_location(location location)
 	{
 		if (_locations.find(location) != _locations.end())
-			throw ft::parsing_error("Duplicate location.");
+			throw parsing_error("Duplicate location.");
 		_locations.insert(location);
+	}
+
+	void base_dir_ext::add_rewrite(std::string expression, std::string uri)
+	{
+		_rewrites.insert(string_pair(expression, uri));
 	}
 
 	void base_dir_ext::flush_rewrites()

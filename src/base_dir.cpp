@@ -16,8 +16,6 @@ namespace ft
 	{
 		_autoindex = other._autoindex;
 		_root = other._root;
-		// _cgi_executable = other._cgi_executable;
-		// _cgi_extension = other._cgi_extension;
 		_client_max_body_size = other._client_max_body_size;
 		_cgi = other._cgi;
 		_error_pages = other._error_pages;
@@ -28,34 +26,14 @@ namespace ft
 		return (*this);
 	}
 
-	void base_dir::set_root(const std::string &root)
+	bool base_dir::get_autoindex() const
 	{
-		_root = (ends_with(root, "/") ? root.substr(0, root.size() - 1) : root);
-	}
-
-	void base_dir::set_autoindex(bool autoindex)
-	{
-		_autoindex = autoindex;
-	}
-
-	void base_dir::set_client_max_body_size(unsigned long int size)
-	{
-		_client_max_body_size = size;
-	}
-
-	void base_dir::add_cgi(const std::string &cgi_extension, const std::string &cgi_executable)
-	{
-		_cgi.insert(string_pair(cgi_extension, cgi_executable));
+		return (_autoindex);
 	}
 
 	const std::string &base_dir::get_root() const
 	{
 		return (_root);
-	}
-
-	bool base_dir::get_autoindex() const
-	{
-		return (_autoindex);
 	}
 
 	unsigned int base_dir::get_client_max_body_size() const
@@ -71,16 +49,9 @@ namespace ft
 		return (it != _cgi.end() ? it->second : "");
 	}
 
-	void base_dir::add_error_page(http_code error, const std::string &page)
+	const string_map &base_dir::get_cgi() const
 	{
-		// _error_pages[error] = starts_with(page, "/") ? page.substr(1, page.size()) : page;
-		_error_pages.insert(std::make_pair(error, (!starts_with(page, "/") ? "/" : "") + page));
-	}
-
-	void base_dir::add_index(const std::string &index_file)
-	{
-		_indices.push_back(starts_with(index_file, "/") ? index_file.substr(1, index_file.size()) : index_file);
-	
+		return (_cgi);
 	}
 
 	std::string base_dir::get_error_page(http_code error) const
@@ -94,6 +65,37 @@ namespace ft
 	const string_vector &base_dir::get_indices() const
 	{
 		return (_indices);
+	}
+
+	void base_dir::set_autoindex(bool autoindex)
+	{
+		_autoindex = autoindex;
+	}
+
+	void base_dir::set_root(const std::string &root)
+	{
+		_root = (ends_with(root, "/") ? root.substr(0, root.size() - 1) : root);
+	}
+
+	void base_dir::set_client_max_body_size(unsigned long int size)
+	{
+		_client_max_body_size = size;
+	}
+
+	void base_dir::add_cgi(const std::string &cgi_extension, const std::string &cgi_executable)
+	{
+		_cgi.insert(string_pair(cgi_extension, cgi_executable));
+	}
+
+	void base_dir::add_error_page(http_code error, const std::string &page)
+	{
+		_error_pages.insert(std::make_pair(error, (!starts_with(page, "/") ? "/" : "") + page));
+	}
+
+	void base_dir::add_index(const std::string &index_file)
+	{
+		_indices.push_back(starts_with(index_file, "/") ? index_file.substr(1, index_file.size()) : index_file);
+	
 	}
 
 	void base_dir::flush_cgi()
@@ -121,10 +123,5 @@ namespace ft
 			_indices.clear();
 			_flush_indices = true;
 		}
-	}
-
-	const string_map &base_dir::get_cgi() const
-	{
-		return (_cgi);
 	}
 }
