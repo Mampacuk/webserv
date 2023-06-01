@@ -32,19 +32,23 @@ namespace ft
 	bool request::append_chunk(const char *chunk, size_t chunk_size)
 	{
 		_raw.insert(_raw.end(), chunk, chunk + chunk_size);
+		std::cout << MAGENTA BOLDED("------- start of received CHUNK -------") << MAGENTA << std::endl;
+		write(STDOUT_FILENO, chunk, chunk_size);
+		std::cout << std::endl << MAGENTA BOLDED("-------- END of received CHUNK --------") RESET << std::endl;
 		if (_headers_end == std::string::npos)
 		{
-			if ((_headers_end = search(_raw, CRLF CRLF)) == std::string::npos)
+			if ((_headers_end = search(_raw, std::string(CRLF CRLF))) == std::string::npos)
 			{
 				// std::cout << CYAN "NOT DONE RECEIVING HEADERS" RESET << std::endl; 
 				return (false);
 			}
-			read_header(search(_raw, "Content-Length: "));
-			read_header(search(_raw, "Transfer-Encoding: "));
+			read_header(search(_raw, std::string("Content-Length:"), 0, case_insensitive_equal_to()));
+			read_header(search(_raw, std::string("Transfer-Encoding:"), 0, case_insensitive_equal_to()));
 			if (operator[]("Content-Length").empty())
 			{
 				if (operator[]("Transfer-Encoding").empty())
 				{
+					// check with small BUFSIZ
 					// std::cout << CYAN "CONTENT-LENGTH ABSENT AND TRANSFER-ENCODING ABSENT" RESET << std::endl;
 					return (true);
 				}
@@ -58,15 +62,29 @@ namespace ft
 					throw protocol_error(bad_request);
 				_content_length = try_strtoul(operator[]("Content-Length"));
 			}
-			_headers.erase("Content-Length");
-			_headers.erase("Transfer-Encoding");
+			erase_header("Content-Length");
+			erase_header("Transfer-Encoding");
 		}
 		if (_content_length < 0) // "Transfer-Encoding: chunked" case
 		{
+			size_t zero_chunk = search(_raw, std::string(CRLF "0"), _headers_end);
+			if (zero_chunk == std::string::npos)
+				return (false);
+			zero_chunk += std::strlen(CRLF);
+			while (zero_chunk < _raw.size() && _raw[zero_chunk] == '0')
+				zero_chunk++;
+			if (zero_chunk >= _raw.size())
+				return (false);
+			if (_raw[zero_chunk] == ';')
+			{
+				size_t chunk_extension = search(_raw, std::string(CRLF), zero_chunk);
+				zero_chunk = (chunk_extension == std::string::npos ? zero_chunk : chunk_extension);
+			}
+			return (std::equal(_raw.begin() + zero_chunk, _raw.begin() + zero_chunk + std::strlen(CRLF), CRLF));
 			// std::cout << CYAN BOLDED("TRANSFER ENCODING CASE") RESET << std::endl;
-			return (ends_with(_raw, "0" CRLF CRLF));
+			// return (ends_with(_raw, "0" CRLF CRLF));
 		}
-		// std::cout << CYAN "COMPELTED RECEIVING REQUEST? " << ((_raw.size() == _content_length + _headers_end + std::strlen(CRLF CRLF CRLF)
+		// std::cout << CYAN "COMPLETED RECEIVING REQUEST? " << ((_raw.size() == _content_length + _headers_end + std::strlen(CRLF CRLF CRLF)
 		// 	|| (ends_with(_raw, CRLF) && !ends_with(_raw, CRLF CRLF))) ? "yes" : "no") << RESET << std::endl;
 		// std::cout << RED "vvvvvvv received chunk of size " << chunk_size << "vvvvvvv" RESET << std::endl;
 		// std::cout << chunk << std::endl;
@@ -87,16 +105,19 @@ namespace ft
 		// verify the headers is present, it's not in the body, and it's preceded by a CRLF
 		if (pos != std::string::npos && pos < _headers_end && std::equal(_raw.begin() + pos - std::strlen(CRLF), _raw.begin() + pos, CRLF))
 		{
-			size_t line_end = search(_raw, CRLF, pos);
+			size_t line_end = std::min(search(_raw, std::string(CRLF), pos), _raw.size());
 			std::string line = std::string(_raw.begin() + pos, _raw.begin() + line_end);
+			if (line.empty())
+				return (pos + std::strlen(CRLF));
 			size_t colon = line.find(':');
 			if (colon == 0 || colon == std::string::npos)
 				throw protocol_error(bad_request);
-			std::string key = std::string(_raw.begin() + pos, _raw.begin() + pos + colon);
-			// key validation, lowercasing
+			// std::cout << CYAN "bad_request1" RESET << std::endl;
+			std::string key = uppercase(std::string(_raw.begin() + pos, _raw.begin() + pos + colon));
 			if (_headers.find(key) != _headers.end())
 				throw protocol_error(bad_request);
-			size_t val_start = line.find_first_not_of(' ', colon + 2);							// val start; 2 is to skip ": "
+			// std::cout << CYAN "bad_request2" RESET << std::endl;
+			size_t val_start = line.find_first_not_of(' ', colon + 1);
 			std::string value = (val_start == std::string::npos ? "" : line.substr(val_start));	// val separated (with tail spaces)
 			value = value.substr(0, value.find_last_not_of(' ') + 1);							// discard tail spaces
 			_headers[key] = value;
@@ -109,21 +130,26 @@ namespace ft
 	{
 		print_request();
 		separate_body();
-		// std::cout << MAGENTA "separated body" RESET << std::endl;
+		std::cout << MAGENTA "separated body" RESET << std::endl;
 		size_t pos = parse_request_line();
-		// std::cout << MAGENTA "parsed request line" RESET << std::endl;
-		while (pos != _headers_end + std::strlen(CRLF))
+		std::cout << MAGENTA "parsed request line" RESET << std::endl;
+		_headers_end = std::string::npos;
+		while (search(_raw, std::string(CRLF), pos) != std::string::npos)
 			pos = read_header(pos);
-		// std::cout << MAGENTA "parsed headers" RESET << std::endl;
+		read_header(pos);
+		std::cout << MAGENTA "parsed headers" RESET << std::endl;
 		select_server();
-		// std::cout << MAGENTA "selected server" RESET << std::endl;
+		std::cout << MAGENTA "selected server" RESET << std::endl;
 		parse_query();
-		// std::cout << MAGENTA "parsed query" RESET << std::endl;
+		std::cout << MAGENTA "parsed query" RESET << std::endl;
 		_raw.clear();
 	}
 
 	void request::separate_body()
 	{
+		size_t trailer_begin = 0;
+
+		read_header(search(_raw, std::string("Transfer-Encoding:"), 0, case_insensitive_equal_to()));
 		if (operator[]("Transfer-Encoding").empty())
 		{
 			const size_t read_body_start = _headers_end + std::strlen(CRLF CRLF);
@@ -138,33 +164,43 @@ namespace ft
 		{
 			size_t	chunk_size;
 			size_t	pos = _headers_end + std::strlen(CRLF CRLF);
-			size_t	end_of_line = search(_raw, CRLF, pos);
+			// size_t	colon = search(_raw, "")
+			size_t	end_of_line = search(_raw, std::string(CRLF), pos);
 			chunk_size = try_strtoul(std::string(_raw.begin() + pos, _raw.begin() + end_of_line), 16);
 			_content_length = 0;
 			while (chunk_size > 0)
 			{
-				pos = end_of_line + std::strlen(CRLF);	// now points to the beginning of chunk
-				end_of_line = search(_raw, CRLF, pos);	// now points to the end of chunk
+				pos = end_of_line + std::strlen(CRLF);				// now points to the beginning of chunk
+				end_of_line = search(_raw, std::string(CRLF), pos);	// now points to the end of chunk
 				if (end_of_line - pos != chunk_size)
 					throw protocol_error(bad_request);
 				_body.insert(_body.end(), _raw.begin() + pos, _raw.begin() + pos + chunk_size);	// append the chunk to the body
 				_content_length += chunk_size;
-				pos = end_of_line + std::strlen(CRLF);	// now points to the beginning of chunk-size
-				end_of_line = search(_raw, CRLF, pos);	// now points to the end of chunk-size
+				pos = end_of_line + std::strlen(CRLF);				// now points to the beginning of chunk-size
+				end_of_line = search(_raw, std::string(CRLF), pos);	// now points to the end of chunk-size
 				chunk_size = try_strtoul(std::string(_raw.begin() + pos, _raw.begin() + end_of_line), 16);
 			}
+			trailer_begin = end_of_line + std::strlen(CRLF);
 		}
-		_raw.erase(_raw.begin() + _headers_end + std::strlen(CRLF CRLF), _raw.end());
+		_raw.erase(_raw.begin() + _headers_end + (!trailer_begin ? 0 : std::strlen(CRLF)), _raw.begin() + (!trailer_begin ? _raw.size() : trailer_begin));
+		// std::cout << YELLOW "body (size " << _body.size() << ") now" << std::endl;
+		// write(STDOUT_FILENO, &_body.front(), _body.size());
+		// std::cout << RESET << std::endl;
+		// std::cout << YELLOW "raw (size " << _raw.size() << ") now |";
+		// for (size_t i = 0; i < _raw.size(); i++) std::cout << _raw[i];
+		// std::cout << "|" << RESET << std::endl;
+		// std::cout << RED << "ends with double CRLF?" << ends_with(_raw, CRLF CRLF) << std::endl;
+		erase_header("Transfer-Encoding");
 	}
 
 	size_t request::parse_request_line()
 	{
-		size_t line_end = search(_raw, CRLF);
-		size_t space = search(_raw, " ");
+		size_t line_end = search(_raw, std::string(CRLF));
+		size_t space = search(_raw, std::string(" "));
 		if (!space || space > line_end)
 			throw protocol_error(bad_request);
 		_method = std::string(_raw.begin(), _raw.begin() + space);
-		space = search(_raw, " ", space + 1);
+		space = search(_raw, std::string(" "), space + 1);
 		if (space > line_end)
 			throw protocol_error(bad_request);
 		_uri = std::string(_raw.begin() + _method.length() + 1, _raw.begin() + space);
@@ -204,7 +240,6 @@ namespace ft
 					return ;
 				}
 			}
-		_server = _socket.get_server_socket().get_servers().front();
 	}
 
 	void request::print_request() const
@@ -216,9 +251,9 @@ namespace ft
 
 	std::string request::operator[](const std::string &header) const
 	{
-		string_map::const_iterator header_pair = _headers.find(header);
-		if (header_pair != _headers.end())
-			return (header_pair->second);
+		string_map::const_iterator header_value = _headers.find(uppercase(header));
+		if (header_value != _headers.end())
+			return (header_value->second);
 		return ("");
 	}
 
@@ -247,6 +282,11 @@ namespace ft
 		return (_pathinfo);
 	}
 
+	const string_map &request::get_headers() const
+	{
+		return (_headers);
+	}
+
 	const char_vector &request::get_body() const
 	{
 		return (_body);
@@ -267,6 +307,11 @@ namespace ft
 	void request::set_pathinfo(const std::string &pathinfo)
 	{
 		_pathinfo = pathinfo;
+	}
+
+	void request::erase_header(const std::string &header)
+	{
+		_headers.erase(uppercase(header));
 	}
 
 	request::operator int() const
@@ -302,10 +347,5 @@ namespace ft
 				}
 				else throw protocol_error(bad_request);
 			}
-	}
-
-	char request::tolower(char c)
-	{
-		return (std::tolower(c));
 	}
 }

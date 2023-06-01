@@ -190,11 +190,10 @@ namespace ft
 			closedir(directory);
 			return (true);
 		}
-
 		if (!is_regular_file(filename.c_str()))
 			return (false);
 		file.open(filename);
-		return file ? true : false;
+		return (file ? true : false);
 	}
 
 	void response::find_location(const base_dir_ext &level)
@@ -351,15 +350,23 @@ namespace ft
 		environment.push_back("SERVER_PORT=" + _request.get_socket().get_server_socket().get_port());
 		environment.push_back("REQUEST_METHOD=" + _request.get_method());
 		environment.push_back("SCRIPT_NAME=" + _uri);
-		environment.push_back("DOCUMENT_ROOT=" + _location->get_root());
+		environment.push_back("DOCUMENT_URI=" + _uri);
+		// environment.push_back("DOCUMENT_ROOT=" + _location->get_root()); // getcwd() not allowed anymore :(
 		environment.push_back("QUERY_STRING=" + _request.get_query());
 		environment.push_back("REMOTE_ADDR=" + _request.get_socket().get_host());
+		environment.push_back("REMOTE_PORT=" + _request.get_socket().get_port());
 		environment.push_back("CONTENT_LENGTH=" + to_string(_request.get_content_length()));
+		_request.erase_header("Content-Length");
 		if (!_request[std::string("Content-Type")].empty())
+		{
 			environment.push_back("CONTENT_TYPE=" + _request[std::string("Content-Type")]);
+			_request.erase_header("Content-Type");
+		}
 		environment.push_back("GATEWAY_INTERFACE=CGI/1.1");
 		environment.push_back("SERVER_SOFTWARE=webserv/1.0");
-		environment.push_back("REQUEST_URI=" + _request.get_uri() + (_request.get_query().empty() ? "" : "?" + _request.get_query()));
+		environment.push_back("REQUEST_URI=" + _request.get_uri() + _request.get_pathinfo() + (_request.get_query().empty() ? "" : "?" + _request.get_query()));
+		for (string_map::const_iterator it = _request.get_headers().begin(); it != _request.get_headers().end(); it++)
+			environment.push_back("HTTP_" + underscore(it->first) + "=" + it->second);
 		if (!(cgi_envp = static_cast<char**>(std::calloc(environment.size() + 1, sizeof(char*)))))
 			throw std::runtime_error("[CGI] std::calloc() failed.");
 		for (size_t i = 0; i < environment.size(); i++)
@@ -367,9 +374,8 @@ namespace ft
 		if (dup2(in[0], STDIN_FILENO) == -1 || dup2(out[1], STDOUT_FILENO) == -1)
 			throw std::runtime_error("[CGI] dup2() failed.");
 		close(in[0]), close(in[1]), close(out[0]), close(out[1]);
-		// std::cout << "RUNNING EXECVE\n";
 		execve(cgi_argv[0], cgi_argv, cgi_envp);
-		throw std::runtime_error("[CGI] execve() failed: " + std::string(cgi_argv[0]) + " inaccessible.");
+		throw std::runtime_error("[CGI] execve() failed: " + std::string(cgi_argv[0][0] == '\0' ? "(null)" : cgi_argv[0]) + " inaccessible.");
 	}
 
 	void response::post_method(const std::string &cgi_executable)

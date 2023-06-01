@@ -102,6 +102,11 @@ namespace ft
 	class	socket;
 	class	server_socket;
 
+	struct case_insensitive_equal_to : public std::binary_function<char, char, bool>
+	{
+		result_type operator()(const first_argument_type &lhs, const second_argument_type &rhs);
+	};
+
 	enum http_code
 	{
 		/*####### 1xx - Informational #######*/
@@ -210,12 +215,14 @@ namespace ft
 	typedef std::set<location> location_set;
 
 	bool ends_with(const std::string &str, const std::string &suffix);
-	bool ends_with(const char_vector &char_vec, const std::string &suffix);
 	bool starts_with(const std::string &str, const std::string &prefix);
 	std::string get_file_extension(const std::string &filename);
 	std::string inet_ntoa(struct in_addr addr);
 	unsigned int strtoul(const std::string &number, int base = 10);
-	size_t search(const char_vector &haystack, const std::string &needle, size_t pos = 0);
+	char toupper(char c);
+	char tounderscore(char c);
+	std::string uppercase(const std::string &str);
+	std::string underscore(const std::string &str);
 	std::string reason_phrase(http_code status);
 
 	template <typename Integral>
@@ -224,6 +231,26 @@ namespace ft
 		std::stringstream ss;
 		ss << val;
 		return (ss.str());
+	}
+
+	template <typename Container>
+	bool ends_with(const Container &char_vec, const std::string &suffix)
+	{
+		return (char_vec.size() >= suffix.size() && std::equal(char_vec.end() - suffix.size(), char_vec.end(), suffix.begin()));
+	}
+
+	template <typename Container, typename Sequence>
+	size_t search(const Container &haystack, const Sequence &needle, size_t pos = 0)
+	{
+		typename Container::const_iterator result = std::search(haystack.begin() + pos, haystack.end(), needle.begin(), needle.end());
+		return (result != haystack.end() ? std::distance(haystack.begin(), result) : std::string::npos);
+	}
+
+	template <typename Container, typename Sequence, typename BinaryPredicate>
+	size_t search(const Container &haystack, const Sequence &needle, size_t pos = 0, BinaryPredicate comp = BinaryPredicate())
+	{
+		typename Container::const_iterator result = std::search(haystack.begin() + pos, haystack.end(), needle.begin(), needle.end(), comp);
+		return (result != haystack.end() ? std::distance(haystack.begin(), result) : std::string::npos);
 	}
 
 	class parsing_error : public std::logic_error

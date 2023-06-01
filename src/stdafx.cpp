@@ -2,14 +2,14 @@
 
 namespace ft
 {
+	case_insensitive_equal_to::result_type case_insensitive_equal_to::operator()(const case_insensitive_equal_to::first_argument_type &lhs, const case_insensitive_equal_to::second_argument_type &rhs)
+	{
+		return (std::tolower(lhs) == std::tolower(rhs));
+	}
+
     bool ends_with(const std::string &str, const std::string &suffix)
 	{
 		return (str.size() >= suffix.size() && !str.compare(str.size() - suffix.size(), std::string::npos, suffix));
-	}
-
-	bool ends_with(const char_vector &char_vec, const std::string &suffix)
-	{
-		return (char_vec.size() >= suffix.size() && std::equal(char_vec.end() - suffix.size(), char_vec.end(), suffix.begin()));
 	}
 
 	bool starts_with(const std::string &str, const std::string &prefix)
@@ -50,10 +50,30 @@ namespace ft
 		return (ul);
 	}
 
-	size_t search(const char_vector &haystack, const std::string &needle, size_t pos)
+	char toupper(char c)
 	{
-		char_vector::const_iterator result = std::search(haystack.begin() + pos, haystack.end(), needle.begin(), needle.end());
-		return (result != haystack.end() ? std::distance(haystack.begin(), result) : std::string::npos);
+		return (std::toupper(c));
+	}
+
+	char tounderscore(char c)
+	{
+		if (c == '-')
+			return ('_');
+		return (c);
+	}
+
+	std::string uppercase(const std::string &str)
+	{
+		std::string result = str;
+		std::transform(result.begin(), result.end(), result.begin(), toupper);
+		return (result);
+	}
+
+	std::string underscore(const std::string &str)
+	{
+		std::string result = str;
+		std::transform(result.begin(), result.end(), result.begin(), tounderscore);
+		return (result);
 	}
 
 	std::string reason_phrase(http_code status)

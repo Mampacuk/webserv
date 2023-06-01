@@ -27,15 +27,17 @@ namespace ft
 			bool append_chunk(const char *chunk, size_t chunk_size);
 			void parse();
 			std::string operator[](const std::string &header) const;
-			const client_socket &get_socket() const;
 			const std::string &get_method() const;
 			const std::string &get_uri() const;
 			const std::string &get_query() const;
 			const std::string &get_pathinfo() const;
+			const string_map &get_headers() const;
 			const char_vector &get_body() const;
+			const client_socket &get_socket() const;
 			ssize_t get_content_length() const;
 			const server &get_server() const;
 			void set_pathinfo(const std::string &pathinfo);
+			void erase_header(const std::string &header);
 			operator int() const;
 		private:
 			unsigned int	try_strtoul(const std::string &number, int base = 10) const;
@@ -46,7 +48,6 @@ namespace ft
 			void			select_server();
 			void			print_request() const;
 			void			validate_hostname(const std::string &hostname) const;
-			static char 	tolower(char c);
 	};
 }
 
