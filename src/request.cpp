@@ -45,14 +45,9 @@ namespace ft
 			if (operator[]("Content-Length").empty())
 			{
 				if (operator[]("Transfer-Encoding").empty())
-				{
-					// check with small BUFSIZ
-					std::cout << CYAN "CONTENT-LENGTH ABSENT AND TRANSFER-ENCODING ABSENT" RESET << std::endl;
 					return (true);
-				}
-				else if (operator[]("Transfer-Encoding") != "chunked") // the message is ill-formed
+				else if (operator[]("Transfer-Encoding") != "chunked")
 					throw protocol_error(bad_request);
-				std::cout << CYAN "TRANSFER-ENCODING CASE" RESET << std::endl;
 			}
 			else
 			{
@@ -66,22 +61,10 @@ namespace ft
 		if (_content_length < 0) // "Transfer-Encoding: chunked" case
 		{
 			size_t chunked = 1;
-			std::cout << CYAN BOLDED("TRANSFER ENCODING CASE") RESET << std::endl;
 			while (chunked && chunked != std::string::npos)
 				chunked = seek_chunk();
 			return (chunked == 0);
 		}
-		std::cout << CYAN "COMPLETED RECEIVING REQUEST? " << ((_raw.size() == _content_length + _headers_end + std::strlen(CRLF CRLF CRLF)
-			|| (ends_with(_raw, CRLF) && !ends_with(_raw, CRLF CRLF))) ? "yes" : "no") << RESET << std::endl;
-		// std::cout << RED "vvvvvvv received chunk of size " << chunk_size << "vvvvvvv" RESET << std::endl;
-		// std::cout << chunk << std::endl;
-		// std::cout << RED "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" RESET << std::endl;
-		// std::cout << LGREEN "raw size: " << _raw.size() << std::endl;
-		// std::cout << "_content_length: " << _content_length << std::endl;
-		// std::cout << "_headers_end: " << _headers_end << std::endl;
-		// std::cout << "_content_length + _headers_end + std::strlen(CRLF CRLF CRLF): " << (_content_length + _headers_end + std::strlen(CRLF CRLF CRLF)) << std::endl;
-		// std::cout << "(ends_with(_raw, CRLF): " << (ends_with(_raw, CRLF)) << std::endl;
-		// std::cout << "!ends_with(_raw, CRLF CRLF)): " << !ends_with(_raw, CRLF CRLF) << RESET << std::endl;
 		return (_raw.size() >= _content_length + _headers_end + std::strlen(CRLF CRLF)
 			|| (ends_with(_raw, CRLF) && !ends_with(_raw, CRLF CRLF)));
 	}
@@ -92,20 +75,26 @@ namespace ft
 		// verify the headers is present, it's not in the body, and it's preceded by a CRLF
 		if (pos != std::string::npos && pos < _headers_end && std::equal(_raw.begin() + pos - std::strlen(CRLF), _raw.begin() + pos, CRLF))
 		{
+			if (std::equal(_raw.begin() + pos, _raw.begin() + pos + std::strlen(CRLF), CRLF))
+				return (std::string::npos);
 			size_t line_end = search(_raw, std::string(CRLF), pos);
+			// std::cout << RED "bad request0" RESET << std::endl;
+			// std::cout << RED "equal to CRLF?" RESET <<  << std::endl;
 			if (line_end == std::string::npos)
 				throw protocol_error(bad_request);
+			// std::cout << RED "bad request1" RESET << std::endl;
 			std::string line = std::string(_raw.begin() + pos, _raw.begin() + line_end);
+			// std::cout << LGREEN << "line is |" << line << "|" RESET << std::endl;
 			if (line.empty())
 				return (std::string::npos);
 			size_t colon = line.find(':');
 			if (colon == 0 || colon == std::string::npos || line.find(' ') < colon)
 				throw protocol_error(bad_request);
-			// std::cout << CYAN "bad_request1" RESET << std::endl;
+			// std::cout << RED "bad request2" RESET << std::endl;
 			std::string key = uppercase(std::string(_raw.begin() + pos, _raw.begin() + pos + colon));
 			if (_headers.find(key) != _headers.end())
 				throw protocol_error(bad_request);
-			// std::cout << CYAN "bad_request2" RESET << std::endl;
+			// std::cout << RED "bad request3" RESET << std::endl;
 			size_t val_start = line.find_first_not_of(' ', colon + 1);
 			std::string value = (val_start == std::string::npos ? "" : line.substr(val_start));	// val separated (with tail spaces)
 			value = value.substr(0, value.find_last_not_of(' ') + 1);							// discard tail spaces
@@ -118,14 +107,17 @@ namespace ft
 	void request::parse()
 	{
 		print_request();
+		// std::cout << YELLOW "bad request1" RESET << std::endl;
 		separate_body();
 		size_t pos = parse_request_line();
 		_headers_end = std::string::npos; // to allow trailer search
 		while (pos != std::string::npos)
 			pos = read_header(pos);
+		// std::cout << YELLOW "bad request3" RESET << std::endl;
 		select_server();
 		parse_query();
 		_raw.clear();
+		// std::cout << YELLOW "bad request4" RESET << std::endl;
 	}
 
 	// returns the chunk size. if chunk isn't ready, returns std::string::npos
@@ -174,13 +166,6 @@ namespace ft
 			_content_length = _body.size();
 			_raw.erase(_raw.begin() + _headers_end + std::strlen(CRLF), _raw.begin() + _chunk_size_begin);
 		}
-		// std::cout << YELLOW "body (size " << _body.size() << ") now" << std::endl;
-		// write(STDOUT_FILENO, &_body.front(), _body.size());
-		// std::cout << RESET << std::endl;
-		// std::cout << YELLOW "raw (size " << _raw.size() << ") now |";
-		// for (size_t i = 0; i < _raw.size(); i++) std::cout << _raw[i];
-		// std::cout << "|" << RESET << std::endl;
-		// std::cout << RED << "ends with double CRLF?" << ends_with(_raw, CRLF CRLF) << std::endl;
 		erase_header("Transfer-Encoding");
 	}
 
@@ -235,9 +220,9 @@ namespace ft
 
 	void request::print_request() const
 	{
-		std::cout << BLUE BOLDED("------- start of received request -------") << CYAN << std::endl;
+		std::cout << CYAN BOLDED("------- start of received request -------") << CYAN << std::endl;
 		write(STDOUT_FILENO, &_raw.front(), _raw.size());
-		std::cout << std::endl << BLUE BOLDED("-------- END of received request --------") RESET << std::endl;
+		std::cout << std::endl << CYAN BOLDED("-------- end of received request --------") RESET << std::endl;
 	}
 
 	std::string request::operator[](const std::string &header) const
@@ -345,7 +330,6 @@ namespace ft
 		size_t chunk_size;
 		std::string field_chunk;
 
-		std::cout << CYAN "parse_chunk_size on field |" << field << "|" << RESET << std::endl;
 		if (field.empty())
 			throw protocol_error(bad_request);
 		size_t semicolon = field.find(";");
@@ -366,7 +350,6 @@ namespace ft
 		}
 		if (semicolon == field_chunk.size() - 1)
 			throw protocol_error(bad_request);
-		std::cout << CYAN "RETURNED FROM parse_chunk_size " << field << RESET << std::endl;
 		return (chunk_size);
 	}
 
@@ -384,5 +367,4 @@ namespace ft
 		if (!(ext_val.size() > 1 && ext_val[0] == '"' && ext_val[ext_val.size() - 1] == '"'))
 			validate_token(ext_val);
 	}
-
 }

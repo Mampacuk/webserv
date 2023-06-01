@@ -169,7 +169,7 @@ namespace ft
 		unsupported_media_type        = 415, //!< Indicates that the origin server is refusing to service the request because the payload is in a format not supported by the target resource for this method.
 		range_not_satisfiable         = 416, //!< Indicates that none of the ranges in the request's Range header field overlap the current extent of the selected resource or that the set of ranges requested has been rejected due to invalid ranges or an excessive request of small or overlapping ranges.
 		expectation_failed            = 417, //!< Indicates that the expectation given in the request's Expect header field could not be met by at least one of the inbound servers.
-		i_am_a_teapot				  = 418,
+		im_a_teapot                   = 418, //!< Any attempt to brew coffee with a teapot should result in the error code 418 I'm a teapot.
 
 		/*####### 5xx - Server Error #######*/
 		/* Indicates that the server is aware that it has erred

@@ -6,7 +6,6 @@ namespace ft
 
 	response::response(const request &request, http_code status) : _request(request), _status(status), _headers(), _uri(request.get_uri()), _path(), _body(), _message(), _cursor(), _cgi(), _location()
 	{
-		std::cout << "received request with status " << status << std::endl; 
 		generate_response();
 		print_response();
 	}
@@ -33,6 +32,24 @@ namespace ft
 		return (_request);
 	}
 
+	char_vector_iterator_pair response::get_chunk()
+	{
+		char_vector::iterator begin = _message.begin() + _cursor;
+		_cursor = std::min(_cursor + BUFSIZ, _message.size());
+		char_vector::iterator end = _message.begin() + _cursor;
+		return (std::make_pair(begin, end));
+	}
+
+	bool response::empty() const
+	{
+		return (_message.empty());
+	}
+
+	bool response::sent() const
+	{
+		return (_cursor == _message.size());
+	}
+
 	void response::generate_response()
 	{
 		try
@@ -46,19 +63,8 @@ namespace ft
 			{
 				if (!_cgi.empty())
 					post_method(_cgi);
-				else
-				{
-					try
-					{
-						get_method();
-					}
-					catch (const server_error &e)
-					{
-						if (e == i_am_a_teapot)
-							return;
-						throw ;
-					}
-				} 
+				else if (get_method())
+					return ;
 			}
 			else if (_request.get_method() == "POST")
 				post_method(_cgi);
@@ -69,15 +75,14 @@ namespace ft
 		catch (const server_error &e)
 		{
 			_status = e;
-
 			if (_location)
 			{
 				std::string prev_uri = _uri;
 				if (!_location->get_error_page(e).empty())
 					_uri = _location->get_route() + _location->get_error_page(e);
-				const location *loc = _location;
+				const location *prev_location = _location;
 				find_location(_request.get_server());
-				if (loc != _location)
+				if (prev_location != _location)
 				{
 					_status = ok;
 					generate_response();
@@ -95,14 +100,41 @@ namespace ft
 		construct_response();
 	}
 
-	void response::construct_error_page(http_code error)
+	void response::construct_response()
 	{
-		std::string content = "<html>\n\t<head>\n\t\t<title>Error " + to_string(error) + "</title>\n\t</head>"
-				+ "\n\t<body>\n\t\t<h1>Error " + to_string(error) + " " + reason_phrase(_status) + "</h1>\n\t</body>\n</html>\n";
-		_body.insert(_body.end(), content.begin(), content.end());
+		_headers["Content-Length"] = to_string(_body.size());
+		std::string buffer = HTTP_VERSION " " + to_string(_status) + " " + reason_phrase(_status) + CRLF;
+		_message.insert(_message.end(), buffer.begin(), buffer.end());
+		for (string_map::const_iterator it = _headers.begin(); it != _headers.end(); it++)
+		{
+			buffer = it->first + ": " + it->second + CRLF;
+			_message.insert(_message.end(), buffer.begin(), buffer.end());
+		}
+		if (_cgi.empty())
+		{
+			buffer = CRLF;
+			_message.insert(_message.end(), buffer.begin(), buffer.end());
+		}
+		_message.insert(_message.end(), _body.begin(), _body.end());
+		_body.clear();
 	}
 
-	void response::read_error_page(http_code error) //check how the path is constructed
+	bool response::get_method()
+	{
+		try
+		{
+			find_requested_file();
+		}
+		catch (const server_error &e)
+		{
+			if (e == im_a_teapot)
+				return (true);
+			throw ;
+		}
+		return (false);
+	}
+
+	void response::read_error_page(http_code error)
 	{
 		std::string error_page;
 		
@@ -114,18 +146,101 @@ namespace ft
 			construct_error_page(error);
 	}
 
-	void response::get_method()
+	void response::construct_error_page(http_code error)
 	{
-		std::cout << "Inside get\n";
-		find_requested_file();
+		std::string content = "<html>\n\t<head>\n\t\t<title>Error " + to_string(error) + "</title>\n\t</head>"
+				+ "\n\t<body>\n\t\t<h1>Error " + to_string(error) + " " + reason_phrase(_status) + "</h1>\n\t</body>\n</html>\n";
+		_body.insert(_body.end(), content.begin(), content.end());
+	}
+
+	void response::find_location(const base_dir_ext &level)
+	{
+		location_set::const_iterator loc = level.get_locations().begin();
+		for (; loc != level.get_locations().end(); loc++)
+		{
+			if (starts_with(_uri, loc->get_route()))
+			{
+				if (loc->has_modifier() && loc->get_route() == _uri)
+				{
+					_location = &(*loc);
+					break;
+				}
+				if ((_location == NULL || _location->get_route().length() < loc->get_route().length()) && !loc->has_modifier())
+				{
+					_location = &(*loc);
+					find_location(*_location);
+				}
+			}
+		}
+		if (_location == NULL)
+			throw server_error(not_found);
+	}
+
+	void response::find_rewritten_location()
+	{
+		for (string_map::const_iterator it = _request.get_server().get_rewrites().begin(); it != _request.get_server().get_rewrites().end(); it++)
+			rewrite(it->first, it->second);
+		int i = 0;
+		find_location(_request.get_server());
+		while (i != 10)
+		{
+			if (!_location->get_rewrites().empty())
+			{
+				for (string_map::const_iterator it = _location->get_rewrites().begin(); it != _location->get_rewrites().end(); it++)
+					rewrite(it->first, it->second);
+				find_location(_request.get_server());
+				i++;
+			}
+			else
+				break;
+		}
+		if (!_location->is_allowed_method(_request.get_method()))
+			throw server_error(method_not_allowed);
+		if (_location->get_client_max_body_size() < _request.get_body().size())
+			throw server_error(content_too_large);
+		if (_request.get_uri().length() + (_request.get_query().empty() ? 0 : _request.get_query().length() + 1) >= MAX_URI_LENGTH)
+			throw server_error(uri_too_long);
+		parse_pathinfo();
+	}
+
+	void response::find_requested_file()
+	{
+		if (ends_with(_path, "/"))
+		{
+			ft::string_vector::const_iterator it = _location->get_indices().begin();
+			for (; it != _location->get_indices().end(); it++)
+			{
+				if (exists(_path + *it))
+				{
+					std::string prev_uri = _uri;
+					_uri = (ends_with(_uri, "/") ? _uri : (_uri + "/")) + *it;
+					const location *loc = _location;
+					find_location(_request.get_server());
+					if (loc != _location || is_regular_file((_path + *it).c_str()))
+					{
+						generate_response();
+						throw server_error(im_a_teapot);
+					}
+					else
+						_uri = prev_uri;
+				}
+			}
+			if (it == _location->get_indices().end())
+			{
+				if (_location->get_autoindex())
+					generate_autoindex(_path);
+				else throw server_error(not_found);
+			}
+		}
+		else
+			if (!read_requested_file(_path))
+				throw server_error(not_found);
 	}
 
 	bool response::read_requested_file(const std::string &filename)
 	{
 		std::ifstream file;
 
-		// std::cout << "Error code: " << e << std::endl;
-		// std::cout << "Error page: " << filename << std::endl;
 		if (!is_regular_file(filename.c_str()))
 			return (false);
 		file.open(filename);
@@ -161,173 +276,6 @@ namespace ft
 		return (false);
 	}
 
-	void response::find_requested_file()
-	{
-		if (ends_with(_path, "/"))
-		{
-			ft::string_vector::const_iterator it = _location->get_indices().begin();
-			for (; it != _location->get_indices().end(); it++)
-			{
-				if (file_exists(_path + *it))
-				{
-					std::string prev_uri = _uri;
-					_uri = (ends_with(_uri, "/") ? _uri : (_uri + "/")) + *it;
-					const location *loc = _location; //Alexxx help
-					find_location(_request.get_server());
-					if (loc != _location || is_regular_file((_path + *it).c_str()))
-					{
-						generate_response();
-						throw server_error(i_am_a_teapot) ;
-					}
-					else
-						_uri = prev_uri;
-				}
-			}
-			if (it == _location->get_indices().end())
-			{
-				if (_location->get_autoindex())
-					generate_autoindex(_path);
-				else throw server_error(not_found);
-			}
-		}
-		else
-			if (!read_requested_file(_path))
-				throw server_error(not_found);
-	}
-
-	bool response::file_exists(const std::string &filename)
-	{
-		std::ifstream file;
-		DIR *directory = opendir(filename.c_str());
-		
-		if (directory)
-		{
-			closedir(directory);
-			return (true);
-		}
-		if (!is_regular_file(filename.c_str()))
-			return (false);
-		file.open(filename);
-		return (file ? true : false);
-	}
-
-	void response::find_location(const base_dir_ext &level)
-	{
-		location_set::const_iterator loc = level.get_locations().begin();
-		for (; loc != level.get_locations().end(); loc++)
-		{
-			if (starts_with(_uri, loc->get_route()))
-			{
-				if (loc->has_modifier() && loc->get_route() == _uri)
-				{
-					_location = &(*loc);
-					break;
-				}
-				if ((_location == NULL || _location->get_route().length() < loc->get_route().length()) && !loc->has_modifier())
-				{
-					_location = &(*loc);
-					find_location(*_location);
-				}
-			}
-		}
-		if (_location == NULL)
-		{
-			throw server_error(not_found);
-		}
-	}
-
-	void response::construct_response()
-	{
-		_headers["Content-Length"] = to_string(_body.size());
-		if (!_cgi.empty() && _status == ok)
-			_status = im_used;
-		std::string buffer = HTTP_VERSION " " + to_string(_status) + " " + reason_phrase(_status) + CRLF;
-		_message.insert(_message.end(), buffer.begin(), buffer.end());
-		for (string_map::const_iterator it = _headers.begin(); it != _headers.end(); it++)
-		{
-			buffer = it->first + ": " + it->second + CRLF;
-			_message.insert(_message.end(), buffer.begin(), buffer.end());
-		}
-		if (_cgi.empty())
-		{
-			buffer = CRLF;
-			_message.insert(_message.end(), buffer.begin(), buffer.end());
-		}
-		_message.insert(_message.end(), _body.begin(), _body.end());
-		_body.clear();
-	}
-
-	char_vector_iterator_pair response::get_chunk()
-	{
-		char_vector::iterator begin = _message.begin() + _cursor;
-		_cursor = std::min(_cursor + BUFSIZ, _message.size());
-		char_vector::iterator end = _message.begin() + _cursor;
-		return (std::make_pair(begin, end));
-	}
-
-	bool response::empty() const
-	{
-		return (_message.empty());
-	}
-
-	bool response::sent() const
-	{
-		return (_cursor == _message.size());
-	}
-
-	bool response::rewrite(const std::string &what, const std::string &with_what)
-	{
-		size_t pos = _uri.find(what);
-		if (pos != std::string::npos)
-		{
-			_uri.replace(pos, pos + what.length(), with_what);
-			_status = found;
-			return true;
-		}
-		return false;
-	}
-
-	void response::find_rewritten_location()
-	{
-		for (string_map::const_iterator it = _request.get_server().get_rewrites().begin(); it != _request.get_server().get_rewrites().end(); it++)
-			rewrite(it->first, it->second);
-		int i = 0;
-		find_location(_request.get_server());
-		while (i != 10)
-		{
-			if (!_location->get_rewrites().empty())
-			{
-				for (string_map::const_iterator it = _location->get_rewrites().begin(); it != _location->get_rewrites().end(); it++)
-					rewrite(it->first, it->second);
-				find_location(_request.get_server());
-				i++;
-			}
-			else
-				break;
-		}
-		if (!_location->is_allowed_method(_request.get_method()))
-			throw server_error(method_not_allowed);
-		if (_location->get_client_max_body_size() < _request.get_body().size())
-			throw server_error(content_too_large);
-		if (_request.get_uri().length() + (_request.get_query().empty() ? 0 : _request.get_query().length() + 1) >= MAX_URI_LENGTH)
-			throw server_error(uri_too_long);
-		parse_pathinfo();
-	}
-
-	void response::parse_pathinfo()
-	{
-		size_t extension = std::string::npos;
-		for (string_map::const_iterator it = _location->get_cgi().begin(); it != _location->get_cgi().end(); it++)
-		{
-			size_t tmp = _uri.find("." + it->first);
-			if (tmp != std::string::npos && tmp <= extension && (tmp + it->first.size() + 1 == _uri.size() || _uri[tmp + it->first.size() + 1] == '/'))
-					extension = tmp + it->first.size() + 1;
-		}
-		if (extension != std::string::npos)
-			_request.set_pathinfo(_uri.substr(extension));
-		_uri = _uri.substr(0, extension);
-	}
-
 	void response::generate_autoindex(const std::string &path) 
 	{
 		DIR *dir = opendir(path.c_str());
@@ -352,44 +300,18 @@ namespace ft
 		_body.insert(_body.end(), buffer.begin(), buffer.end());
 	}
 
-	void response::cgi_process(const std::string &cgi_executable, int in[2], int out[2])
+	void response::parse_pathinfo()
 	{
-		char **cgi_envp;
-		string_vector environment;
-		char *const cgi_argv[] = {const_cast<char*>(cgi_executable.c_str()), const_cast<char*>(_path.c_str()), NULL};
-
-		environment.push_back("PATH_INFO=" + _request.get_pathinfo());
-		environment.push_back("SERVER_NAME=" + _request[std::string("Host")]);
-		environment.push_back("SERVER_PROTOCOL=" HTTP_VERSION);
-		environment.push_back("SERVER_PORT=" + _request.get_socket().get_server_socket().get_port());
-		environment.push_back("REQUEST_METHOD=" + _request.get_method());
-		environment.push_back("SCRIPT_NAME=" + _uri);
-		environment.push_back("DOCUMENT_URI=" + _uri);
-		// environment.push_back("DOCUMENT_ROOT=" + _location->get_root()); // getcwd() not allowed anymore :(
-		environment.push_back("QUERY_STRING=" + _request.get_query());
-		environment.push_back("REMOTE_ADDR=" + _request.get_socket().get_host());
-		environment.push_back("REMOTE_PORT=" + _request.get_socket().get_port());
-		environment.push_back("CONTENT_LENGTH=" + to_string(_request.get_content_length()));
-		_request.erase_header("Content-Length");
-		if (!_request[std::string("Content-Type")].empty())
+		size_t extension = std::string::npos;
+		for (string_map::const_iterator it = _location->get_cgi().begin(); it != _location->get_cgi().end(); it++)
 		{
-			environment.push_back("CONTENT_TYPE=" + _request[std::string("Content-Type")]);
-			_request.erase_header("Content-Type");
+			size_t tmp = _uri.find("." + it->first);
+			if (tmp != std::string::npos && tmp <= extension && (tmp + it->first.size() + 1 == _uri.size() || _uri[tmp + it->first.size() + 1] == '/'))
+					extension = tmp + it->first.size() + 1;
 		}
-		environment.push_back("GATEWAY_INTERFACE=CGI/1.1");
-		environment.push_back("SERVER_SOFTWARE=webserv/1.0");
-		environment.push_back("REQUEST_URI=" + _request.get_uri() + _request.get_pathinfo() + (_request.get_query().empty() ? "" : "?" + _request.get_query()));
-		for (string_map::const_iterator it = _request.get_headers().begin(); it != _request.get_headers().end(); it++)
-			environment.push_back("HTTP_" + underscore(it->first) + "=" + it->second);
-		if (!(cgi_envp = static_cast<char**>(std::calloc(environment.size() + 1, sizeof(char*)))))
-			throw std::runtime_error("[CGI] std::calloc() failed.");
-		for (size_t i = 0; i < environment.size(); i++)
-			cgi_envp[i] = const_cast<char*>(environment[i].c_str());
-		if (dup2(in[0], STDIN_FILENO) == -1 || dup2(out[1], STDOUT_FILENO) == -1)
-			throw std::runtime_error("[CGI] dup2() failed.");
-		close(in[0]), close(in[1]), close(out[0]), close(out[1]);
-		execve(cgi_argv[0], cgi_argv, cgi_envp);
-		throw std::runtime_error("[CGI] execve() failed: " + std::string(cgi_argv[0][0] == '\0' ? "(null)" : cgi_argv[0]) + " inaccessible.");
+		if (extension != std::string::npos)
+			_request.set_pathinfo(_uri.substr(extension));
+		_uri = _uri.substr(0, extension);
 	}
 
 	void response::post_method(const std::string &cgi_executable)
@@ -437,6 +359,45 @@ namespace ft
 		close(out[0]);
 	}
 
+	void response::cgi_process(const std::string &cgi_executable, int in[2], int out[2])
+	{
+		char **cgi_envp;
+		string_vector environment;
+		char *const cgi_argv[] = {const_cast<char*>(cgi_executable.c_str()), const_cast<char*>(_path.c_str()), NULL};
+
+		environment.push_back("PATH_INFO=" + _request.get_pathinfo());
+		environment.push_back("SERVER_NAME=" + _request[std::string("Host")]);
+		environment.push_back("SERVER_PROTOCOL=" HTTP_VERSION);
+		environment.push_back("SERVER_PORT=" + _request.get_socket().get_server_socket().get_port());
+		environment.push_back("REQUEST_METHOD=" + _request.get_method());
+		environment.push_back("SCRIPT_NAME=" + _uri);
+		environment.push_back("DOCUMENT_URI=" + _uri);
+		environment.push_back("QUERY_STRING=" + _request.get_query());
+		environment.push_back("REMOTE_ADDR=" + _request.get_socket().get_host());
+		environment.push_back("REMOTE_PORT=" + _request.get_socket().get_port());
+		environment.push_back("CONTENT_LENGTH=" + to_string(_request.get_content_length()));
+		_request.erase_header("Content-Length");
+		if (!_request[std::string("Content-Type")].empty())
+		{
+			environment.push_back("CONTENT_TYPE=" + _request[std::string("Content-Type")]);
+			_request.erase_header("Content-Type");
+		}
+		environment.push_back("GATEWAY_INTERFACE=CGI/1.1");
+		environment.push_back("SERVER_SOFTWARE=webserv/1.0");
+		environment.push_back("REQUEST_URI=" + _request.get_uri() + _request.get_pathinfo() + (_request.get_query().empty() ? "" : "?" + _request.get_query()));
+		for (string_map::const_iterator it = _request.get_headers().begin(); it != _request.get_headers().end(); it++)
+			environment.push_back("HTTP_" + underscore(it->first) + "=" + it->second);
+		if (!(cgi_envp = static_cast<char**>(std::calloc(environment.size() + 1, sizeof(char*)))))
+			throw std::runtime_error("[CGI] std::calloc() failed.");
+		for (size_t i = 0; i < environment.size(); i++)
+			cgi_envp[i] = const_cast<char*>(environment[i].c_str());
+		if (dup2(in[0], STDIN_FILENO) == -1 || dup2(out[1], STDOUT_FILENO) == -1)
+			throw std::runtime_error("[CGI] dup2() failed.");
+		close(in[0]), close(in[1]), close(out[0]), close(out[1]);
+		execve(cgi_argv[0], cgi_argv, cgi_envp);
+		throw std::runtime_error("[CGI] execve() failed: " + std::string(cgi_argv[0][0] == '\0' ? "(null)" : cgi_argv[0]) + " inaccessible.");
+	}
+
 	void response::delete_method()
 	{
 		if (is_regular_file(_path.c_str()))
@@ -450,11 +411,37 @@ namespace ft
 		else throw server_error(forbidden);
 	}
 
+	bool response::rewrite(const std::string &what, const std::string &with_what)
+	{
+		size_t pos = _uri.find(what);
+		if (pos != std::string::npos)
+		{
+			_uri.replace(pos, pos + what.length(), with_what);
+			_status = found;
+			return (true);
+		}
+		return (false);
+	}
+
+	std::string response::append_trailing_slash(const std::string &path) const
+	{
+		if (!ends_with(path, "/") && is_directory(path.c_str()))
+			return (path + "/");
+		return (path);
+	}
+
 	void response::print_response() const
 	{
-		std::cout << GREEN BOLDED("------- start of sent response -------") << LGREEN << std::endl;
+		std::cout << MAGENTA BOLDED("------- start of sent response -------") << MAGENTA << std::endl;
 		write(STDOUT_FILENO, &_message.front(), _message.size());
-		std::cout << GREEN BOLDED("------- end of sent response ---------") RESET << std::endl;
+		if (!ends_with(_message, "\n"))
+			std::cout << std::endl;
+		std::cout << MAGENTA BOLDED("------- end of sent response ---------") RESET << std::endl;
+	}
+
+	bool response::exists(const std::string &filename) const
+	{
+		return (access(filename.c_str(), F_OK) == 0);
 	}
 
 	bool response::is_regular_file(const char *filename) const
@@ -479,12 +466,5 @@ namespace ft
 			return (true);
 		}
 		return (false);
-	}
-
-	std::string response::append_trailing_slash(const std::string &path)
-	{
-		if (!ends_with(path, "/") && is_directory(path.c_str()))
-			return (path + "/");
-		return (path);
 	}
 }
