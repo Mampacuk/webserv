@@ -1,66 +1,25 @@
-<!-- <!DOCTYPE html>
+<!DOCTYPE html>
 <html>
+
 <head>
-    <title>File Upload Form</title>
+    <title>Webserv Form</title>
+    <link rel="stylesheet" type="text/css" href="style/form.css">
 </head>
+
 <body>
-    <h1>File Upload</h1>
-
-    <form action="upload.py" method="post" enctype="multipart/form-data">
-        <label for="file">Select a file:</label>
-        <input type="file" id="file" name="file" required><br>
-
-        <label for="upload_dir">Upload Directory:</label>
-        <input type="text" id="upload_dir" name="upload_dir" required><br>
-
-        <input type="submit" value="Upload">
+    <form class="form" method="post" action="cgi-bin/upload.py" enctype="multipart/form-data">
+        <div class="title">Welcome to webserv uploader!</div>
+        <div class="subtitle">Let's upload your file.</div>
+        <div class="input-container ic1">
+          <input id="destination" class="input" type="text" placeholder=" " name="destination" />
+          <div class="cut"></div>
+          <label for="destination" class="placeholder">Destination</label>
+        </div>
+        <div class="input-container ic2">
+          <input id="file" class="file-input" type="file" name="file" />
+        </div>
+        <button type="text" class="submit">Submit</button>
     </form>
-</body>
-</html> -->
-
-<!-- <html>
-<head>
-  <title>Upload File</title>
-</head>
-<body>
-  <h1>Upload File</h1>
-  <form action="upload.py" method="post" enctype="multipart/form-data">
-    <label for="file">Select a file:</label>
-    <input type="file" id="file-upload" name="file-upload" required>
-    <input type="submit" value="Upload">
-</form>
-</body>
-</html> -->
-
-<!-- <form enctype="multipart/form-data" action = "upload.py" method="post" >
-    <p>File: <input type="file" name="filename" id="fileid" class="form-control">
-        <input type="submit" value="SEND" href="#"></p>
-</form> -->
-
-<!-- <!DOCTYPE html>
-<html>
-<body>
-
-<form action="upload.php" method="post" enctype="multipart/form-data">
-Select image to upload:
-<input type="file" name="userfile" id="fileToUpload">
-<input type="submit" value="Upload Image" name="submit">  
-</form>
-
-</body>
-</html> -->
-<html>
-
-<body>
-
-  <form action="upload.py" method="post" enctype="multipart/form-data">
-    Select image to upload:
-    <input type="file" name="fileToUpload" id="fileToUpload">
-
-    <input type="text" name="whereToUpload" id="whereToUpload">
-    <input type="submit" value="Upload Image" name="submit">
-  </form>
-
 </body>
 
 </html>

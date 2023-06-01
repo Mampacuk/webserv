@@ -253,9 +253,9 @@ namespace ft
 
 	void request::print_request() const
 	{
-		std::cout << CYAN BOLDED("------- start of received request -------") << CYAN << std::endl;
+		std::cout << CYAN BOLD "------- start of received request -------" RESET CYAN << std::endl;
 		write(STDOUT_FILENO, &_raw.front(), _raw.size());
-		std::cout << std::endl << CYAN BOLDED("-------- end of received request --------") RESET << std::endl;
+		std::cout << std::endl << CYAN BOLD "-------- end of received request --------" RESET << std::endl;
 	}
 
 	void request::separate_body()

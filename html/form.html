@@ -1,35 +1,32 @@
-<!-- <!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 
 <head>
-    <title>Form Submission Example</title>
+    <title>Webserv Form</title>
+    <link rel="stylesheet" type="text/css" href="style/form.css">
 </head>
 
 <body>
-    <h1>Form Submission Example</h1>
-    <form method="post" action="form.py">
-        <label for="name">Name:</label>
-        <input type="text" id="name" name="name"><br>
-        <label for="email">Email:</label>
-        <input type="email" id="email" name="email"><br>
-        <input type="submit" value="Submit">
+    <form class="form" method="post" action="cgi-bin/form.py">
+        <div class="title">Welcome to webserv!</div>
+        <div class="subtitle">Let's create your account.</div>
+        <div class="input-container ic1">
+          <input id="firstname" class="input" type="text" placeholder=" " name="firstname" />
+          <div class="cut"></div>
+          <label for="firstname" class="placeholder">First name</label>
+        </div>
+        <div class="input-container ic2">
+          <input id="lastname" class="input" type="text" placeholder=" " name="lastname" />
+          <div class="cut"></div>
+          <label for="lastname" class="placeholder">Last name</label>
+        </div>
+        <div class="input-container ic2">
+          <input id="email" class="input" type="text" placeholder=" " name="email"/>
+          <div class="cut cut-short"></div>
+          <label for="email" class="placeholder">Email</label>
+        </div>
+        <button type="text" class="submit">Submit</button>
     </form>
 </body>
 
-</html> -->
-
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>GET Form</title>
-</head>
-<body>
-<form action="form.py" method="post">
-name: <input type="text" name="name">  <br />
-
-URL: <input type="text" name="url" />
-<input type="submit" value="Submit" />
-</form>
-</body>
 </html>

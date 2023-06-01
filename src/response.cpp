@@ -105,7 +105,7 @@ namespace ft
 			buffer = it->first + ": " + it->second + CRLF;
 			_message.insert(_message.end(), buffer.begin(), buffer.end());
 		}
-		if (_cgi.empty())
+		if (_cgi.empty() || search(_body, std::string(CRLF CRLF)) == std::string::npos)
 		{
 			buffer = CRLF;
 			_message.insert(_message.end(), buffer.begin(), buffer.end());
@@ -367,6 +367,7 @@ namespace ft
 		environment.push_back("REQUEST_METHOD=" + _request.get_method());
 		environment.push_back("SCRIPT_NAME=" + _uri);
 		environment.push_back("DOCUMENT_URI=" + _uri);
+		environment.push_back("DOCUMENT_ROOT=" + _location->get_root()); // only rel. path since getcwd() not allowed
 		environment.push_back("QUERY_STRING=" + _request.get_query());
 		environment.push_back("REMOTE_ADDR=" + _request.get_socket().get_host());
 		environment.push_back("REMOTE_PORT=" + _request.get_socket().get_port());
@@ -427,11 +428,11 @@ namespace ft
 
 	void response::print_response() const
 	{
-		std::cout << MAGENTA BOLDED("------- start of sent response -------") << MAGENTA << std::endl;
+		std::cout << MAGENTA BOLD "------- start of sent response -------" RESET MAGENTA << std::endl;
 		write(STDOUT_FILENO, &_message.front(), _message.size());
 		if (!ends_with(_message, "\n"))
 			std::cout << std::endl;
-		std::cout << MAGENTA BOLDED("------- end of sent response ---------") RESET << std::endl;
+		std::cout << MAGENTA BOLD "------- end of sent response ---------" RESET << std::endl;
 	}
 
 	bool response::exists(const std::string &filename) const
