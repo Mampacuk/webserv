@@ -51,6 +51,8 @@ namespace ft
 			void			print_request() const;
 			void			validate_hostname(const std::string &hostname) const;
 			size_t			parse_chunk_size(const std::string &field) const;
+			void			validate_token(const std::string &token) const;
+			void			validate_ext_val(const std::string &ext_val) const;
 	};
 }
 

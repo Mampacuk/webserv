@@ -346,4 +346,45 @@ namespace ft
 				else throw protocol_error(bad_request);
 			}
 	}
+
+	size_t	request::parse_chunk_size(const std::string &field) const
+	{
+		size_t chunk_size;
+		std::string field_chunk;
+
+		if (field.empty())
+			throw server_error(bad_request);
+		int semicolon = field.find(";");
+		chunk_size = try_strtoul(field.substr(0, semicolon), 16);
+		field_chunk = field;
+		while (semicolon < field_chunk.size() - 1)
+		{
+			field_chunk = field_chunk.substr(semicolon + 1);
+			size_t equal = field_chunk.find("=");
+			if (equal >= field_chunk.size() - 1)
+				throw server_error(bad_request);
+			validate_token(field_chunk.substr(0, equal));
+			semicolon = (field_chunk.substr(equal + 1)).find(";");
+			validate_ext_val(field_chunk.substr(equal + 1, semicolon));
+		}
+		if (semicolon == field_chunk.size() - 1)
+			throw server_error(bad_request);
+		return (chunk_size);
+	}
+
+	void request::validate_token(const std::string &token) const
+	{
+		if (token.empty())
+			throw server_error(bad_request);
+		for (size_t i = 0; i < token.size(); i++)
+			if (std::iscntrl(token[i]) || std::string(TOKEN_CHARSET).find(token[i]) != std::string::npos)
+				throw server_error(bad_request);
+	}
+
+	void request::validate_ext_val(const std::string &ext_val) const
+	{
+		if (!(ext_val.size() > 1 && ext_val[0] == '"' && ext_val[ext_val.size() - 1] == '"'))
+			validate_token(ext_val);
+	}
+
 }
