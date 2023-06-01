@@ -40,8 +40,6 @@
 # define GRAY		"\033[90m"
 # define LRED		"\033[91m"
 # define LGREEN		"\033[92m"
-# define BOLDED(x) BOLD x RESET
-
 
 # define HTTP_VERSION		"HTTP/1.1"
 # define CRLF				"\r\n"

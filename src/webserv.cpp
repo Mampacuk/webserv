@@ -56,7 +56,7 @@ namespace ft
 				desc_ready = select(max_sd + 1, &reading_set, &writing_set, NULL, &timeout);
 				if (desc_ready == -1)
 				{
-					error("[SELECT] select() call failed: " + std::string(strerror(errno)));
+					error(BOLD "[SELECT]" RESET LRED " select() call failed: " + std::string(strerror(errno)));
 					desc_ready = 0;
 				}
 			}
@@ -67,7 +67,7 @@ namespace ft
 				{
 					client_socket new_sd(accept_connection(*it));
 					if (new_sd == -1)
-						error("[ACCEPT] Couldn't create a socket for accepted connection: " + std::string(strerror(errno)));
+						error(BOLD "[ACCEPT]" RESET LRED " Couldn't create a socket for accepted connection: " + std::string(strerror(errno)));
 					else
 					{
 						requests.push_back(new_sd);
@@ -112,13 +112,13 @@ namespace ft
 
 	int webserv::error(const std::string &error)
 	{
-		std::cerr << "[" CYAN BOLDED("webserv") RESET "]: " RED BOLDED("Error") LRED ": " << error << RESET << std::endl;
+		std::cerr << "[" CYAN BOLD "webserv" RESET "]: " RED BOLD "Error" LRED ": " << error << RESET << std::endl;
 		return (EXIT_FAILURE);
 	}
 
 	int webserv::log(const std::string &msg, const char *color)
 	{
-		std::cout << "[" CYAN BOLDED("webserv") RESET "]: " << color << msg << RESET << std::endl;
+		std::cout << "[" CYAN BOLD "webserv" RESET "]: " << color << msg << RESET << std::endl;
 		return (EXIT_SUCCESS);
 	}
 
@@ -135,7 +135,7 @@ namespace ft
 			return (client_socket(client_fd, "", "", socket));
 		host = ft::inet_ntoa(client_addr.sin_addr);
 		port = ft::to_string(ntohs(client_addr.sin_port));
-		log(BOLDED("[ACCEPT]") " Connected client " + host + ":" + port + " to address " + socket.get_host() + ":" + socket.get_port() + ".", GREEN);
+		log(BOLD "[ACCEPT]" RESET GREEN " Connected client " + host + ":" + port + " to address " + socket.get_host() + ":" + socket.get_port() + ".", GREEN);
 		return (client_socket(client_fd, host, port, socket));
 	}
 
@@ -146,20 +146,20 @@ namespace ft
 		if (bytes_read <= 0)
 		{
 			if (!bytes_read)
-				log(BOLDED("[RECV]") " Connection closed by the client.", YELLOW);
+				log(BOLD "[RECV]" RESET YELLOW " Connection closed by the client.", YELLOW);
 			else
-				error(BOLDED("[RECV]") " recv() failed due to " + to_string(errno) + " " + strerror(errno));
+				error(BOLD "[RECV]" RESET LRED " recv() failed due to " + to_string(errno) + " " + strerror(errno));
 			close(request);
 			return (EXIT_SUCCESS);
 		}
 		buffer[bytes_read] = '\0';
-		log(BOLDED("[RECV]") " Received " + to_string(bytes_read) + " bytes from " + to_string(request), GREEN);
+		log(BOLD "[RECV]" RESET GREEN " Received " + to_string(bytes_read) + " bytes from " + to_string(request), GREEN);
 		try
 		{
 			if (!(request.append_chunk(buffer, bytes_read)))	
 				return (EXIT_FAILURE);	// request wasn't fully received
 			request.parse();
-			log(BOLDED("[RECV]") " Pushed " + to_string(request) + " to responses", GREEN);
+			log(BOLD "[RECV]" RESET GREEN " Pushed " + to_string(request) + " to responses", GREEN);
 			responses.push_back(response(request));
 		}
 		catch (const protocol_error &e)
@@ -176,9 +176,9 @@ namespace ft
 		if (bytes_written <= 0)
 		{
 			if (!bytes_written)
-				log(BOLDED("[RECV]") " Connection closed by the client.", YELLOW);
+				log(BOLD "[RECV]" RESET YELLOW " Connection closed by the client.", YELLOW);
 			else
-				error(BOLDED("[SEND]") " send() failed due to " + std::string(strerror(errno)));
+				error(BOLD "[SEND]" RESET LRED " send() failed due to " + std::string(strerror(errno)));
 			return (EXIT_SUCCESS);
 		}
 		if (!response.sent())

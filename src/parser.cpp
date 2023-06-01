@@ -398,40 +398,40 @@ namespace ft
 			hints.ai_socktype = SOCK_STREAM;				 // what type of _sockets?
 			hints.ai_flags = AI_ADDRCONFIG;					 // only address families configured on the system
 			if ((status = getaddrinfo(host.c_str(), port.c_str(), &hints, &result)) != 0)
-				throw std::runtime_error(BOLDED("[GETADDRINFO] ") + std::string(gai_strerror(status)));
+				throw std::runtime_error(BOLD "[GETADDRINFO] " RESET LRED + std::string(gai_strerror(status)));
 			rit = result;
 			server_socket socket(::socket(rit->ai_family, rit->ai_socktype, rit->ai_protocol), host, port);
 			if (socket == -1)
 			{
 				freeaddrinfo(result);
-				throw std::runtime_error(BOLDED("[SOCKET]") " Failed to create a socket.");
+				throw std::runtime_error(BOLD "[SOCKET]" RESET LRED " Failed to create a socket.");
 			}
-			webserv::log(BOLDED("[SOCKET]") " Successfully created a socket " + to_string(socket), GREEN);
+			webserv::log(BOLD "[SOCKET]" RESET GREEN " Successfully created a socket " + to_string(socket), GREEN);
 			int on = 1;
 			if (setsockopt(socket, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on)) == -1
 				|| setsockopt(socket, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on)) == -1
 				|| setsockopt(socket, SOL_SOCKET, SO_REUSEPORT, &on, sizeof(on)) == -1)
 			{
 				close(socket), freeaddrinfo(result);
-				throw std::runtime_error(BOLDED("[SETSOCKETOPT]") " Couldn't set socket options.");
+				throw std::runtime_error(BOLD "[SETSOCKETOPT]" RESET LRED " Couldn't set socket options.");
 			}
 			if (fcntl(socket, F_SETFL, O_NONBLOCK) == -1)
 			{
 				close(socket), freeaddrinfo(result);
-				throw std::runtime_error(BOLDED("[FCNTL]") " Couldn't set the flags of a socket.");
+				throw std::runtime_error(BOLD "[FCNTL]" RESET LRED " Couldn't set the flags of a socket.");
 			}
 			if (bind(socket, rit->ai_addr, rit->ai_addrlen) == -1)
 			{
 				close(socket), freeaddrinfo(result);
-				throw std::runtime_error(BOLDED("[BIND]") " bind() to " + host + ":" + port + " failed (" + strerror(errno) + ").");
+				throw std::runtime_error(BOLD "[BIND]" RESET LRED " bind() to " + host + ":" + port + " failed (" + strerror(errno) + ").");
 			}
-			webserv::log(BOLDED("BIND") " Successfully bound to address " + host + ":" + port, GREEN);
+			webserv::log(BOLD "[BIND]" RESET GREEN " Successfully bound to address " + host + ":" + port, GREEN);
 			if (listen(socket, BACKLOG) == -1)
 			{
 				close(socket), freeaddrinfo(result);
 				throw std::runtime_error("[LISTEN] Failed listening on " + host + ":" + port + ".");
 			}
-			webserv::log(BOLDED("LISTEN") " Started listening on address " + host + ":" + port, GREEN);
+			webserv::log(BOLD "[LISTEN]" RESET GREEN " Started listening on address " + host + ":" + port, GREEN);
 			freeaddrinfo(result);
 			while (it != range.second)
 			{
