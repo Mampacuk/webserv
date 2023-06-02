@@ -314,6 +314,8 @@ namespace ft
 		pid_t cgi_pid;
 		int term_status, in[2], out[2];
 		
+		if (!exists(_path))
+			throw server_error(not_found);
 		if (cgi_executable.empty())
 			throw server_error(internal_server_error);
 		if (pipe(in) == -1)
