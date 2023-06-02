@@ -143,8 +143,8 @@ namespace ft
 
 	void response::construct_error_page(http_code error)
 	{
-		std::string content = "<html>\n\t<head>\n\t\t<title>Error " + to_string(error) + "</title>\n\t</head>"
-				+ "\n\t<body>\n\t\t<h1>Error " + to_string(error) + " " + reason_phrase(_status) + "</h1>\n\t</body>\n</html>\n";
+		std::string content = "<html><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=windows-1252\"><title>" + to_string(error) + " "
+			+ reason_phrase(_status) + "</title></head><body><center><h1>" + to_string(error)+ " " + reason_phrase(error) + "</h1></center><hr><center>webserv/1.0</center></body></html>";
 		_body.insert(_body.end(), content.begin(), content.end());
 	}
 
