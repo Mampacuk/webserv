@@ -412,7 +412,7 @@ namespace ft
 		size_t pos = _uri.find(what);
 		if (pos != std::string::npos)
 		{
-			_uri.replace(pos, pos + what.length(), with_what);
+			_uri = _uri.substr(0, pos) + with_what;
 			_status = found;
 			return (true);
 		}
