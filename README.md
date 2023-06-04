@@ -8,9 +8,10 @@ Your executable will be run as follows:
 ```
 ## Features and Requirements
 *	The server supports GET, POST and DELETE requests.
-*	The server supports CGI scripts that are not NPHs.
+*	The server supports CGI scripts that are not NPH (non-parsed header).
 	*	The script _MUST_ output a double CRLF sequence, `\r\n\r\n`. If it's not output by the script, the server will add it itself and potentially ruin headers added by the CGI.
 	*	Similarly, if the server detects an unintended double CRLF, it won't add one itself, potentially letting the content remain in the headers section.
+*	HTTP redirection is implemented _internally_.
 ## Configuration File
 Server configuration file is by default searched at `conf/webserv.conf`, otherwise is taken as a program argument.
 
@@ -33,5 +34,5 @@ Please be welcome to create pull requests to solve the following issues:
 *	Since `usleep()` is no longer allowed by the subject, we are yet to see a portable and interoperable way to create a time-out mechanism for CGI scripts that returns the "504 Gateway Timeout" error.
 ## Credits
 Team "The It":
-*	Anahit Apresyan | aapresya: parsing, design and class hierarchy, responses (GET method), testing & quality assurance
-*	Alexander Israelyan | aisraely: parsing, design and class hierarchy, requests, responses (POST, DELETE methods), testing & quality assurance
+*	Anahit Apresyan | aapresya: parsing, design & class hierarchy, responses (GET method), testing & quality assurance
+*	Alexander Israelyan | aisraely: parsing, design & class hierarchy, requests, responses (POST, DELETE methods), testing & quality assurance
