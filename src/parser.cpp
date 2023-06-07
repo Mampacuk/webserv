@@ -429,7 +429,7 @@ namespace ft
 			if (listen(socket, BACKLOG) == -1)
 			{
 				close(socket), freeaddrinfo(result);
-				throw std::runtime_error("[LISTEN] Failed listening on " + host + ":" + port + ".");
+				throw std::runtime_error(BOLD "[LISTEN]" RESET LRED " Failed listening on " + host + ":" + port + ".");
 			}
 			webserv::log(BOLD "[LISTEN]" RESET GREEN " Started listening on address " + host + ":" + port, GREEN);
 			freeaddrinfo(result);
